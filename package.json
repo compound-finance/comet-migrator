@@ -1,0 +1,52 @@
+{
+  "name": "comet_v2_migator",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "test": "jest"
+  },
+  "dependencies": {
+    "@esbuild-plugins/node-globals-polyfill": "^0.1.1",
+    "@ethersproject/abi": "^5.6.2",
+    "@ethersproject/bignumber": "^5.4.2",
+    "@ethersproject/contracts": "^5.6.1",
+    "@ethersproject/experimental": "^5.5.0",
+    "@ethersproject/providers": "^5.6.4",
+    "@ethersproject/units": "^5.4.0",
+    "@web3-react/core": "8.0.35-beta.0",
+    "@web3-react/network": "8.0.27-beta.0",
+    "@web3-react/types": "8.0.20-beta.0",
+    "@web3-react/url": "8.0.25-beta.0",
+    "compound-styles": "https://github.com/compound-finance/compound-styles.git#f922f4b7fdfaab4f2dc2d65f966397524107ae2d",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "rollup-plugin-polyfill-node": "^0.10.2"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "^5.16.2",
+    "@testing-library/react": "^13.3.0",
+    "@types/jest": "^27.4.1",
+    "@types/node": "17.0.21",
+    "@types/react": "^18.0.17",
+    "@types/react-dom": "^18.0.6",
+    "@types/uuid": "^8.3.4",
+    "@vitejs/plugin-react": "^2.0.1",
+    "@web3-react/types": "8.0.20-beta.0",
+    "eslint": "8.9.0",
+    "ethers": "^5.6.9",
+    "jest": "^28.0.8",
+    "sass": "^1.49.8",
+    "ts-jest": "^28.0.8",
+    "typescript": "4.5.5",
+    "vendoza": "0.0.4",
+    "vite": "^3.0.7"
+  },
+  "packageManager": "yarn@3.2.0",
+  "volta": {
+    "node": "18.7.0"
+  }
+}
