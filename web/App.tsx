@@ -1,7 +1,8 @@
+import '../styles/main.scss';
 
 export default () => {
   return (
-    <div className="App">
+    <div className="container">
       Hello World
     </div>
   );
