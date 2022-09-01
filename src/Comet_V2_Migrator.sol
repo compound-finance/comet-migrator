@@ -36,28 +36,28 @@ contract Comet_V2_Migrator is IUniswapV3FlashCallback, PeripheryImmutableState, 
   }
 
   /// @notice The Comet Ethereum mainnet USDC contract
-  Comet immutable comet;
+  Comet public immutable comet;
 
   /// @notice The Uniswap pool used by this contract to source liquidity (i.e. flash loans).
-  IUniswapV3Pool immutable uniswapLiquidityPool;
+  IUniswapV3Pool public immutable uniswapLiquidityPool;
 
   /// @notice True if borrow token is token 0 in the Uniswap liquidity pool, otherwise false if token 1.
-  bool immutable uniswapLiquidityPoolToken0;
+  bool public immutable uniswapLiquidityPoolToken0;
 
   /// @notice Fee for a flash loan from the liquidity pool as a fixed decimal (e.g. `0.001e18 = 0.1%`)
-  uint256 immutable uniswapLiquidityPoolFee;
+  uint256 public immutable uniswapLiquidityPoolFee;
 
   /// @notice A list of valid collateral tokens
   IERC20[] public collateralTokens;
 
   /// @notice The Compound II market for the borrowed token (e.g. `cUSDC`).
-  CErc20 immutable borrowCToken; 
+  CErc20 public immutable borrowCToken; 
 
   /// @notice The underlying borrow token (e.g. `USDC`).
-  IERC20 immutable borrowToken;
+  IERC20 public immutable borrowToken;
 
   /// @notice Address to send swept tokens to, if for any reason they remain locked in this contract.
-  address immutable sweepee;
+  address public immutable sweepee;
 
   /**
    * @notice Construct a new Compound_Migrate_V2_USDC_to_V3_USDC

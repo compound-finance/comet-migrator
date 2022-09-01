@@ -11,11 +11,16 @@ export default defineConfig({
   define: {
     global: "globalThis",
   },
+  server: {
+    port: 5183,
+    open: '/standalone.html',
+  },
   build: {
     target: ['es2020'],
     rollupOptions: {
       input: {
-        main: resolve(__dirname, 'index.html'),
+        standalone: resolve(__dirname, 'standalone.html'),
+        embedded: resolve(__dirname, 'embedded.html'),
       },
       plugins: [nodePolyfills()],
     },
