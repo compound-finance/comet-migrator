@@ -10,7 +10,7 @@ export ETH_PRIVATE_KEY="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d
 export fork_url="${ETHEREUM_REMOTE_NODE_MAINNET:-https://mainnet-eth.compound.finance/}"
 
 # Start Anvil fork
-anvil --fork-url "$fork_url" --fork-block-number 15356773 --port 8545 &
+anvil --fork-url "$fork_url" --fork-block-number 15356773 --chain-id 1 --port 8545 &
 anvil_pid="$!"
 
 while ! nc -z localhost 8545; do

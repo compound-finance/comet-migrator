@@ -26,6 +26,7 @@ export default defineConfig({
     },
   },
   base: '',
+  publicDir: 'web_public',
   experimental: {
     renderBuiltUrl: (filename, { hostType }) => {
       return { relative: true };

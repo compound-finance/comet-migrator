@@ -12,13 +12,13 @@ function StandaloneApp() {
   const web3 = metamaskHooks.useProvider<Web3Provider>();
 
   React.useEffect(() => {
-    metamask.activate();
-  })
+    metamask.activate(1);
+  }, []);
 
   if (web3) {
     return <App web3={web3 as any} />
   } else {
-    return <div>"Connecting..."</div>;
+    return <div>Connecting...</div>;
   }
 }
 

@@ -1,7 +1,7 @@
 import '../styles/main.scss';
 import { SendRPC } from './lib/useRPC';
 import { read, write } from './lib/RPC';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import ERC20 from '../abis/ERC20';
 
 import { JsonRpcProvider } from '@ethersproject/providers';
@@ -14,25 +14,79 @@ import mainnetV3Roots from '../node_modules/comet/deployments/mainnet/usdc/roots
 import { Contracts as mainnetV2Roots } from '../node_modules/compound-config/networks/mainnet.json';
 import mainnetV2Abi from '../node_modules/compound-config/networks/mainnet-abi.json';
 
-const cTokenNames: (keyof (typeof mainnetV2Roots))[] = ["cZRX", "cWBTC", "cUSDT", "cUSDC", "cETH", "cSAI", "cREP", "cBAT", "cCOMP", "cLINK", "cUNI", "USDC"];
+type CTokenSym = (keyof (typeof mainnetV2Roots));
+
+const cTokenNames: CTokenSym[] = ["cZRX", "cWBTC", "cUSDT", "cUSDC", "cETH", "cSAI", "cREP", "cBAT", "cCOMP", "cLINK", "cUNI"];
 const cometV2MigratorAddress = "0xcbbe2a5c3a22be749d5ddf24e9534f98951983e2";
+
+const MAX_UINT256 = BigInt('115792089237316195423570985008687907853269984665640564039457584007913129639935');
 
 interface AppProps {
   sendRPC?: SendRPC
   web3: JsonRpcProvider
 }
 
+interface AccountState {
+  account?: string,
+  borrowBalanceV2?: BigInt
+  cTokens: { [sym: string]: CTokenState }
+}
+
+interface CTokenState {
+  balance: BigInt | undefined,
+  allowance: BigInt | undefined,
+  transfer: number | 'max',
+  decimals: BigInt | undefined,
+}
+
+function showAmount(amount: BigInt, decimals: BigInt): string {
+  if (amount && decimals) {
+    return (Number(amount) / Number(10n ** decimals)).toFixed(4);
+  } else {
+    return '';
+  }
+}
+
 export default ({sendRPC, web3}: AppProps) => {
   const [timer, setTimer] = useState(0);
-  const [account, setAccount] = useState('');
-  const [balances, setBalances] = useState<Record<string, number>>({});
-  const [x, setX] = useState<string>('');
+  const initialAccountState = {
+    cTokens: Object.fromEntries(cTokenNames.map((cTokenName) => [cTokenName, { transfer: 0 }]))
+  };
+  const [accountState, setAccountState] = useState<AccountState>(initialAccountState);
 
-  const cTokens = Object.fromEntries(cTokenNames.map((cTokenName) => {
-    return [cTokenName, new Contract(mainnetV2Roots[cTokenName], mainnetV2Abi[cTokenName], web3)];
-  }));
+  const signer = useMemo(() => {
+    return web3.getSigner().connectUnchecked();
+  }, [web3, accountState.account]);
+
+  const cTokens = useMemo(() => {
+    return Object.fromEntries(cTokenNames.map((cTokenName) => {
+      return [cTokenName, new Contract(mainnetV2Roots[cTokenName], mainnetV2Abi[cTokenName], signer)];
+    }))}, [signer]);
 
   const migrator = new Contract(cometV2MigratorAddress, cometV2MigratorAbi, web3);
+
+  function setCTokenState(tokenSym: string, key: keyof CTokenState, value: CTokenState[key]) {
+    console.log([tokenSym, key, value]);
+    setAccountState({
+      ...accountState,
+      cTokens: Object.fromEntries(Object.entries(accountState.cTokens).map(([sym, state]: [string, CTokenState]) => {
+        if (sym === tokenSym) {
+          return [sym, {
+            ...state,
+            [key]: value
+          }];
+        } else {
+          return [sym, state];
+        }
+      }))
+    });
+  }
+
+  async function setTokenApproval(tokenSym: CTokenSym) {
+    console.log("setting allowance");
+    await cTokens[tokenSym].approve(migrator.address, MAX_UINT256);
+    console.log("setting allowance");
+  }
 
   useEffect(() => {
     let t;
@@ -49,49 +103,64 @@ export default ({sendRPC, web3}: AppProps) => {
   }, []);
 
   useEffect(() => {
-    console.log("here");
     (async () => {
-      setTimeout(async () => {
-        console.log("getting accounts");
-        let accounts = await web3.listAccounts();
-        console.log("accounts", accounts);
-        if (accounts.length > 0) {
-          setAccount(accounts[0]);
-          let tokenBalances = Object.fromEntries(await Promise.all(Object.entries(cTokens).map<Promise<[string, number]>>(async ([sym, token]) => {
-            return [`${sym}`, (await token.balanceOf(accounts[0])).toNumber()];
-          })));
+      let accounts = await web3.listAccounts();
+      console.log("accounts", accounts);
+      if (accounts.length > 0) {
+        let [account] = accounts;
+        setAccountState({
+          ...accountState,
+          account
+        });
+        let tokenStates = Object.fromEntries(await Promise.all(Object.entries(accountState.cTokens).map<Promise<[string, CTokenState]>>(async ([sym, state]) => {
+          return [`${sym}`, {
+            ...state,
+            balance: (await cTokens[sym].balanceOf(account)).toBigInt(),
+            allowance: (await cTokens[sym].allowance(account, migrator.address)).toBigInt(),
+            decimals: state.decimals ?? BigInt(await cTokens[sym].decimals())
+          }];
+        })));
 
-          let usdcBorrowsV2 = await cTokens.cUSDC.callStatic.borrowBalanceCurrent(accounts[0]);
+        let usdcBorrowsV2 = await cTokens.cUSDC.callStatic.borrowBalanceCurrent(account);
 
-          setBalances({
-            ...balances,
-            ...tokenBalances,
-            usdcBorrowsV2: usdcBorrowsV2.toString(),
-          });
-
-          setX(await migrator.comet());
-        }
-      }, 500)
+        setAccountState({
+          account,
+          borrowBalanceV2: usdcBorrowsV2.toString(),
+          cTokens: tokenStates
+        });
+      }
     })();
   }, [timer]);
 
   async function go() {
-    if (sendRPC) {
-      let res = await write(sendRPC, '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48', '0x313ce567');
-      console.log("go:res", res);
-    }
+    console.log("go", accountState);
   };
 
   return (
     <div className="container">
-      Comet v2 Migrator<br/>
+      Compound II to Compound III Migrator<br/>
       timer={ timer }<br/>
-      account={ account }<br/>
-      comet={ x }<br/>
+      account={ accountState.account }<br/>
       <div>
-        { Object.entries(balances).map(([sym, balance]) => {
-          return <div key={`${sym}-balance`}>
-            <label>{sym}</label> <span>{balance}</span>
+        { Object.entries(accountState.cTokens).map(([sym, state]) => {
+          return <div key={`${sym}`}>
+            <label>{sym}</label>
+            <span>balance={showAmount(state.balance, state.decimals)}</span>
+            { state.allowance === 0n ?
+              <button onClick={() => setTokenApproval(sym)}>Enable</button> :
+              <span>
+                { state.transfer === 'max' ?
+                  <span>
+                    <input disabled value="Max" />
+                    <button onClick={() => setCTokenState(sym, 'transfer', 0)}>Max</button>
+                  </span> :
+                  <span>
+                    <input type="number" value={state.transfer} onChange={(e) => setCTokenState(sym, 'transfer', Number(e.target.value))} />
+                    <button onClick={() => setCTokenState(sym, 'transfer', 'max')}>Max</button>
+                  </span>
+                }
+              </span>
+            }
           </div>
         })}
       </div>
