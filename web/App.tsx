@@ -9,14 +9,13 @@ import { JsonRpcProvider } from '@ethersproject/providers';
 import cometV2MigratorAbi from '../abis/Comet_V2_Migrator';
 import { Contract } from '@ethersproject/contracts';
 
-import kovanV3Roots from '../node_modules/comet/deployments/kovan/usdc/roots.json';
 import mainnetV3Roots from '../node_modules/comet/deployments/mainnet/usdc/roots.json';
 
-import { Contracts as kovanV2Roots } from '../node_modules/compound-config/networks/kovan.json';
 import { Contracts as mainnetV2Roots } from '../node_modules/compound-config/networks/mainnet.json';
+import mainnetV2Abi from '../node_modules/compound-config/networks/mainnet-abi.json';
 
-const cTokenNames: (keyof (typeof mainnetV2Roots))[] = ["cZRX", "cWBTC", "cUSDT", "cUSDC", "cETH", "cSAI", "cREP", "cBAT", "cCOMP", "cLINK"];
-const cometV2MigratorAddress = "0xf5c4a909455C00B99A90d93b48736F3196DB5621";
+const cTokenNames: (keyof (typeof mainnetV2Roots))[] = ["cZRX", "cWBTC", "cUSDT", "cUSDC", "cETH", "cSAI", "cREP", "cBAT", "cCOMP", "cLINK", "cUNI", "USDC"];
+const cometV2MigratorAddress = "0xcbbe2a5c3a22be749d5ddf24e9534f98951983e2";
 
 interface AppProps {
   sendRPC?: SendRPC
@@ -24,15 +23,30 @@ interface AppProps {
 }
 
 export default ({sendRPC, web3}: AppProps) => {
+  const [timer, setTimer] = useState(0);
   const [account, setAccount] = useState('');
   const [balances, setBalances] = useState<Record<string, number>>({});
   const [x, setX] = useState<string>('');
 
   const cTokens = Object.fromEntries(cTokenNames.map((cTokenName) => {
-    return [cTokenName, new Contract(mainnetV2Roots[cTokenName], ERC20, web3)];
+    return [cTokenName, new Contract(mainnetV2Roots[cTokenName], mainnetV2Abi[cTokenName], web3)];
   }));
 
   const migrator = new Contract(cometV2MigratorAddress, cometV2MigratorAbi, web3);
+
+  useEffect(() => {
+    let t;
+    function loop(x, delay) {
+      t = setTimeout(() => {
+        requestAnimationFrame(() => {
+          setTimer(x);
+          loop(x + 1, delay);
+        });
+      }, delay);
+    }
+    loop(1, 10000);
+    return () => clearTimeout(t)
+  }, []);
 
   useEffect(() => {
     console.log("here");
@@ -44,24 +58,22 @@ export default ({sendRPC, web3}: AppProps) => {
         if (accounts.length > 0) {
           setAccount(accounts[0]);
           let tokenBalances = Object.fromEntries(await Promise.all(Object.entries(cTokens).map<Promise<[string, number]>>(async ([sym, token]) => {
-            return [sym, (await token.balanceOf(accounts[0])).toNumber()];
+            return [`${sym}`, (await token.balanceOf(accounts[0])).toNumber()];
           })));
+
+          let usdcBorrowsV2 = await cTokens.cUSDC.callStatic.borrowBalanceCurrent(accounts[0]);
 
           setBalances({
             ...balances,
-            ...tokenBalances
+            ...tokenBalances,
+            usdcBorrowsV2: usdcBorrowsV2.toString(),
           });
 
           setX(await migrator.comet());
         }
       }, 500)
     })();
-  }, []);
-
-  // async function sayHello() {
-  //   let res = await read(sendRPC, '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48', '0x313ce567');
-  //   console.log("sayHello:res", res);
-  // };
+  }, [timer]);
 
   async function go() {
     if (sendRPC) {
@@ -72,7 +84,8 @@ export default ({sendRPC, web3}: AppProps) => {
 
   return (
     <div className="container">
-      Hello World<br/>
+      Comet v2 Migrator<br/>
+      timer={ timer }<br/>
       account={ account }<br/>
       comet={ x }<br/>
       <div>
