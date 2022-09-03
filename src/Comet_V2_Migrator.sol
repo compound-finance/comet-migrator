@@ -2,6 +2,7 @@
 pragma solidity 0.8.16;
 
 import "./vendor/@uniswap/v3-core/contracts/interfaces/callback/IUniswapV3FlashCallback.sol";
+import "./vendor/@uniswap/v3-core/contracts/libraries/FullMath.sol";
 import "./vendor/@uniswap/v3-periphery/contracts/base/PeripheryPayments.sol";
 import "./vendor/@uniswap/v3-periphery/contracts/base/PeripheryImmutableState.sol";
 import "./vendor/@uniswap/v3-periphery/contracts/libraries/PoolAddress.sol";
@@ -18,6 +19,8 @@ import "./interfaces/CometInterface.sol";
  * @author Compound
  */
 contract Comet_V2_Migrator is IUniswapV3FlashCallback, PeripheryImmutableState, PeripheryPayments {
+  error CompoundV2Error(uint256 code);
+
   /** Events **/
   // event Absorb(address indexed initiator, address[] accounts);
 
@@ -30,8 +33,8 @@ contract Comet_V2_Migrator is IUniswapV3FlashCallback, PeripheryImmutableState, 
   /// @notice Represents all data required to continue operation after a flash loan is initiated.
   struct MigrationCallbackData {
     address user;
-    uint256 repayAmountActual;
-    uint256 repayBorrowBehalf;
+    uint256 repayAmount;
+    uint256 borrowAmountWithFee;
     Collateral[] collateral;
   }
 
@@ -98,7 +101,37 @@ contract Comet_V2_Migrator is IUniswapV3FlashCallback, PeripheryImmutableState, 
    * @dev Note: `borrowAmount` may be set to max uint256 to migrate the entire current borrow balance.
    **/
   function migrate(Collateral[] calldata collateral, uint256 borrowAmount) external {
+    // TODO: **REQUIRE** `inMigration == 0`
+    // TODO: **STORE** `inMigration += 1`
+    
+    // **BIND** `user = msg.sender`
+    address user = msg.sender;
 
+    uint256 repayAmount;
+    // **WHEN** `repayAmount == type(uint256).max)`:
+    if (borrowAmount == type(uint256).max) {
+      // **BIND READ** `repayAmount = borrowCToken.borrowBalanceCurrent(user)`
+      repayAmount = borrowCToken.borrowBalanceCurrent(user);
+    } else {
+      // **BIND** `repayAmount = borrowAmount`
+      repayAmount = borrowAmount;
+    }
+
+    // **BIND** `borrowAmountWithFee = repayAmount + FullMath.mulDivRoundingUp(repayAmount, uniswapLiquidityPoolFee, 1e6)`
+    uint256 borrowAmountWithFee = repayAmount + FullMath.mulDivRoundingUp(repayAmount, uniswapLiquidityPoolFee, 1e6);
+
+    // **BIND** `data = abi.encode(MigrationCallbackData{user, repayAmountActual, borrowAmountWithFee, collateral})`
+    bytes memory data = abi.encode(MigrationCallbackData({
+      user: user,
+      repayAmount: repayAmount,
+      borrowAmountWithFee: borrowAmountWithFee,
+      collateral: collateral
+    }));
+
+    // **CALL** `uniswapLiquidityPool.flash(address(this), uniswapLiquidityPoolToken0 ? repayAmount : 0, uniswapLiquidityPoolToken0 ? 0 : repayAmount, data)`
+    uniswapLiquidityPool.flash(address(this), uniswapLiquidityPoolToken0 ? repayAmount : 0, uniswapLiquidityPoolToken0 ? 0 : repayAmount, data);
+
+    // TODO: **STORE** `inMigration -= 1`
   }
 
   /**
@@ -108,7 +141,61 @@ contract Comet_V2_Migrator is IUniswapV3FlashCallback, PeripheryImmutableState, 
    * @param data The data encoded above, which is the ABI-encoding of XXX.
    **/
   function uniswapV3FlashCallback(uint256 fee0, uint256 fee1, bytes calldata data) external {
+    // TODO: **REQUIRE** `inMigration == 1`
 
+    // **REQUIRE** `msg.sender == uniswapLiquidityPool`
+    require(msg.sender == address(uniswapLiquidityPool), "must be called from uniswapLiquidityPool");
+
+    // TODO: **REQUIRE** `sender == address(this)`
+    
+    // **BIND** `MigrationCallbackData{user, repayAmountActual, borrowAmountTotal, collateral} = abi.decode(data, (MigrationCallbackData))`
+    MigrationCallbackData memory migrationData = abi.decode(data, (MigrationCallbackData));
+
+    // TODO: Move this to the right place
+    borrowToken.approve(address(borrowCToken), type(uint256).max);
+
+    // TODO: This shouldn't be max here
+
+    // **CALL** `borrowCToken.repayBorrowBehalf(user, repayAmountActual)`
+    uint256 err = borrowCToken.repayBorrowBehalf(migrationData.user, migrationData.repayAmount);
+    if (err != 0) {
+      revert CompoundV2Error(err);
+    }
+
+    // **FOREACH** `(cToken, amount)` in `collateral`
+    for (uint8 i = 0; i < migrationData.collateral.length; i++) {
+      // **CALL** `cToken.transferFrom(user, amount == type(uint256).max ? cToken.balanceOf(user) : amount)`
+      Collateral memory collateral = migrationData.collateral[i];
+      collateral.cToken.transferFrom(
+        migrationData.user,
+        address(this),
+        collateral.amount == type(uint256).max ? collateral.cToken.balanceOf(migrationData.user) : collateral.amount
+      );
+
+      // **CALL** `cToken.redeem(cToken.balanceOf(address(this)))`
+      err = collateral.cToken.redeem(collateral.cToken.balanceOf(address(this)));
+      if (err != 0) {
+        revert CompoundV2Error(err);
+      }
+
+      IERC20 underlying = CErc20(address(collateral.cToken)).underlying(); // TODO: This isn't right because cETH
+
+      // TODO: Move this to the right place
+      underlying.approve(address(comet), type(uint256).max);
+
+      // **CALL** `comet.supplyTo(address(this), user, cToken.underlying(), cToken.underlying().balanceOf(address(this)))`  
+      comet.supplyTo(
+        migrationData.user,
+        address(underlying),
+        underlying.balanceOf(address(this))
+      );
+    }
+
+    // **CALL** `comet.withdrawFrom(user, address(this), borrowToken, borrowAmountWithFee)`
+    comet.withdrawFrom(migrationData.user, address(this), address(borrowToken), migrationData.borrowAmountWithFee);
+
+    // **CALL** `pay(borrowToken, address(this), msg.sender, borrowAmountWithFee)`
+    pay(address(borrowToken), address(this), msg.sender, migrationData.borrowAmountWithFee);
   }
 
   /**

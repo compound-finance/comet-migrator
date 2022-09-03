@@ -4,12 +4,13 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "dev": "vite",
-    "build": "tsc && vite build",
-    "preview": "vite preview",
-    "test": "jest",
-    "lint:contracts": "solhint '{src,script,test}/**/*.sol'",
-    "script:playground": "forge script/Playground.s.sol"
+    "web:dev": "vite",
+    "web:build": "tsc && vite build",
+    "web:preview": "vite preview",
+    "web:test": "jest",
+    "forge:test": "script/test.sh",
+    "forge:lint": "solhint '{src,script,test}/**/*.sol'",
+    "forge:playground": "forge script/Playground.s.sol"
   },
   "dependencies": {
     "@esbuild-plugins/node-globals-polyfill": "^0.1.1",
@@ -53,6 +54,6 @@
   },
   "packageManager": "yarn@3.2.0",
   "volta": {
-    "node": "18.7.0"
+    "node": "18.8.0"
   }
 }

@@ -2,6 +2,36 @@
 pragma solidity 0.8.16;
 
 interface Comet {
+    error Absurd();
+    error AlreadyInitialized();
+    error BadAsset();
+    error BadDecimals();
+    error BadDiscount();
+    error BadMinimum();
+    error BadPrice();
+    error BorrowTooSmall();
+    error BorrowCFTooLarge();
+    error InsufficientReserves();
+    error LiquidateCFTooLarge();
+    error NoSelfTransfer();
+    error NotCollateralized();
+    error NotForSale();
+    error NotLiquidatable();
+    error Paused();
+    error SupplyCapExceeded();
+    error TimestampTooLarge();
+    error TooManyAssets();
+    error TooMuchSlippage();
+    error TransferInFailed();
+    error TransferOutFailed();
+    error Unauthorized();
+    error BadAmount();
+    error BadNonce();
+    error BadSignatory();
+    error InvalidValueS();
+    error InvalidValueV();
+    error SignatureExpired();
+
     struct AssetInfo {
         uint8 offset;
         address asset;
@@ -127,4 +157,7 @@ interface Comet {
     function decimals() external view returns (uint8);
 
     function initializeStorage() external;
+
+    function collateralBalanceOf(address account, address asset) external view returns (uint128);
+    function allow(address manager, bool isAllowed_) external;
 }

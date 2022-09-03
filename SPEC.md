@@ -44,8 +44,8 @@ Represents all data required to continue operation after a flash loan is initiat
 ```c
 struct MigrationCallbackData {
   address user,
-  uint256 repayAmountActual,
-  uint256 repayBorrowBehalf,
+  uint256 repayAmount,
+  uint256 borrowAmountWithFee,
   Collateral[] collateral
 }
 ```
@@ -117,24 +117,23 @@ Notes:
 #### Bindings
 
  * `user: address`: Alias for `msg.sender`
- * `underlyings[]: IERC20[]`: Alias for `cToken.underlying()` for collateral tokens.
- * `repayAmountActual: uint256`: The repay amount, after accounting for max.
- * `borrowAmountTotal: uint256`: The amount to borrow from Compound III, accounting for fees.
+ * `repayAmount: uint256`: The repay amount, after accounting for max.
+ * `borrowAmountWithFee: uint256`: The amount to borrow from Compound III, accounting for fees.
  * `data: bytes[]`: The ABI-encoding of the `MigrationCallbackData`, to be passed to the Uniswap Liquidity Pool Callback.
 
 #### Function Spec
 
-`function migrate(collateral: (CToken, uint256)[], borrowAmount: uint256) external`
+`function migrate(collateral: (CToken, uint256)[], borrowCToken: CToken, borrowAmount: uint256) external`
 
 - **REQUIRE** `inMigration == 0`
 - **STORE** `inMigration += 1`
 - **BIND** `user = msg.sender`
-- **WHEN** `repayAmount == type(uint256).max)`:
-  - **BIND READ** `repayAmountActual = cToken.borrowBalanceCurrent(user)`
+- **WHEN** `borrowAmount == type(uint256).max)`:
+  - **BIND READ** `repayAmount = borrowCToken.borrowBalanceCurrent(user)`
 - **ELSE**
-  - **BIND** `repayAmountActual = repayAmount`
-- **BIND** `borrowAmountTotal = repayAmountActual + FullMath.mulDivRoundingUp(repayAmountActual, uniswapLiquidityPoolFee, 1e6)` # TODO: FullMath
-- **BIND** `data = abi.encode(MigrationCallbackData{user, repayAmountActual, repayBorrowBehalf, collateral})`
+  - **BIND** `repayAmount = borrowAmount`
+- **BIND** `borrowAmountWithFee = repayAmount + FullMath.mulDivRoundingUp(repayAmount, uniswapLiquidityPoolFee, 1e6)` # TODO: FullMath
+- **BIND** `data = abi.encode(MigrationCallbackData{user, repayAmount, repayBorrowBehalf, collateral})`
 - **CALL** `uniswapLiquidityPool.flash(address(this), uniswapLiquidityPoolToken0 ? repayAmount : 0, uniswapLiquidityPoolToken0 ? 0 : repayAmount, data)`
 - **STORE** `inMigration -= 1`
 
@@ -156,7 +155,10 @@ This function may only be called during a migration command. We ensure this by m
 
 #### Bindings
 
- * `repayAmountActual`: The repay amount, after accounting for max.
+ * `user: address`: Alias for `msg.sender`
+ * `repayAmount: uint256`: The repay amount, after accounting for max.
+ * `borrowAmountWithFee: uint256`: The amount to borrow from Compound III, accounting for fees.
+ * `collateral: Collateral[]` - Array of collateral to transfer into Compound III.
 
 #### Function Spec
 
@@ -165,14 +167,14 @@ This function may only be called during a migration command. We ensure this by m
   - **REQUIRE** `inMigration == 1`
   - **REQUIRE** `msg.sender == uniswapLiquidityPool`
   - **REQUIRE** `sender == address(this)`
-  - **BIND** `MigrationCallbackData{user, repayAmountActual, borrowAmountTotal, collateral} = abi.decode(data, (MigrationCallbackData))`
+  - **BIND** `MigrationCallbackData{user, repayAmountActual, borrowAmountWithFee, collateral} = abi.decode(data, (MigrationCallbackData))`
   - **CALL** `borrowCToken.repayBorrowBehalf(user, repayAmountActual)`
   - **FOREACH** `(cToken, amount)` in `collateral`:
-    - **CALL** `cToken.transferFrom(user, amount == type(uint256).max ? cToken.balanceOf(user) : amount)`
+    - **CALL** `cToken.transferFrom(user, address(this), amount == type(uint256).max ? cToken.balanceOf(user) : amount)`
     - **CALL** `cToken.redeem(cToken.balanceOf(address(this)))`
-    - **CALL** `comet.supplyCollateral(address(this), user, cToken.underlying(), cToken.underlying().balanceOf(address(this)))`
-  - **CALL** `comet.withdrawBase(user, address(this), borrowAmountTotal)`
-  - **CALL** `pay(borrowToken, address(this), msg.sender, borrowAmountTotal)`
+    - **CALL** `comet.supplyTo(user, cToken.underlying(), cToken.underlying().balanceOf(address(this)))`
+  - **CALL** `comet.withdrawFrom(user, address(this), borrowToken, borrowAmountWithFee)`
+  - **CALL** `pay(borrowToken, address(this), msg.sender, borrowAmountWithFee)`
 
 ### Sweep Function
 
