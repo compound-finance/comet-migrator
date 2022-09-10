@@ -10,7 +10,8 @@
     "web:test": "jest",
     "forge:test": "script/test.sh",
     "forge:lint": "solhint '{src,script,test}/**/*.sol'",
-    "forge:playground": "forge script/Playground.s.sol"
+    "forge:playground": "forge script/Playground.s.sol",
+    "deploy": "tsc && vite build && node script/ipfs.js"
   },
   "dependencies": {
     "@esbuild-plugins/node-globals-polyfill": "^0.1.1",
@@ -21,10 +22,10 @@
     "@ethersproject/providers": "^5.7.0",
     "@ethersproject/units": "^5.4.0",
     "@web3-react/core": "8.0.35-beta.0",
+    "@web3-react/metamask": "8.0.28-beta.0",
     "@web3-react/network": "8.0.27-beta.0",
     "@web3-react/types": "8.0.20-beta.0",
     "@web3-react/url": "8.0.25-beta.0",
-    "@web3-react/metamask": "8.0.28-beta.0",
     "comet": "https://github.com/compound-finance/comet.git#97ba9f1953094533ef2df601f5adc9e679fc7029",
     "compound-config": "https://github.com/compound-finance/compound-config.git",
     "compound-styles": "https://github.com/compound-finance/compound-styles.git#f922f4b7fdfaab4f2dc2d65f966397524107ae2d",
@@ -44,13 +45,14 @@
     "@web3-react/types": "8.0.20-beta.0",
     "eslint": "8.9.0",
     "ethers": "^5.6.9",
+    "ipfs-http-client": "^52.0.5",
     "jest": "^28.0.8",
     "sass": "^1.49.8",
+    "solhint": "^3.3.6",
     "ts-jest": "^28.0.8",
     "typescript": "4.5.5",
     "vendoza": "0.0.4",
-    "vite": "^3.0.7",
-    "solhint": "^3.3.6"
+    "vite": "^3.0.7"
   },
   "packageManager": "yarn@3.2.0",
   "volta": {
