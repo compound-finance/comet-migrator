@@ -34,7 +34,7 @@ jobs:
 
     - name: Deploy to IPFS
       run: |
-        node scripts/ipfs.js | tee .release-notes
+        node script/ipfs.js | tee .release-notes
       env:
         IPFS_AUTH: ${{ secrets.IPFS_AUTH }}
         IPFS_DOMAIN: ${{ secrets.IPFS_DOMAIN }}

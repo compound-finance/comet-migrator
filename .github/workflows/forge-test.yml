@@ -1,7 +1,5 @@
 name: Forge Test
-
-on:
-  - pull_request
+on: push
 
 env:
   FOUNDRY_PROFILE: ci
