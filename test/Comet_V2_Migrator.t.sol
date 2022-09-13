@@ -65,10 +65,12 @@ contract ContractTest is Positor {
         uint256 cETHPre = cETH.balanceOf(borrower);
         require(comet.collateralBalanceOf(borrower, address(weth)) == 0, "no starting collateral balance");
         require(comet.borrowBalanceOf(borrower) == 0, "no starting v3 borrow balance");
+        migrator.sweep(IERC20(0x0000000000000000000000000000000000000000));
+        require(address(migrator).balance == 0, "no starting v3 eth");
 
         // Migrate
         Comet_V2_Migrator.Collateral[] memory collateral = new Comet_V2_Migrator.Collateral[](1);
-        uint256 migrateAmount = amountToTokens(0.1e18, cETH);
+        uint256 migrateAmount = amountToTokens(0.6e18, cETH);
         collateral[0] = Comet_V2_Migrator.Collateral({
             cToken: cETH,
             amount: migrateAmount
@@ -84,7 +86,7 @@ contract ContractTest is Positor {
         assertEq(cUSDC.borrowBalanceCurrent(borrower), 100e6, "Remainder of tokens");
 
         // Check v3 balances
-        assertApproxEqRel(comet.collateralBalanceOf(borrower, address(weth)), 0.1e18, 0.01e18, "v3 collateral balance");
+        assertApproxEqRel(comet.collateralBalanceOf(borrower, address(weth)), 0.6e18, 0.01e18, "v3 collateral balance");
         assertEq(comet.borrowBalanceOf(borrower), 600e6 * 1.0001, "v3 borrow balance");
     }
 }
