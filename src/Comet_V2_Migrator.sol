@@ -85,7 +85,7 @@ contract Comet_V2_Migrator is IUniswapV3FlashCallback {
     IWETH9 weth_,
     IUniswapV3Pool uniswapLiquidityPool_,
     address payable sweepee_
-  ) {
+  ) payable {
     // **WRITE IMMUTABLE** `comet = comet_`
     comet = comet_;
 
@@ -259,5 +259,9 @@ contract Comet_V2_Migrator is IUniswapV3FlashCallback {
         revert SweepFailure(1);
       }
     }
+  }
+
+  receive() external payable {
+    // NO-OP
   }
 }
