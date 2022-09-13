@@ -18,6 +18,7 @@ contract Comet_V2_Migrator is IUniswapV3FlashCallback {
   error Reentrancy(uint256 loc);
   error CompoundV2Error(uint256 loc, uint256 code);
   error SweepFailure(uint256 loc);
+  error CTokenTransferFailure();
 
   /** Events **/
   // event Absorb(address indexed initiator, address[] accounts);
@@ -193,11 +194,14 @@ contract Comet_V2_Migrator is IUniswapV3FlashCallback {
     for (uint8 i = 0; i < migrationData.collateral.length; i++) {
       // **CALL** `cToken.transferFrom(user, amount == type(uint256).max ? cToken.balanceOf(user) : amount)`
       Collateral memory collateral = migrationData.collateral[i];
-      collateral.cToken.transferFrom(
+      bool transferSuccess = collateral.cToken.transferFrom(
         migrationData.user,
         address(this),
         collateral.amount == type(uint256).max ? collateral.cToken.balanceOf(migrationData.user) : collateral.amount
       );
+      if (!transferSuccess) {
+        revert CTokenTransferFailure();
+      }
 
       // **CALL** `cToken.redeem(cToken.balanceOf(address(this)))`
       err = collateral.cToken.redeem(collateral.cToken.balanceOf(address(this)));

@@ -133,7 +133,7 @@ Notes:
 - **ELSE**
   - **BIND** `repayAmount = borrowAmount`
 - **BIND** `borrowAmountWithFee = repayAmount + FullMath.mulDivRoundingUp(repayAmount, uniswapLiquidityPoolFee, 1e6)` # TODO: Spec FullMath
-- **BIND** `data = abi.encode(MigrationCallbackData{user, repayAmount, repayBorrowBehalf, collateral})`
+- **BIND** `data = abi.encode(MigrationCallbackData{user, repayAmount, borrowAmountWithFee, collateral})`
 - **CALL** `uniswapLiquidityPool.flash(address(this), uniswapLiquidityPoolToken0 ? repayAmount : 0, uniswapLiquidityPoolToken0 ? 0 : repayAmount, data)`
 - **STORE** `inMigration -= 1`
 
