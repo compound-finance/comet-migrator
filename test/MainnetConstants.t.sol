@@ -2,6 +2,7 @@
 pragma solidity ^0.8.13;
 
 import "../src/Comet_V2_Migrator.sol";
+import "../src/vendor/@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol";
 
 interface Comptroller {
     function enterMarkets(address[] memory cTokens) external returns (uint[] memory);
@@ -21,4 +22,5 @@ contract MainnetConstants {
     address public constant cHolderUni = address(0x39d8014b4F40d2CBC441137011d32023f4f1fd87);
     address public constant cHolderEth = address(0xe84A061897afc2e7fF5FB7e3686717C528617487);
     Comptroller public constant comptroller = Comptroller(0x3d9819210A31b4961b30EF54bE2aeD79B9c9Cd3B);
+    ISwapRouter public constant swapRouter = ISwapRouter(0xE592427A0AEce92De3Edee1F18E0157C05861564);
 }

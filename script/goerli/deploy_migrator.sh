@@ -20,27 +20,25 @@ else
   etherscan_args=""
 fi
 
-# Constructor Variables from
+# Constructor Variables
 #
 # Comet_V2_Migrator::constructor(
-#   Comet comet_,
-#   CErc20 borrowCToken_,
-#   IUniswapV3Pool uniswapLiquidityPool_,
-#   IERC20[] memory collateralTokens_,
-#   address sweepee_,
-#   address _factory, // TODO
-#   address _WETH9 // TODO
+#   comet_ :: The Comet Ethereum mainnet USDC contract.
+#   borrowCToken_ :: The Compound II market for the borrowed token (e.g. `cUSDC`).
+#   cETH_ :: The address of the `cETH` token.
+#   weth_ :: The address of the `WETH9` token.
+#   uniswapLiquidityPool_ :: The Uniswap pool used by this contract to source liquidity (i.e. flash loans).
+#   sweepee_ :: Sweep excess tokens to this address.
 # )
 #
 comet="0x"
 borrowCToken="0x"
+cETH="0x"
+weth="0x"
 uniswapLiquidityPool="0x"
-collateralTokens="[]"
 sweepee="0x"
-factory="0x"
-weth9="0x"
 
-echo forge create \
+forge create \
   $rpc_args \
   $etherscan_args \
   $wallet_args \
@@ -49,8 +47,7 @@ echo forge create \
   --constructor-args \
     "$comet" \
     "$borrowCToken" \
+    "$cETH" \
+    "$weth" \
     "$uniswapLiquidityPool" \
-    "$collateralTokens" \
-    "$sweepee" \
-    "$factory" \
-    "$weth9"
+    "$sweepee"
