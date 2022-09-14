@@ -383,6 +383,320 @@ contract ContractTest is Positor {
         assertEq(comet.borrowBalanceOf(borrower), 0, "v3 borrow balance");
     }
 
+    function testMigrateSimpleUniPosition_InsufficientCollateral() public {
+        // Posit
+        Position[] memory positions = new Position[](1);
+        positions[0] = Position({
+            collateral: cUNI,
+            amount: 300e18 // ~ $5 * 300 = ~$1500 75% collateral factor = $1,000
+        });
+        posit(Posit({
+            borrower: borrower,
+            positions: positions,
+            borrow: 700e6
+        }));
+
+        uint256 cUNIPre = cUNI.balanceOf(borrower);
+        preflightChecks();
+
+        // Migrate
+        Comet_V2_Migrator.Collateral[] memory collateral = new Comet_V2_Migrator.Collateral[](1);
+        uint256 migrateAmount = amountToTokens(400e18, cUNI);
+        collateral[0] = Comet_V2_Migrator.Collateral({
+            cToken: cUNI,
+            amount: migrateAmount
+        });
+
+        vm.startPrank(borrower);
+        cUNI.approve(address(migrator), type(uint256).max);
+        comet.allow(address(migrator), true);
+        vm.expectRevert(abi.encodeWithSelector(CTokenLike.TransferComptrollerRejection.selector, 4));
+        migrator.migrate(collateral, 600e6);
+
+        // Check v2 balances
+        assertEq(cUNI.balanceOf(borrower), cUNIPre, "Amount of cUNI should have been migrated");
+        assertEq(cUSDC.borrowBalanceCurrent(borrower), 700e6, "Remainder of tokens");
+
+        // Check v3 balances
+        assertEq(comet.collateralBalanceOf(borrower, address(uni)), 0, "v3 collateral balance");
+        assertEq(comet.borrowBalanceOf(borrower), 0, "v3 borrow balance");
+    }
+
+    function testMigrateSimpleEthPosition_InsufficientCollateral() public {
+        // Posit
+        Position[] memory positions = new Position[](1);
+        positions[0] = Position({
+            collateral: cETH,
+            amount: 1e18 // ~ $2000 * 1 = ~$2000 82-83% collateral factor = $1,600
+        });
+        posit(Posit({
+            borrower: borrower,
+            positions: positions,
+            borrow: 700e6
+        }));
+
+        uint256 cETHPre = cETH.balanceOf(borrower);
+        preflightChecks();
+
+        // Migrate
+        Comet_V2_Migrator.Collateral[] memory collateral = new Comet_V2_Migrator.Collateral[](1);
+        uint256 migrateAmount = amountToTokens(200e18, cETH);
+        collateral[0] = Comet_V2_Migrator.Collateral({
+            cToken: cETH,
+            amount: migrateAmount
+        });
+
+        vm.startPrank(borrower);
+        cETH.approve(address(migrator), type(uint256).max);
+        comet.allow(address(migrator), true);
+
+        vm.expectRevert(Comet_V2_Migrator.CTokenTransferFailure.selector);
+        migrator.migrate(collateral, 600e6);
+
+        // Check v2 balances
+        assertEq(cETH.balanceOf(borrower), cETHPre, "Amount of cETH should have been migrated");
+        assertEq(cUSDC.borrowBalanceCurrent(borrower), 700e6, "Remainder of tokens");
+
+        // Check v3 balances
+        assertEq(comet.collateralBalanceOf(borrower, address(weth)), 0, "v3 collateral balance");
+        assertEq(comet.borrowBalanceOf(borrower), 0, "v3 borrow balance");
+    }
+
+    function testMigrateSimpleUniPosition_NoCometApproval() public {
+        // Posit
+        Position[] memory positions = new Position[](1);
+        positions[0] = Position({
+            collateral: cUNI,
+            amount: 300e18 // ~ $5 * 300 = ~$1500 75% collateral factor = $1,000
+        });
+        posit(Posit({
+            borrower: borrower,
+            positions: positions,
+            borrow: 700e6
+        }));
+
+        uint256 cUNIPre = cUNI.balanceOf(borrower);
+        preflightChecks();
+
+        // Migrate
+        Comet_V2_Migrator.Collateral[] memory collateral = new Comet_V2_Migrator.Collateral[](1);
+        uint256 migrateAmount = amountToTokens(200e18, cUNI);
+        collateral[0] = Comet_V2_Migrator.Collateral({
+            cToken: cUNI,
+            amount: migrateAmount
+        });
+
+        vm.startPrank(borrower);
+        cUNI.approve(address(migrator), type(uint256).max);
+        vm.expectRevert(Comet.Unauthorized.selector);
+        migrator.migrate(collateral, 600e6);
+
+        // Check v2 balances
+        assertEq(cUNI.balanceOf(borrower), cUNIPre, "Amount of cUNI should have been migrated");
+        assertEq(cUSDC.borrowBalanceCurrent(borrower), 700e6, "Remainder of tokens");
+
+        // Check v3 balances
+        assertEq(comet.collateralBalanceOf(borrower, address(uni)), 0, "v3 collateral balance");
+        assertEq(comet.borrowBalanceOf(borrower), 0, "v3 borrow balance");
+    }
+
+    function testMigrateSimpleUniPosition_InsufficientLiquidity() public {
+        // Posit
+        Position[] memory positions = new Position[](1);
+        positions[0] = Position({
+            collateral: cUNI,
+            amount: 300e18 // ~ $5 * 300 = ~$1500 75% collateral factor = $1,000
+        });
+        posit(Posit({
+            borrower: borrower,
+            positions: positions,
+            borrow: 700e6
+        }));
+
+        uint256 cUNIPre = cUNI.balanceOf(borrower);
+        preflightChecks();
+
+        // Migrate
+        Comet_V2_Migrator.Collateral[] memory collateral = new Comet_V2_Migrator.Collateral[](1);
+        uint256 migrateAmount = amountToTokens(200e18, cUNI);
+        collateral[0] = Comet_V2_Migrator.Collateral({
+            cToken: cUNI,
+            amount: migrateAmount
+        });
+
+        vm.startPrank(borrower);
+        cUNI.approve(address(migrator), type(uint256).max);
+        comet.allow(address(migrator), true);
+
+        vm.expectRevert(abi.encodeWithSelector(CTokenLike.TransferComptrollerRejection.selector, 4));
+        migrator.migrate(collateral, 0e6);
+
+        // Check v2 balances
+        assertEq(cUNI.balanceOf(borrower), cUNIPre, "Amount of cUNI should have been migrated");
+        assertEq(cUSDC.borrowBalanceCurrent(borrower), 700e6, "Remainder of tokens");
+
+        // Check v3 balances
+        assertEq(comet.collateralBalanceOf(borrower, address(uni)), 0, "v3 collateral balance");
+        assertEq(comet.borrowBalanceOf(borrower), 0, "v3 borrow balance");
+    }
+
+    function testMigrateSimpleUniPosition_ExcessiveRepay() public {
+        // Posit
+        Position[] memory positions = new Position[](1);
+        positions[0] = Position({
+            collateral: cUNI,
+            amount: 300e18 // ~ $5 * 300 = ~$1500 75% collateral factor = $1,000
+        });
+        posit(Posit({
+            borrower: borrower,
+            positions: positions,
+            borrow: 700e6
+        }));
+
+        uint256 cUNIPre = cUNI.balanceOf(borrower);
+        preflightChecks();
+
+        // Migrate
+        Comet_V2_Migrator.Collateral[] memory collateral = new Comet_V2_Migrator.Collateral[](1);
+        uint256 migrateAmount = amountToTokens(200e18, cUNI);
+        collateral[0] = Comet_V2_Migrator.Collateral({
+            cToken: cUNI,
+            amount: migrateAmount
+        });
+
+        vm.startPrank(borrower);
+        cUNI.approve(address(migrator), type(uint256).max);
+        comet.allow(address(migrator), true);
+
+        vm.expectRevert(abi.encodeWithSelector(Comet_V2_Migrator.CompoundV2Error.selector, 0, 9));
+        migrator.migrate(collateral, 800e6);
+
+        // Check v2 balances
+        assertEq(cUNI.balanceOf(borrower), cUNIPre, "Amount of cUNI should have been migrated");
+        assertEq(cUSDC.borrowBalanceCurrent(borrower), 700e6, "Remainder of tokens");
+
+        // Check v3 balances
+        assertEq(comet.collateralBalanceOf(borrower, address(uni)), 0, "v3 collateral balance");
+        assertEq(comet.borrowBalanceOf(borrower), 0, "v3 borrow balance");
+    }
+
+    function testMigrateSimpleUniPosition_UnlistedCollateral() public {
+        // Posit
+        Position[] memory positions = new Position[](1);
+        positions[0] = Position({
+            collateral: cUNI,
+            amount: 300e18 // ~ $5 * 300 = ~$1500 75% collateral factor = $1,000
+        });
+        posit(Posit({
+            borrower: borrower,
+            positions: positions,
+            borrow: 700e6
+        }));
+
+        uint256 cUNIPre = cUNI.balanceOf(borrower);
+        preflightChecks();
+
+        // Migrate
+        Comet_V2_Migrator.Collateral[] memory collateral = new Comet_V2_Migrator.Collateral[](1);
+        collateral[0] = Comet_V2_Migrator.Collateral({
+            cToken: CTokenLike(address(uni)),
+            amount: 0
+        });
+
+        vm.startPrank(borrower);
+        cUNI.approve(address(migrator), type(uint256).max);
+        comet.allow(address(migrator), true);
+
+        vm.expectRevert(abi.encodeWithSelector(Comet_V2_Migrator.CompoundV2Error.selector, 0, 9));
+        migrator.migrate(collateral, 800e6);
+
+        // Check v2 balances
+        assertEq(cUNI.balanceOf(borrower), cUNIPre, "Amount of cUNI should have been migrated");
+        assertEq(cUSDC.borrowBalanceCurrent(borrower), 700e6, "Remainder of tokens");
+
+        // Check v3 balances
+        assertEq(comet.collateralBalanceOf(borrower, address(uni)), 0, "v3 collateral balance");
+        assertEq(comet.borrowBalanceOf(borrower), 0, "v3 borrow balance");
+    }
+
+    function testMigrateSimpleUniPosition_NoTokenCollateral() public {
+        // Posit
+        Position[] memory positions = new Position[](1);
+        positions[0] = Position({
+            collateral: cUNI,
+            amount: 300e18 // ~ $5 * 300 = ~$1500 75% collateral factor = $1,000
+        });
+        posit(Posit({
+            borrower: borrower,
+            positions: positions,
+            borrow: 700e6
+        }));
+
+        uint256 cUNIPre = cUNI.balanceOf(borrower);
+        preflightChecks();
+
+        // Migrate
+        Comet_V2_Migrator.Collateral[] memory collateral = new Comet_V2_Migrator.Collateral[](1);
+        collateral[0] = Comet_V2_Migrator.Collateral({
+            cToken: CTokenLike(0x0000000000000000000000000000000000000000),
+            amount: 0
+        });
+
+        vm.startPrank(borrower);
+        cUNI.approve(address(migrator), type(uint256).max);
+        comet.allow(address(migrator), true);
+
+        vm.expectRevert(abi.encodeWithSelector(Comet_V2_Migrator.CompoundV2Error.selector, 0, 9));
+        migrator.migrate(collateral, 800e6);
+
+        // Check v2 balances
+        assertEq(cUNI.balanceOf(borrower), cUNIPre, "Amount of cUNI should have been migrated");
+        assertEq(cUSDC.borrowBalanceCurrent(borrower), 700e6, "Remainder of tokens");
+
+        // Check v3 balances
+        assertEq(comet.collateralBalanceOf(borrower, address(uni)), 0, "v3 collateral balance");
+        assertEq(comet.borrowBalanceOf(borrower), 0, "v3 borrow balance");
+    }
+
+    function testMigrateSimpleUniPosition_NoMovement() public {
+        // Posit
+        Position[] memory positions = new Position[](1);
+        positions[0] = Position({
+            collateral: cUNI,
+            amount: 300e18 // ~ $5 * 300 = ~$1500 75% collateral factor = $1,000
+        });
+        posit(Posit({
+            borrower: borrower,
+            positions: positions,
+            borrow: 700e6
+        }));
+
+        uint256 cUNIPre = cUNI.balanceOf(borrower);
+        preflightChecks();
+
+        // Migrate
+        Comet_V2_Migrator.Collateral[] memory collateral = new Comet_V2_Migrator.Collateral[](0);
+
+        vm.startPrank(borrower);
+        cUNI.approve(address(migrator), type(uint256).max);
+        comet.allow(address(migrator), true);
+
+        migrator.migrate(collateral, 0e6);
+
+        // Check v2 balances
+        assertEq(cUNI.balanceOf(borrower), cUNIPre, "Amount of cUNI should have been migrated");
+        assertEq(cUSDC.borrowBalanceCurrent(borrower), 700e6, "Remainder of tokens");
+
+        // Check v3 balances
+        assertEq(comet.collateralBalanceOf(borrower, address(uni)), 0, "v3 collateral balance");
+        assertEq(comet.borrowBalanceOf(borrower), 0, "v3 borrow balance");
+    }
+
+    // TODO: Test already having a position and moving one in
+    // TODO: Test moving no collateral but already being in a position to support it
+    // TODO: Test calling callback code directly
+    // TODO: Test sweep
+
     function preflightChecks() internal {
         require(comet.collateralBalanceOf(borrower, address(uni)) == 0, "no starting uni collateral balance");
         require(comet.collateralBalanceOf(borrower, address(weth)) == 0, "no starting weth collateral balance");
