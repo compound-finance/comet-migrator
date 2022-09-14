@@ -31,12 +31,12 @@ fi
 #   sweepee_ :: Sweep excess tokens to this address.
 # )
 #
-comet="0x"
-borrowCToken="0x"
-cETH="0x"
-weth="0x"
-uniswapLiquidityPool="0x"
-sweepee="0x"
+comet="0x157c001bb1F8b33743B14483Be111C961d8e11dE"
+borrowCToken="0x701Db4333e19C7fB72140B75Cac07F43D462A3d4"
+cETH="0x64078a6189Bf45f80091c6Ff2fCEe1B15Ac8dbde"
+weth="0x42a71137C09AE83D8d05974960fd607d40033499"
+uniswapLiquidityPool="0x33BCC4198cecD928e1B9232423fBe8A52A807A30"
+sweepee="0xbBFE34E868343E6F4f5E8B5308de980d7bd88c46"
 
 forge create \
   $rpc_args \
