@@ -1,13 +1,13 @@
 import { useMemo } from 'react';
 import { sendWeb3 } from './RPC';
 import { SendRPC } from './useRPC';
-import { StaticJsonRpcProvider } from '@ethersproject/providers';
+import { JsonRpcProvider } from '@ethersproject/providers';
 
-class RpcWeb3Provider extends StaticJsonRpcProvider  {
+class RpcWeb3Provider extends JsonRpcProvider  {
   sendRPC: SendRPC;
 
   constructor(sendRPC: SendRPC) {
-    super();
+    super(undefined, "any");
     this.sendRPC = sendRPC;
   }
 
@@ -17,6 +17,7 @@ class RpcWeb3Provider extends StaticJsonRpcProvider  {
       return this._cache[method];
     }
     let res = sendWeb3(this.sendRPC, method, params);
+    res.then((r) => console.log(method, r));
     if (cache) {
       this._cache[method] = res;
       setTimeout(() => {
