@@ -72,7 +72,7 @@ function useAsyncEffect(fn: () => Promise<void>, deps: any[] = []) {
 export function App<Network>({sendRPC, web3, account, networkConfig}: AppPropsExt<Network>) {
   let { cTokenNames } = networkConfig;
 
-  let timer = usePoll(5000);
+  let timer = usePoll(20000);
 
   const signer = useMemo(() => {
     return web3.getSigner().connectUnchecked();
@@ -128,25 +128,30 @@ export function App<Network>({sendRPC, web3, account, networkConfig}: AppPropsEx
 
   useAsyncEffect(async () => {
     let migratorEnabled = (await comet.allowance(account, migrator.address))?.toBigInt() > 0n;
-    console.log({migratorEnabled});
-    let tokenStates = new Map(await Promise.all(Array.from(accountState.cTokens.entries()).map<Promise<[CTokenSym<Network>, CTokenState]>>(async ([sym, state]) => {
-      return [sym, {
-        ...state,
-        balance: (await cTokenCtxs.get(sym)?.balanceOf(account))?.toBigInt(),
-        allowance: (await cTokenCtxs.get(sym)?.allowance(account, migrator.address))?.toBigInt(),
-        decimals: state.decimals ?? BigInt(await cTokenCtxs.get(sym)?.decimals() ?? 0)
-      }];
-    })));
-    console.log({tokenStates});
+    if (migratorEnabled) {
+      let tokenStates = new Map(await Promise.all(Array.from(accountState.cTokens.entries()).map<Promise<[CTokenSym<Network>, CTokenState]>>(async ([sym, state]) => {
+        return [sym, {
+          ...state,
+          balance: (await cTokenCtxs.get(sym)?.balanceOf(account))?.toBigInt(),
+          allowance: (await cTokenCtxs.get(sym)?.allowance(account, migrator.address))?.toBigInt(),
+          decimals: state.decimals ?? BigInt(await cTokenCtxs.get(sym)?.decimals() ?? 0)
+        }];
+      })));
 
-    let usdcBorrowsV2 = await cTokenCtxs.get('cUSDC' as  CTokenSym<Network>)?.callStatic.borrowBalanceCurrent(account);
+      let usdcBorrowsV2 = await cTokenCtxs.get('cUSDC' as  CTokenSym<Network>)?.callStatic.borrowBalanceCurrent(account);
 
-    setAccountState({
-      migratorEnabled,
-      borrowBalanceV2: usdcBorrowsV2.toString(),
-      cTokens: tokenStates
-    });
-  }, [timer]);
+      setAccountState({
+        migratorEnabled,
+        borrowBalanceV2: usdcBorrowsV2.toString(),
+        cTokens: tokenStates
+      });
+    } else {
+      setAccountState({
+        ...accountState,
+        migratorEnabled
+      });
+    }
+  }, [timer, account, cTokenCtxs]);
 
   async function go() {
     console.log("go", accountState);
@@ -199,11 +204,10 @@ export function App<Network>({sendRPC, web3, account, networkConfig}: AppPropsEx
 export default ({sendRPC, web3}: AppProps) => {
   let timer = usePoll(10000);
   const [account, setAccount] = useState<string | null>(null);
-  const [network, setNetwork] = useState<Network | null>(null);
+  const [networkConfig, setNetworkConfig] = useState<NetworkConfig<Network> | 'unsupported' | null>(null);
 
   useAsyncEffect(async () => {
     let accounts = await web3.listAccounts();
-    console.log("accounts", accounts);
     if (accounts.length > 0) {
       let [account] = accounts;
       setAccount(account);
@@ -212,16 +216,20 @@ export default ({sendRPC, web3}: AppProps) => {
 
   useAsyncEffect(async () => {
     let networkWeb3 = await web3.getNetwork();
-    console.log("network", networkWeb3);
     let network = getNetworkById(networkWeb3.chainId);
     if (network) {
-      setNetwork(network);
+      setNetworkConfig(getNetworkConfig(network));
+    } else {
+      setNetworkConfig('unsupported');
     }
   }, [web3, timer]);
 
-  if (network && account) {
-    let networkConfig = getNetworkConfig(network);
-    return <App sendRPC={sendRPC} web3={web3} account={account} networkConfig={networkConfig} />;
+  if (networkConfig && account) {
+    if (networkConfig === 'unsupported') {
+      return <div>Unsupported network...</div>;
+    } else {
+      return <App sendRPC={sendRPC} web3={web3} account={account} networkConfig={networkConfig} />;
+    }
   } else {
     return <div>Loading...</div>;
   }

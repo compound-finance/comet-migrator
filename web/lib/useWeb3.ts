@@ -1,9 +1,9 @@
 import { useMemo } from 'react';
 import { sendWeb3 } from './RPC';
 import { SendRPC } from './useRPC';
-import { JsonRpcProvider } from '@ethersproject/providers';
+import { StaticJsonRpcProvider } from '@ethersproject/providers';
 
-class RpcWeb3Provider extends JsonRpcProvider {
+class RpcWeb3Provider extends StaticJsonRpcProvider  {
   sendRPC: SendRPC;
 
   constructor(sendRPC: SendRPC) {
@@ -12,8 +12,17 @@ class RpcWeb3Provider extends JsonRpcProvider {
   }
 
   send(method: string, params: Array<any>): Promise<any> {
+    const cache = ["eth_chainId", "eth_blockNumber"].indexOf(method) >= 0;
+    if (cache && this._cache[method]) {
+      return this._cache[method];
+    }
     let res = sendWeb3(this.sendRPC, method, params);
-    res.then((r) => console.log("rpc response", method, params, r));
+    if (cache) {
+      this._cache[method] = res;
+      setTimeout(() => {
+        this._cache[method] = null as any;
+      }, 0);
+    }
     return res;
   }
 }
