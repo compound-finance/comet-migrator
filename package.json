@@ -10,7 +10,7 @@
     "web:test": "jest",
     "forge:test": "script/test.sh",
     "forge:lint": "solhint '{src,script,test}/**/*.sol'",
-    "forge:playground": "forge script/Playground.s.sol",
+    "forge:playground": "script/playground.sh",
     "deploy": "tsc && vite build && node script/ipfs.js"
   },
   "dependencies": {
@@ -26,7 +26,7 @@
     "@web3-react/network": "8.0.27-beta.0",
     "@web3-react/types": "8.0.20-beta.0",
     "@web3-react/url": "8.0.25-beta.0",
-    "comet": "https://github.com/compound-finance/comet.git#97ba9f1953094533ef2df601f5adc9e679fc7029",
+    "comet": "https://github.com/compound-finance/comet.git#c54ccc62e06186bdf237048ac7c9f3ce34d813b4",
     "compound-config": "https://github.com/compound-finance/compound-config.git",
     "compound-styles": "https://github.com/compound-finance/compound-styles.git#f922f4b7fdfaab4f2dc2d65f966397524107ae2d",
     "react": "^18.2.0",
