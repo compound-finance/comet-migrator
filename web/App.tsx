@@ -208,7 +208,7 @@ export default ({sendRPC, web3}: AppProps) => {
       let [account] = accounts;
       setAccount(account);
     }
-  }, [timer]);
+  }, [web3, timer]);
 
   useAsyncEffect(async () => {
     let networkWeb3 = await web3.getNetwork();
@@ -217,7 +217,7 @@ export default ({sendRPC, web3}: AppProps) => {
     if (network) {
       setNetwork(network);
     }
-  }, [timer]);
+  }, [web3, timer]);
 
   if (network && account) {
     let networkConfig = getNetworkConfig(network);
