@@ -12,46 +12,114 @@ export default [
         "type": "address"
       },
       {
+        "internalType": "contract CTokenLike",
+        "name": "cETH_",
+        "type": "address"
+      },
+      {
+        "internalType": "contract IWETH9",
+        "name": "weth_",
+        "type": "address"
+      },
+      {
         "internalType": "contract IUniswapV3Pool",
         "name": "uniswapLiquidityPool_",
         "type": "address"
       },
       {
-        "internalType": "contract IERC20[]",
-        "name": "collateralTokens_",
-        "type": "address[]"
-      },
-      {
-        "internalType": "address",
+        "internalType": "address payable",
         "name": "sweepee_",
-        "type": "address"
-      },
-      {
-        "internalType": "address",
-        "name": "_factory",
-        "type": "address"
-      },
-      {
-        "internalType": "address",
-        "name": "_WETH9",
         "type": "address"
       }
     ],
-    "stateMutability": "nonpayable",
+    "stateMutability": "payable",
     "type": "constructor"
   },
   {
     "inputs": [],
-    "name": "WETH9",
-    "outputs": [
+    "name": "CTokenTransferFailure",
+    "type": "error"
+  },
+  {
+    "inputs": [
       {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
+        "internalType": "uint256",
+        "name": "loc",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "code",
+        "type": "uint256"
       }
     ],
-    "stateMutability": "view",
-    "type": "function"
+    "name": "CompoundV2Error",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "loc",
+        "type": "uint256"
+      }
+    ],
+    "name": "Reentrancy",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "loc",
+        "type": "uint256"
+      }
+    ],
+    "name": "SweepFailure",
+    "type": "error"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "user",
+        "type": "address"
+      },
+      {
+        "components": [
+          {
+            "internalType": "contract CTokenLike",
+            "name": "cToken",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "amount",
+            "type": "uint256"
+          }
+        ],
+        "indexed": false,
+        "internalType": "struct Comet_V2_Migrator.Collateral[]",
+        "name": "collateral",
+        "type": "tuple[]"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "repayAmount",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "borrowAmountWithFee",
+        "type": "uint256"
+      }
+    ],
+    "name": "Migrated",
+    "type": "event"
   },
   {
     "inputs": [],
@@ -72,6 +140,19 @@ export default [
     "outputs": [
       {
         "internalType": "contract IERC20",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "cETH",
+    "outputs": [
+      {
+        "internalType": "contract CTokenLike",
         "name": "",
         "type": "address"
       }
@@ -113,12 +194,12 @@ export default [
   },
   {
     "inputs": [],
-    "name": "factory",
+    "name": "inMigration",
     "outputs": [
       {
-        "internalType": "address",
+        "internalType": "uint256",
         "name": "",
-        "type": "address"
+        "type": "uint256"
       }
     ],
     "stateMutability": "view",
@@ -155,13 +236,6 @@ export default [
     "type": "function"
   },
   {
-    "inputs": [],
-    "name": "refundETH",
-    "outputs": [],
-    "stateMutability": "payable",
-    "type": "function"
-  },
-  {
     "inputs": [
       {
         "internalType": "contract IERC20",
@@ -175,34 +249,11 @@ export default [
     "type": "function"
   },
   {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "token",
-        "type": "address"
-      },
-      {
-        "internalType": "uint256",
-        "name": "amountMinimum",
-        "type": "uint256"
-      },
-      {
-        "internalType": "address",
-        "name": "recipient",
-        "type": "address"
-      }
-    ],
-    "name": "sweepToken",
-    "outputs": [],
-    "stateMutability": "payable",
-    "type": "function"
-  },
-  {
     "inputs": [],
     "name": "sweepee",
     "outputs": [
       {
-        "internalType": "address",
+        "internalType": "address payable",
         "name": "",
         "type": "address"
       }
@@ -273,21 +324,16 @@ export default [
     "type": "function"
   },
   {
-    "inputs": [
+    "inputs": [],
+    "name": "weth",
+    "outputs": [
       {
-        "internalType": "uint256",
-        "name": "amountMinimum",
-        "type": "uint256"
-      },
-      {
-        "internalType": "address",
-        "name": "recipient",
+        "internalType": "contract IWETH9",
+        "name": "",
         "type": "address"
       }
     ],
-    "name": "unwrapWETH9",
-    "outputs": [],
-    "stateMutability": "payable",
+    "stateMutability": "view",
     "type": "function"
   },
   {
