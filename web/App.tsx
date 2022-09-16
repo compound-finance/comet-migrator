@@ -197,23 +197,27 @@ export function App<N extends Network>({sendRPC, web3, account, networkConfig}: 
   useAsyncEffect(async () => {
     let migratorEnabled = (await comet.allowance(account, migrator.address))?.toBigInt() > 0n;
     let tokenStates = new Map(await Promise.all(Array.from(accountState.cTokens.entries()).map<Promise<[CTokenSym<Network>, CTokenState]>>(async ([sym, state]) => {
-      let cTokenCtx = cTokenCtxs.get(sym)!;
+      let cTokenCtx = cTokenCtxs.get(sym);
 
-      let underlyingDecimals: bigint = state.underlyingDecimals ?? ( 'underlying' in cTokenCtx ? BigInt(await (new Contract(await cTokenCtx.underlying(), ERC20, web3)).decimals()) : 18n );
-      let balance: bigint = (await cTokenCtx.balanceOf(account)).toBigInt();
-      let exchangeRate: bigint = (await cTokenCtx.callStatic.exchangeRateCurrent()).toBigInt();
-      let balanceUnderlying = weiToAmount(balance * exchangeRate / 1000000000000000000n, underlyingDecimals);
+      if (cTokenCtx) {
+        let underlyingDecimals: bigint = state.underlyingDecimals ?? ( 'underlying' in cTokenCtx ? BigInt(await (new Contract(await cTokenCtx.underlying(), ERC20, web3)).decimals()) : 18n );
+        let balance: bigint = (await cTokenCtx.balanceOf(account)).toBigInt();
+        let exchangeRate: bigint = (await cTokenCtx.callStatic.exchangeRateCurrent()).toBigInt();
+        let balanceUnderlying = weiToAmount(balance * exchangeRate / 1000000000000000000n, underlyingDecimals);
 
-      return [sym, {
-        ...state,
-        address: await cTokenCtx.address,
-        balance,
-        balanceUnderlying,
-        allowance: (await cTokenCtx.allowance(account, migrator.address)).toBigInt(),
-        exchangeRate,
-        decimals: state.decimals ?? BigInt(await cTokenCtx.decimals()),
-        underlyingDecimals,
-      }];
+        return [sym, {
+          ...state,
+          address: await cTokenCtx.address,
+          balance,
+          balanceUnderlying,
+          allowance: (await cTokenCtx.allowance(account, migrator.address)).toBigInt(),
+          exchangeRate,
+          decimals: state.decimals ?? BigInt(await cTokenCtx.decimals()),
+          underlyingDecimals,
+        }];
+      } else {
+        return [sym, state];
+      }
     })));
 
     let cUSDC = cTokenCtxs.get('cUSDC' as  CTokenSym<Network>);
