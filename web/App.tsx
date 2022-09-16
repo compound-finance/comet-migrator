@@ -233,7 +233,7 @@ export function App<N extends Network>({sendRPC, web3, account, networkConfig}: 
     let borrowAmount = accountState.borrowBalanceV2;
     let usdcDecimals = accountState.usdcDecimals;
     if (!borrowAmount || !usdcDecimals) {
-      return "Invalid borrowAmount || usdcDecimals";
+      return "";
     }
     let repayAmount = parseNumber(accountState.repayAmount, (n) => amountToWei(n, usdcDecimals!));
     if (repayAmount === null) {
@@ -432,9 +432,9 @@ export function App<N extends Network>({sendRPC, web3, account, networkConfig}: 
                 { typeof migrateParams === 'string' ?
                   <div className="panel__header-row">
                     <div className="action-input-view action-input-view--error L2">
-                      <label className="action-input-view__title">
+                      { migrateParams.length > 0 ? <label className="action-input-view__title">
                         { migrateParams }
-                      </label>
+                      </label> : null }
                     </div>
                   </div> : null
                 }
