@@ -33,6 +33,7 @@ interface AccountState<Network> {
 interface CTokenState {
   address?: string,
   balance?: bigint,
+  balanceUnderlying?: number,
   allowance?: bigint,
   exchangeRate?: bigint,
   transfer: string | 'max',
@@ -45,15 +46,15 @@ interface Collateral {
   amount: bigint
 }
 
-function showAmount(amount: bigint | undefined, decimals: bigint | undefined, color: boolean = true): string | React.Element {
+function showAmount(amount: bigint | undefined, decimals: bigint | undefined, format: boolean = true): string | React.Element {
   let number: number;
   if (amount && decimals) {
-    number = Number(amount) / Number(10n ** decimals);
+    number = weiToAmount(amount, decimals);
   } else {
     number = 0;
   }
 
-  if (color) {
+  if (format) {
     let s = number.toFixed(4);
     let [pre, post] = s.split('.');
     return (<Fragment>
@@ -62,6 +63,23 @@ function showAmount(amount: bigint | undefined, decimals: bigint | undefined, co
     </Fragment>);
   } else {
     return number.toFixed(4);
+  }
+}
+
+function formatNumber(number: number): React.Element {
+  let s = number.toFixed(4);
+  let [pre, post] = s.split('.');
+  return (<Fragment>
+    <span className="text-color--1">{pre}</span>
+    <span className="text-color--3">.{post}</span>
+  </Fragment>);
+}
+
+function weiToAmount(wei: bigint | undefined, decimals: bigint | undefined): number {
+  if (wei && decimals) {
+    return Number(wei) / Number(10n ** decimals);
+  } else {
+    return 0;
   }
 }
 
@@ -175,14 +193,20 @@ export function App<N extends Network>({sendRPC, web3, account, networkConfig}: 
       let tokenStates = new Map(await Promise.all(Array.from(accountState.cTokens.entries()).map<Promise<[CTokenSym<Network>, CTokenState]>>(async ([sym, state]) => {
         let cTokenCtx = cTokenCtxs.get(sym)!;
 
+        let underlyingDecimals: bigint = state.underlyingDecimals ?? ( 'underlying' in cTokenCtx ? BigInt(await (new Contract(await cTokenCtx.underlying(), ERC20, web3)).decimals()) : 18n );
+        let balance: bigint = (await cTokenCtx.balanceOf(account)).toBigInt();
+        let exchangeRate: bigint = (await cTokenCtx.callStatic.exchangeRateCurrent()).toBigInt();
+        let balanceUnderlying = weiToAmount(balance * exchangeRate / 1000000000000000000n, underlyingDecimals);
+
         return [sym, {
           ...state,
           address: await cTokenCtx.address,
-          balance: (await cTokenCtx.balanceOf(account)).toBigInt(),
+          balance,
+          balanceUnderlying,
           allowance: (await cTokenCtx.allowance(account, migrator.address)).toBigInt(),
-          exchangeRate: (await cTokenCtx.callStatic.exchangeRateCurrent()).toBigInt(),
+          exchangeRate,
           decimals: state.decimals ?? BigInt(await cTokenCtx.decimals()),
-          underlyingDecimals: state.underlyingDecimals ?? ( 'underlying' in cTokenCtx ? BigInt(await (new Contract(await cTokenCtx.underlying(), ERC20, web3)).decimals()) : 18n )
+          underlyingDecimals,
         }];
       })));
 
@@ -220,7 +244,7 @@ export function App<N extends Network>({sendRPC, web3, account, networkConfig}: 
     }
 
     let collateral: Collateral[] = [];
-    for (let [sym, {address, balance, decimals, underlyingDecimals, transfer, exchangeRate}] of accountState.cTokens.entries()) {
+    for (let [sym, {address, balance, balanceUnderlying, decimals, underlyingDecimals, transfer, exchangeRate}] of accountState.cTokens.entries()) {
       if (address !== undefined && decimals !== undefined && underlyingDecimals !== undefined && balance !== undefined && exchangeRate !== undefined) {
         if (transfer === 'max') {
           collateral.push({
@@ -228,12 +252,14 @@ export function App<N extends Network>({sendRPC, web3, account, networkConfig}: 
             amount: balance
           });
         } else {
+          if (balanceUnderlying && Number(transfer) > balanceUnderlying) {
+            return `Exceeded collateral amount for ${sym}`;
+          }
           let transferAmount = parseNumber(transfer, (n) => amountToWei(n * 1e18 / Number(exchangeRate), underlyingDecimals!));
           if (transferAmount === null) {
             return `Invalid collateral amount ${sym}: ${transfer}`;
           } else {
             if (transferAmount > 0n) {
-              // TODO: Check too much
               collateral.push({
                 cToken: address,
                 amount: transferAmount
@@ -294,7 +320,7 @@ export function App<N extends Network>({sendRPC, web3, account, networkConfig}: 
           </div>
           <div className="asset-row__balance">
             <p className="body text-color--3">
-              {showAmount(state.exchangeRate ? (state.balance ?? 0n) * state.exchangeRate / 1000000000000000000n : 0n, state.underlyingDecimals)}
+              {formatNumber(state.balanceUnderlying ?? 0)}
             </p>
           </div>
           <div className="asset-row__actions">{ state.allowance === 0n ?
