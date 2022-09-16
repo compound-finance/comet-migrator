@@ -1,0 +1,146 @@
+.modal {
+  align-items: center;
+  background: rgba(15, 23, 31, 0.6);
+  justify-content: center;
+  display: flex;
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 100%;
+  z-index: 1000;
+
+  &__backdrop {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+  }
+
+  &__content {
+    width: 26.25rem;
+    text-align: center;
+    position: relative;
+    background: var(--ui--foreground--2);
+    border-radius: 8px;
+    box-shadow: 0px 1rem 2.5rem rgba(15, 23, 31, 0.6);
+    color: var(--text--1);
+    padding: 2.5rem;
+
+    &__header {
+      align-items: center;
+      display: flex;
+      flex-wrap: nowrap;
+      justify-content: space-between;
+
+      &__left,
+      &__right {
+        width: 2.5rem;
+      }
+
+      &__left {
+        display: flex;
+        justify-content: center;
+
+        .svg {
+          cursor: pointer;
+        }
+      }
+
+      &__right {
+        align-items: center;
+        display: flex;
+        justify-content: flex-end;
+
+        .svg {
+          cursor: pointer;
+          &__path {
+            fill: var(--icon--3);
+          }
+        }
+      }
+    }
+
+    &__icon-holder {
+      align-items: center;
+      background: var(--ui--foreground--1);
+      border-radius: 50%;
+      display: inline-flex;
+      height: 4rem;
+      justify-content: center;
+      position: relative;
+      margin-top: 2.5rem;
+      max-height: 4rem;
+      max-width: 4rem;
+      min-height: 4rem;
+      min-width: 4rem;
+      width: 4rem;
+
+      &--with-error {
+        margin-left: auto;
+        margin-right: auto;
+
+        .svg {
+          position: relative;
+          margin: auto;
+        }
+      }
+
+      .svg {
+        &--checkmark {
+          background-color: var(--ui--foreground--1);
+          border: 2px solid var(--ui--foreground--1);
+          border-radius: 50%;
+          height: 1.25rem;
+          left: 2.75rem;
+          position: absolute;
+          top: 2.75rem;
+          width: 1.25rem;
+        }
+      }
+
+      .logo--mark {
+        width: 1.5rem;
+      }
+
+      &__error-icon {
+        position: absolute;
+        right: 0;
+        bottom: 0;
+      }
+    }
+
+    &__icon {
+      height: 4rem;
+      width: 4rem;
+      max-height: 4rem;
+      max-width: 4rem;
+      min-height: 4rem;
+      min-width: 4rem;
+    }
+
+    &__paragraph {
+      margin-top: 1.25rem;
+
+      &--left-align {
+        text-align: left;
+        margin-left: 1rem;
+      }
+    }
+
+    &__bulker-actions {
+      background: var(--ui--foreground--1);
+      border-radius: 8px;
+      margin-top: 1.25rem;
+    }
+
+    &__action-row {
+      margin-top: 2.5rem;
+    }
+  }
+
+  &__terms {
+    margin-top: 1.25rem;
+  }
+}

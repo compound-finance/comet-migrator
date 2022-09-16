@@ -1,0 +1,82 @@
+@use '../abstracts/variables' as *;
+
+.interest-rate-model {
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: 0.5rem;
+
+  &__keys {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    justify-content: space-around;
+    white-space: nowrap;
+    flex-shrink: 0;
+
+    &--percentages {
+      width: 3.2rem;
+    }
+
+    &__item {
+      &--utilization {
+        color: var(--data--neutral);
+        margin-top: 0.2rem;
+      }
+      &--borrow {
+        color: var(--data--borrow);
+        margin-top: 1rem;
+      }
+      &--supply {
+        color: var(--data--supply);
+      }
+    }
+  }
+
+  &__chart {
+    flex-grow: 1;
+
+    &__line {
+      fill: none;
+      stroke: var(--data--neutral);
+      stroke-width: 3;
+      stroke-linecap: round;
+
+      &--utilization {
+        stroke: var(--data--neutral);
+        &--lite {
+          stroke: #{rgba($neutral--100, 0.35)};
+        }
+      }
+
+      &--borrow {
+        stroke: var(--data--borrow);
+        &--lite {
+          stroke: #{rgba($purple--50, 0.35)};
+        }
+      }
+
+      &--supply {
+        stroke: var(--data--supply);
+        &--lite {
+          stroke: #{rgba($green--30, 0.35)};
+        }
+      }
+    }
+
+    &__circle {
+      fill: var(--data--neutral);
+      filter: drop-shadow(0px 4px 14px rgba(0, 0, 0, 0.11));
+      stroke: $neutral--00;
+      stroke-width: 3;
+
+      &--borrow {
+        fill: var(--data--borrow);
+      }
+
+      &--supply {
+        fill: var(--data--supply);
+      }
+    }
+  }
+}

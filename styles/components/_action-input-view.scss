@@ -1,0 +1,85 @@
+@use '../abstracts/variables' as *;
+@use '../abstracts/mixins.scss' as mixins;
+
+.action-input-view {
+  --color--highlight: var(--text--2);
+  &--repay,
+  &--borrow {
+    --color--highlight: var(--text--borrow);
+  }
+
+  &--supply,
+  &--withdraw {
+    --color--highlight: var(--text--supply);
+  }
+
+  &--error {
+    --color--highlight: var(--data--caution);
+  }
+
+  &__title {
+    align-items: center;
+    display: flex;
+    gap: 0.5rem;
+    color: var(--color--highlight);
+  }
+
+  &__input-row {
+    align-items: center;
+    display: flex;
+    justify-content: space-between;
+    margin-top: 1.25rem;
+    width: 100%;
+
+    input {
+      flex-grow: 1;
+    }
+  }
+
+  &__input {
+    color: var(--text--1);
+    background: transparent;
+    border: none;
+    font-family: 'Haas Grot Disp R';
+    font-size: 2rem; //This value is overwritten based on character count
+    font-weight: 400;
+    height: 2.25rem;
+    line-height: 2.25rem;
+    caret-color: var(--color--highlight);
+    transition: all 0.2s linear;
+    width: 16.5625rem;
+
+    &:focus {
+      outline: none;
+    }
+  }
+
+  &__detail-row {
+    align-items: center;
+    display: flex;
+    gap: 0.25rem;
+    margin-top: 0.25rem;
+
+    .asset {
+      height: 0.75rem;
+      width: 0.75rem;
+      min-height: 0.75rem;
+      min-width: 0.75rem;
+    }
+
+    .meta {
+      color: var(--text--2);
+    }
+  }
+
+  &__buttons {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 1.25em;
+
+    button {
+      width: 48%;
+    }
+  }
+}

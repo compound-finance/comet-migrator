@@ -1,6 +1,91 @@
+@use 'abstracts/variables' as *;
+
+@use 'base/reset';
+@use 'base/scaffolding';
+@use 'base/theme';
+@use 'base/typography';
+
+@use 'components/action-input-view';
+@use 'components/action-queue-item';
+@use 'components/alert-banner';
+@use 'components/asset';
+@use 'components/asset-row';
+@use 'components/assets-table';
+@use 'components/button';
+@use 'components/connect-wallet-modal';
+@use 'components/connected-wallet';
+@use 'components/divider';
+@use 'components/dropdown';
+@use 'components/footer';
+@use 'components/go-to-desktop';
+@use 'components/header';
+@use 'components/hero-panel';
+@use 'components/icon-pair';
+@use 'components/interest-rate-model';
+@use 'components/load-spinner';
+@use 'components/logo';
+@use 'components/market-history-panel';
+@use 'components/market-overview-panel';
+@use 'components/market-selector';
+@use 'components/masthead';
+@use 'components/meter';
+@use 'components/modal';
+@use 'components/page';
+@use 'components/panel';
+@use 'components/position-card';
+@use 'components/rewards';
+@use 'components/svg';
+@use 'components/theme-toggle';
+@use 'components/tooltip';
+@use 'components/utilization-meter';
+
+@use 'pages/home';
+@use 'pages/markets';
+@use 'pages/extensions';
 
 #root {
   height: 100vh;
   display: flex;
   flex-direction: column;
+}
+
+.placeholder-content {
+  position: relative;
+  display: inline-block;
+  width: 100%;
+
+  &:before {
+    content: '';
+    position: absolute;
+    top: 0.125rem;
+    bottom: 0.125rem;
+    left: 0;
+    right: 0;
+    animation: content-loading 1.2s linear infinite alternate;
+    background: $neutral--50;
+    border-radius: 4px;
+  }
+
+  &:after {
+    content: '\00a0';
+  }
+
+  &--circle {
+    height: 100%;
+
+    &:before {
+      top: 0;
+      bottom: 0;
+      border-radius: 50%;
+    }
+  }
+}
+
+@keyframes content-loading {
+  0% {
+    background: rgba($neutral--50, 0.1);
+  }
+  100% {
+    background: rgba($neutral--50, 0.3);
+  }
 }

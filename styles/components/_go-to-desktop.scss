@@ -1,0 +1,44 @@
+@use '../abstracts/variables' as *;
+
+.go-to-desktop {
+  position: fixed;
+  top: 0;
+  right: 0;
+  left: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  z-index: 100;
+  background: linear-gradient(180deg, rgba($neutral--95, 0) 0%, $neutral--95 100%), $neutral--100;
+  padding: 1rem;
+  @media only screen and (min-width: 750px) {
+    display: none;
+  }
+
+  .message {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-grow: 1;
+    text-align: center;
+    &__content-wrapper {
+      max-width: 450px;
+    }
+    &__icon {
+      display: inline-block;
+      margin-bottom: 24px;
+    }
+    &__header {
+      color: white;
+    }
+    &__paragraph {
+      color: $neutral--30;
+    }
+  }
+
+  .bottom {
+    height: 33vh;
+    text-align: center;
+  }
+}

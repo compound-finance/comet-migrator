@@ -1,12 +1,13 @@
 import '../styles/main.scss';
 import { SendRPC } from './lib/useRPC';
 import { read, write } from './lib/RPC';
-import { useEffect, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 import ERC20 from '../abis/ERC20';
 import Comet from '../abis/Comet';
 import { CTokenSym, Network, NetworkConfig, getNetwork, getNetworkById, getNetworkConfig, isNetwork, showNetwork } from './Network';
 import { JsonRpcProvider } from '@ethersproject/providers';
 import { Contract, ContractInterface } from '@ethersproject/contracts';
+import { Close } from './Icons/Close';
 
 const MAX_UINT256 = BigInt('115792089237316195423570985008687907853269984665640564039457584007913129639935');
 
@@ -48,7 +49,7 @@ function showAmount(amount: bigint | undefined, decimals: bigint | undefined): s
   if (amount && decimals) {
     return (Number(amount) / Number(10n ** decimals)).toFixed(4);
   } else {
-    return '';
+    return (0).toFixed(4);
   }
 }
 
@@ -256,56 +257,80 @@ export function App<N extends Network>({sendRPC, web3, account, networkConfig}: 
 
   let el;
   if (accountState.migratorEnabled) {
-    el = (<div>
-      <div>
-        <label>cUSDC Repay</label>
-        <span>balance={showAmount(accountState.borrowBalanceV2, accountState.usdcDecimals)}</span>
-        { accountState.repayAmount === 'max' ?
-          <span>
-            <input disabled value="Max" />
-            <button onClick={() => setAccountState({...accountState, repayAmount: '0'})}>Max</button>
-          </span>
-        :
-          <span>
-            <input type="text" inputMode="decimal" value={accountState.repayAmount} onChange={(e) => setAccountState({...accountState, repayAmount: e.target.value})} />
-            <button onClick={() => setAccountState({...accountState, repayAmount: 'max'})}>Max</button>
-          </span>
-        }
+    el = (<Fragment>
+      <div className="panel__header-row">
+        <label className="L1 label text-color--2">Borrowing</label>
+      </div>
+      <div className="asset-row asset-row--active L3">
+        <div className="asset-row__detail-content">
+          <span className={`asset asset--${'USDC'}`} />
+          <div className="asset-row__info">
+            { accountState.repayAmount === 'max' ?
+              <input className="action-input-view__input text-color--3" style={{fontSize: "2rem"}} disabled value="Max" /> :
+              <input className="action-input-view__input" style={{fontSize: "2rem"}} type="text" inputMode="decimal" value={accountState.repayAmount} onChange={(e) => setAccountState({...accountState, repayAmount: e.target.value})} />
+            }
+          </div>
+        </div>
+        <div className="asset-row__balance">
+          <p className="body text-color--3">
+            {showAmount(accountState.borrowBalanceV2, accountState.usdcDecimals)}
+          </p>
+        </div>
+        <div className="asset-row__actions">{ accountState.repayAmount === 'max' ?
+            <button className="button button--selected" onClick={() => setAccountState({...accountState, repayAmount: '0'})}>
+              <Close />
+              <span>Max</span>
+            </button>
+          :
+            <button className="button button--selected" onClick={() => setAccountState({...accountState, repayAmount: 'max'})}>
+              <span>Max</span>
+            </button>
+          }
+        </div>
+      </div>
+      <div className="panel__header-row">
+        <label className="L1 label text-color--2">Supplying</label>
       </div>
       <div>
         { Array.from(accountState.cTokens.entries()).map(([sym, state]) => {
-          return <div key={`${sym}`}>
-            <label>{sym}</label>
-            <span>balance={showAmount(state.exchangeRate ? (state.balance ?? 0n) * state.exchangeRate / 1000000000000000000n : 0n, state.underlyingDecimals)}</span>
-            { state.allowance === 0n ?
-              <button onClick={() => setTokenApproval(sym)}>Enable</button> :
-              <span>
-                { state.transfer === 'max' ?
-                  <span>
-                    <input disabled value="Max" />
-                    <button onClick={() => setCTokenState(sym, 'transfer', '0')}>Max</button>
-                  </span> :
-                  <span>
-                    <input type="text" inputMode="decimal" value={state.transfer} onChange={(e) => setCTokenState(sym, 'transfer', e.target.value)} />
-                    <button onClick={() => setCTokenState(sym, 'transfer', 'max')}>Max</button>
-                  </span>
+          return <div className="asset-row asset-row--active L3" key={`${sym}`}>
+            <div className="asset-row asset-row--active L3">
+              <div className="asset-row__detail-content">
+                <span className={`asset asset--${sym.slice(1)}`} />
+                <div className="asset-row__info">
+                  { state.transfer === 'max' ?
+                    <input className="action-input-view__input text-color--3" style={{fontSize: "2rem"}} disabled value="Max" /> :
+                    <input className="action-input-view__input" style={{fontSize: "2rem"}} type="text" inputMode="decimal" value={state.transfer} onChange={(e) => setCTokenState(sym, 'transfer', e.target.value)} />
+                  }
+                </div>
+              </div>
+              <div className="asset-row__balance">
+                <p className="body text-color--3">
+                  {showAmount(state.exchangeRate ? (state.balance ?? 0n) * state.exchangeRate / 1000000000000000000n : 0n, state.underlyingDecimals)}
+                </p>
+              </div>
+              <div className="asset-row__actions">{ state.allowance === 0n ?
+                  <button className="button button--selected" onClick={() => setTokenApproval(sym)}>
+                    <span>Enable</span>
+                  </button>
+                : (
+                  state.transfer === 'max' ?
+                    <button className="button button--selected" onClick={() => setCTokenState(sym, 'transfer', '0')}>
+                      <Close />
+                      <span>Max</span>
+                    </button>
+                  :
+                    <button className="button button--selected" onClick={() => setCTokenState(sym, 'transfer', 'max')}>
+                      <span>Max</span>
+                    </button>
+                  )
                 }
-              </span>
-            }
+              </div>
+            </div>
           </div>
         })}
       </div>
-      {
-        typeof migrateParams === 'string' ?
-          <div>
-            <label>{ migrateParams }</label>
-            <button disabled={true}>Migrate</button>
-          </div> :
-          <div>
-            <button onClick={migrate}>Migrate</button>
-          </div>
-      }
-    </div>);
+    </Fragment>);
   } else {
     el = (<div>
       <button onClick={enableMigrator}>Enable Migrator</button>
@@ -313,12 +338,63 @@ export function App<N extends Network>({sendRPC, web3, account, networkConfig}: 
   }
 
   return (
-    <div className="container">
-      Compound II to Compound III Migrator<br/>
-      timer={ timer }<br/>
-      network={ showNetwork(networkConfig.network) }<br/>
-      account={ account }<br/>
-      { el }
+    <div className="page home">
+      <div className="container">
+        <div className="home__content">
+          <div className="home__assets">
+            <div className="panel panel--assets">
+              <div className="panel__header-row">
+                <label className="L1 label text-color--1">V2 Balances</label>
+              </div>
+              <div className="panel__header-row">
+                <label className="label text-color--1">
+                  Select the assets you want to migrate from Compound V2 to Compound V3.
+                  If you are supplying USDC on one market while borrowing on another, any
+                  supplied USDC will be used to repay borrowed USDC before entering you
+                  into an earning position in Compound V3.
+                </label>
+              </div>
+              { el }
+              <div className="panel__header-row">
+                <label className="L1 label text-color--2">Debug Information</label>
+                <label className="label text-color--2">
+                  timer={ timer }<br/>
+                  network={ showNetwork(networkConfig.network) }<br/>
+                  account={ account }<br/>
+                </label>
+              </div>
+            </div>
+          </div>
+          <div className="home__sidebar">
+            <div className="position-card__summary">
+              <div className="panel position-card L3">
+                <div className="panel__header-row">
+                  <label className="L1 label text-color--1">Summary</label>
+                </div>
+                <div className="panel__header-row">
+                  <p className="text-color--1">
+                    If you are borrowing other assets on Compound V2,
+                    migrating too much collateral could increase your
+                    liquidation risk.
+                  </p>
+                </div>
+                { typeof migrateParams === 'string' ?
+                  <div className="panel__header-row">
+                    <div className="action-input-view action-input-view--error L2">
+                      <label className="action-input-view__title">
+                        { migrateParams }
+                      </label>
+                    </div>
+                  </div> : null
+                }
+                <div className="panel__header-row">
+                  <button disabled={typeof migrateParams === 'string'} onClick={migrate}>Migrate Balances</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

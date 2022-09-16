@@ -1,0 +1,83 @@
+@use '../abstracts/variables' as *;
+
+.utilization-meter {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: nowrap;
+  gap: 5px;
+  margin-bottom: 4rem;
+
+  &__segment {
+    height: 4px;
+    border-radius: 100px;
+    background: var(--data--neutral--2);
+    will-change: width;
+    transition: width 0.1s linear;
+
+    &--low {
+      background: var(--data--supply);
+    }
+
+    &--medium {
+      background: var(--data--warning);
+    }
+
+    &--high {
+      background: var(--data--caution);
+    }
+  }
+
+  &__dot {
+    position: relative;
+    background: var(--data--neutral--1);
+    border-radius: 50%;
+    width: 6px;
+    height: 6px;
+    flex-shrink: 0;
+
+    &__label {
+      position: absolute;
+      top: 1rem;
+      right: 0;
+      white-space: nowrap;
+      color: var(--text--2);
+
+      &--borrow-capacity {
+        right: 0;
+      }
+
+      &--liquidation-capacity {
+        left: 0;
+      }
+    }
+  }
+
+  &__percent {
+    flex-shrink: 0;
+  }
+
+  &__text {
+    align-items: center;
+    color: var(--text--2);
+    display: flex;
+    flex-shrink: 0;
+    margin-right: 0.5rem;
+  }
+
+  &__icon {
+    height: 1rem;
+    margin-left: 0.5rem;
+    width: 1rem;
+
+    .svg {
+      height: 100%;
+      width: 100%;
+    }
+
+    .svg__path {
+      fill: var(--text--2);
+    }
+  }
+}

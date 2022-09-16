@@ -1,0 +1,18 @@
+@use '../abstracts/variables' as *;
+
+.page {
+  flex-grow: 1;
+  padding-bottom: 3.75rem;
+
+  &__hero {
+    background: linear-gradient(180deg, rgba($neutral--95, 0) 0%, $neutral--95 100%), $neutral--100;
+    filter: drop-shadow(0px 4px 4px rgba(0, 0, 0, 0.02));
+    margin-bottom: -3.8125rem;
+    padding: 4rem 0 6rem 0;
+    width: 100%;
+  }
+
+  &__assets {
+    width: 100%;
+  }
+}

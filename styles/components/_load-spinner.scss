@@ -1,0 +1,20 @@
+@use '../abstracts/variables' as *;
+
+.load-spinner {
+  flex-shrink: 0;
+  width: 1rem;
+  height: 1rem;
+  border-radius: 50%;
+  border: 0.125rem solid #ffffff;
+  border-bottom-color: transparent;
+  animation: loadSpinner 1s linear infinite;
+}
+
+@keyframes loadSpinner {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
