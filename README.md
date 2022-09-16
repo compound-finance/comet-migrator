@@ -49,6 +49,13 @@ A few notes:
  * If you want to change the smart contract code, you'll need to kill and restart `yarn forge:playground`.
  * The standalone development experience is not the primary usage of the extension. See [Webb3](https://github.com/compound-finance/webb3) for details on running as an embedded extension.
 
+To run this in embedded mode (see Embedding below), you should run the following command in Webb3:
+
+```sh
+# in webb3/
+VITE_WEBB3_MAINNET_URL=http://localhost:8545 VITE_COMET_V2_MIGRATOR_SOURCE=http://localhost:5183/embedded.html yarn dev
+```
+
 ## Compound v2 Migrator Operator
 
 The Compound v2 Migrator Operator code lives in `src/Comet_V2_Migrator.sol`. Note: we use a large amount of vendoring to pull in Uniswap, Compound v2 and Compound v3 source files. We use [vendoza](https://github.com/hayesgm/vendoza) to track the diffs.
@@ -104,6 +111,13 @@ VITE_COMET_V2_MIGRATOR_SOURCE=http://localhost:5183/embedded.html yarn dev
 ```
 
 When the extension loads at [http://localhost:5173](http://localhost:5173), it should load this local extension, instead of the production version.
+
+If you are using the playground, you should also make sure Webb3 uses that URL for reading from the chain:
+
+```sh
+# in webb3/
+VITE_WEBB3_MAINNET_URL=http://localhost:8545 VITE_COMET_V2_MIGRATOR_SOURCE=http://localhost:5183/embedded.html yarn dev
+```
 
 ## Contributing
 
