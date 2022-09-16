@@ -1,0 +1,49 @@
+@use '../abstracts/variables' as *;
+
+.connect-wallet-items {
+  margin: 32px 0;
+}
+
+.connect-wallet-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-radius: 8px;
+  padding: 12px;
+  cursor: pointer;
+
+  .svg {
+    &__path {
+      fill: var(--icon--1);
+    }
+  }
+
+  &:hover {
+    background: var(--ui--foreground--1);
+
+    .svg {
+      &__path {
+        fill: var(--icon--supply);
+      }
+    }
+  }
+  &__symbol {
+    width: 40px;
+  }
+  &__info {
+    flex-grow: 1;
+    text-align: left;
+  }
+
+  &--disabled {
+    &:hover {
+      background: unset;
+
+      .svg {
+        &__path {
+          fill: var(--icon--1);
+        }
+      }
+    }
+  }
+}

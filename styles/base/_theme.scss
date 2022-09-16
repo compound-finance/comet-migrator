@@ -1,0 +1,122 @@
+@use '../abstracts/variables' as *;
+
+.theme {
+  --ui--background: #{$neutral--100};
+  --ui--foreground--1: #{$neutral--85};
+  --ui--foreground--2: #{$neutral--90};
+  --ui--border: #{rgba($neutral--05, 0.1)};
+
+  --text--1: #{$neutral--00};
+  --text--2: #{$neutral--40};
+  --text--3: #{$neutral--60};
+  --text--button-label: #{$neutral--00};
+  --text--button-label--disabled: #{$neutral--60};
+  --text--borrow: #{$purple--50};
+  --text--supply: #{$green--30};
+
+  --icon--1: #{$neutral--00};
+  --icon--2: #{$neutral--40};
+  --icon--3: #{$neutral--60};
+  --icon--borrow: #{$purple--50};
+  --icon--supply: #{$green--30};
+
+  --data--supply: #{$green--30};
+  --data--borrow: #{$purple--50};
+  --data--warning: #{$gold--30};
+  --data--caution: #{$red--50};
+  --data--neutral: #{$neutral--10};
+  --data--neutral--1: #{$neutral--00};
+  --data--neutral--2: #{$neutral--80};
+
+  --button--neutral: #{$neutral--80};
+  --button--neutral--disabled--1: #{$neutral--90};
+  --button--neutral--disabled--2: #{$neutral--95};
+  --button--borrow: #{$purple--70};
+  --button--borrow--deemphasized: #{$purple--90};
+  --button--supply: #{$green--50};
+  --button--supply--deemphasized: #{$green--90};
+
+  --action-input--shadow: 0 -2px 9px rgba(0, 0, 0, 0.25), 0 8px 24px rgba(0, 0, 0, 0.25);
+
+  --asset-table--gradient: linear-gradient(90deg, #{rgba($neutral--85, 0.2)} 0%, #{rgba($neutral--85, 1)} 80%);
+
+  &--light {
+    --ui--background: #{$neutral--05};
+    --ui--foreground--1: #{$neutral--00};
+    --ui--foreground--2: #{$neutral--10};
+    --ui--border: #{rgba($neutral--100, 0.1)};
+
+    --text--1: #{$neutral--90};
+    --text--2: #{$neutral--40};
+    --text--3: #{$neutral--30};
+    --text--button-label: #{$neutral--90};
+    --text--button-label--disabled: #{$neutral--30};
+    --text--borrow: #{$purple--70};
+    --text--borrow--deemphasized: #{$purple--50};
+    --text--supply: #{$green--50};
+    --text--supply--deemphasized: #{$green--50};
+
+    --icon--1: #{$neutral--90};
+    --icon--2: #{$neutral--40};
+    --icon--3: #{$neutral--30};
+    --icon--borrow: #{$purple--50};
+    --icon--supply: #{$green--30};
+
+    --data--supply: #{$green--30};
+    --data--borrow: #{$purple--50};
+    --data--warning: #{$gold--30};
+    --data--caution: #{$red--50};
+    --data--neutral: #{$neutral--100};
+    --data--neutral--1: #{$neutral--40};
+    --data--neutral--2: #{$neutral--20};
+
+    --button--neutral: #{$neutral--15};
+    --button--neutral--disabled--1: #{$neutral--10};
+    --button--neutral--disabled--2: #{$neutral--15};
+    --button--borrow: #{$purple--50};
+    --button--borrow--deemphasized: #{$purple--10};
+    --button--supply: #{$green--30};
+    --button--supply--deemphasized: #{$green--10};
+
+    --action-input--shadow: inset 0 0 0 1px var(--ui--border), 0 -2px 9px rgba(0, 0, 0, 0.03),
+      0 8px 24px rgba(0, 0, 0, 0.03);
+
+    --asset-table--gradient: linear-gradient(90deg, #{rgba($neutral--00, 0.2)} 0%, #{rgba($neutral--00, 1)} 80%);
+  }
+
+  background-color: var(--ui--background);
+
+  .text-color {
+    &--1 {
+      color: var(--text--1);
+    }
+
+    &--2 {
+      color: var(--text--2);
+    }
+
+    &--3 {
+      color: var(--text--3);
+    }
+
+    &--button-label {
+      color: var(--text--button-label);
+    }
+
+    &--button-label--disabled {
+      color: var(--text--button-label--disabled);
+    }
+
+    &--borrow {
+      color: var(--text--borrow);
+    }
+
+    &--caution {
+      color: var(--data--caution);
+    }
+
+    &--supply {
+      color: var(--text--supply);
+    }
+  }
+}

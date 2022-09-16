@@ -1,0 +1,46 @@
+@use '../abstracts/variables' as *;
+
+.market-overview {
+  align-items: stretch;
+  color: var(--text--1);
+  display: flex;
+  flex-flow: row wrap;
+  justify-content: space-between;
+
+  &__stats,
+  &__chart {
+    @media (max-width: $device--sm) {
+      width: 100%;
+      margin-top: 2rem;
+    }
+  }
+
+  &__chart {
+    width: 40%;
+  }
+
+  &__stats {
+    display: flex;
+    flex-wrap: wrap;
+    width: 60%;
+
+    &__item {
+      width: 25%;
+      display: flex;
+      align-items: flex-start;
+      flex-direction: column;
+      justify-content: center;
+      gap: 0.5rem;
+
+      .asset {
+        height: 1.2rem;
+        width: 1.2rem;
+        margin-right: 0.5rem;
+      }
+
+      @media (max-width: $device--sm) {
+        margin: 1rem 0;
+      }
+    }
+  }
+}

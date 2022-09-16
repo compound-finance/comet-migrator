@@ -1,0 +1,87 @@
+@use '../abstracts/variables' as *;
+
+.header {
+  background: transparent;
+  padding: 1rem 0;
+
+  .asset {
+    height: 1.8rem;
+    width: 1.8rem;
+  }
+
+  &__brand {
+    display: inline-block;
+    width: 127px;
+    height: 27px;
+    z-index: 101;
+  }
+
+  &__content {
+    align-items: center;
+    display: flex;
+
+    &__left,
+    &__right {
+      flex-basis: 25%;
+    }
+
+    &__right {
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    &__center {
+      flex-basis: 50%;
+    }
+  }
+
+  &__links {
+    text-align: center;
+
+    a {
+      color: var(--text--1);
+      font-size: 14px;
+      letter-spacing: 0;
+      margin: 0 calc(1.33rem / 2);
+      text-transform: none;
+      text-decoration: none;
+
+      &.active {
+        color: var(--text--supply);
+        padding: 0.3rem 0;
+        border-bottom: 1px solid var(--text--supply);
+        transition: padding 0.2s ease;
+      }
+
+      &:hover {
+        color: var(--text--supply);
+        text-decoration: none;
+        padding-bottom: 0.5rem;
+      }
+    }
+  }
+
+  &__buttons {
+    display: flex;
+    align-items: center;
+  }
+
+  &__pill-dropdown {
+    white-space: nowrap;
+    &.market-selector {
+      margin-right: 0.5rem;
+    }
+
+    &.rewards-button {
+      margin-right: -2.4rem;
+
+      .button--rewards {
+        padding-right: 2.75rem;
+      }
+
+      &--hide {
+        display: none;
+      }
+    }
+  }
+}

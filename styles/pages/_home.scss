@@ -1,0 +1,26 @@
+@use '../abstracts/variables' as *;
+
+.home {
+  color: var(--text--1);
+
+  &__content {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1.25rem;
+    flex-wrap: nowrap;
+  }
+
+  &__assets {
+    flex-grow: 1;
+    .panel {
+      &__header-row {
+        padding-right: calc($actions-width + 1.25rem);
+      }
+    }
+  }
+
+  &__sidebar {
+    width: 420px;
+  }
+}

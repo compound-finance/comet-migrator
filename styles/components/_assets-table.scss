@@ -1,0 +1,97 @@
+@use '../abstracts/variables' as *;
+
+.assets-table {
+  table-layout: fixed;
+  border-collapse: collapse;
+  border-spacing: 0;
+  text-align: left;
+
+  &__row {
+    height: 5rem;
+
+    &--header {
+      height: auto;
+    }
+
+    th {
+      color: var(--text--2);
+    }
+
+    &__asset-icon {
+      position: -webkit-sticky;
+      position: sticky;
+      left: 0;
+      max-width: 2.25rem;
+      z-index: 2;
+      white-space: nowrap;
+    }
+
+    &__asset-identity {
+      width: 20%;
+      padding-left: 0.75rem;
+      padding-right: 1rem;
+    }
+
+    &__total-supply {
+      width: 22.5%;
+      padding-right: 2rem;
+    }
+
+    &__oracle-price,
+    &__reserves,
+    &__collateral-factor,
+    &__liquidation-factor,
+    &__liquidation-penalty {
+      width: 11%;
+      padding-right: 1.25rem;
+    }
+
+    &__liquidation-penalty {
+      padding-right: 0;
+    }
+
+    @media (max-width: $device--sm) {
+      th.assets-table__row__asset-icon:after {
+        content: 'Assets';
+      }
+
+      .assets-table__row__asset-icon {
+        &::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          bottom: 0;
+          left: -2rem;
+          right: 0;
+          z-index: -1;
+          background-color: var(--ui--foreground--1);
+          box-shadow: 12px 0 4px 0 var(--ui--foreground--1);
+        }
+      }
+
+      .assets-table__row__asset-identity,
+      .assets-table__row__total-supply {
+        min-width: 210px;
+      }
+
+      .assets-table__row__oracle-price,
+      .assets-table__row__reserves,
+      .assets-table__row__collateral-factor,
+      .assets-table__row__liquidation-factor,
+      .assets-table__row__liquidation-penalty {
+        min-width: 120px;
+      }
+    }
+
+    .asset-icon {
+      border-radius: 50%;
+      vertical-align: middle;
+      overflow: hidden;
+    }
+
+    .meter {
+      width: 95%;
+      margin-top: 0.4rem;
+    }
+  }
+}

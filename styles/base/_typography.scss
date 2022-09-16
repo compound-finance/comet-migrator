@@ -1,0 +1,11 @@
+@forward 'node_modules/compound-styles/scss/base/typography';
+
+body {
+  font-family: var(--body-font-family), sans-serif;
+  font-weight: var(--body-font-weight);
+  line-height: 1;
+}
+
+a {
+  text-decoration: none;
+}

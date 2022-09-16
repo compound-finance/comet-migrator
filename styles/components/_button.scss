@@ -1,0 +1,209 @@
+@use '../abstracts/variables' as *;
+
+button,
+.button {
+  align-items: center;
+  background-color: var(--button--neutral);
+  border: 0.5px solid var(--button--neutral);
+  border-radius: 3.625rem;
+  color: var(--text--button-label);
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  padding: 0.84375rem 0;
+  font-size: 0.6875rem;
+  font-style: normal;
+  font-weight: 500;
+  line-height: 1rem;
+  transition: background-color 0.25s ease, height 0.25s ease;
+  min-width: 6.45rem;
+
+  .svg:not(:only-child) {
+    margin-right: 0.5rem;
+  }
+
+  .svg {
+    height: 1rem;
+    width: 1rem;
+
+    &__path {
+      fill: var(--text--button-label);
+    }
+  }
+
+  .label {
+    cursor: pointer;
+    pointer-events: inherit;
+  }
+
+  &--borrow {
+    background-color: var(--button--borrow);
+    border-color: var(--button--borrow);
+  }
+
+  &--supply {
+    background-color: var(--button--supply);
+    border-color: var(--button--supply);
+  }
+
+  &--transparent {
+    background-color: transparent;
+    border-color: transparent;
+  }
+
+  &--circle {
+    width: 2.75rem;
+    min-width: 2.75rem;
+    max-width: 2.75rem;
+    height: 2.75rem;
+    min-height: 2.75rem;
+    max-height: 2.75rem;
+    &:disabled {
+      opacity: 0.3;
+    }
+  }
+
+  &--selected {
+    background-color: var(--button--neutral--disabled--1);
+    border: 2px solid var(--text--button-label);
+    height: 2.75rem;
+  }
+
+  &--deselected {
+    background-color: var(--button--neutral--disabled--1);
+    border: 2px solid var(--ui--border);
+    height: 2.75rem;
+  }
+
+  &--market-selector,
+  &--connect-wallet,
+  &--rewards {
+    --background-color: #{$neutral--95};
+    --color: #{$neutral--00};
+    border: 1px solid $neutral--100;
+    font-weight: 400;
+    height: 2.75rem;
+    padding-left: 1.25rem;
+    padding-right: 1.25rem;
+    width: auto;
+
+    &--disconnected {
+      border-color: $green--30;
+    }
+
+    &--pending {
+      background-color: var(--button--supply);
+      position: relative;
+      width: 7rem;
+
+      .load-spinner {
+        margin-right: 0.5rem;
+      }
+
+      &:hover {
+        --background-color: #{darken($green--30, 6%)};
+      }
+    }
+
+    &:hover {
+      --background-color: #{lighten($neutral--95, 15%)};
+    }
+  }
+
+  &--small {
+    padding: 0.5rem 1rem;
+    min-width: unset;
+  }
+
+  &--large {
+    padding: 0rem 1rem;
+    height: 2.75rem;
+
+    &.button {
+      &--borrow {
+        background-color: var(--button--borrow--deemphasized);
+        border: 2px solid var(--text--borrow);
+        color: var(--text--borrow);
+
+        .svg__path {
+          fill: var(--text--borrow);
+        }
+
+        &.button--selected {
+          border: 2px solid $purple--70;
+        }
+        &.button--deselected {
+          background-color: var(--button--neutral--disabled--1);
+          border: 2px solid $purple--90;
+        }
+      }
+      &--supply {
+        background-color: var(--button--supply--deemphasized);
+        border: 2px solid var(--text--supply);
+        color: var(--text--supply);
+
+        .svg__path {
+          fill: var(--text--supply);
+        }
+
+        &.button--selected {
+          border: 2px solid $green--50;
+        }
+        &.button--deselected {
+          background-color: var(--button--neutral--disabled--1);
+          border: 2px solid $green--90;
+        }
+      }
+    }
+  }
+
+  &--x-large {
+    border-radius: 100px;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    line-height: 1.125rem;
+    padding: 1.1875rem 0;
+    width: 100%;
+  }
+
+  &--jumbo {
+    font-size: 1.2rem;
+    padding: 1.5rem;
+  }
+
+  &:disabled {
+    background-color: var(--button--neutral--disabled--2);
+    border: 0.5px solid var(--button--neutral--disabled--2);
+    color: var(--text--button-label--disabled);
+    cursor: auto;
+
+    .label {
+      cursor: auto;
+      pointer-events: inherit;
+    }
+
+    .svg__path {
+      fill: var(--text--button-label--disabled);
+    }
+  }
+
+  &:not(:disabled) {
+    &:hover {
+      filter: brightness(90%);
+    }
+
+    &:active {
+      filter: brightness(85%);
+    }
+  }
+
+  & + & {
+    margin-left: 1rem;
+  }
+}
+
+.theme--light {
+  .button--large {
+    border-color: transparent;
+  }
+}

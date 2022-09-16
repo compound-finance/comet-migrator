@@ -1,0 +1,76 @@
+@use '../abstracts/variables' as *;
+
+.markets {
+  &__masthead {
+    padding: 3rem 0;
+  }
+
+  .panel + .panel {
+    margin-top: 1.25rem;
+  }
+}
+
+.token-pair {
+  align-items: flex-start;
+  display: flex;
+  margin-bottom: 40px;
+
+  &__icons {
+    border-radius: 200px;
+    background: var(--ui--foreground--2);
+    padding: 8px 12px;
+  }
+
+  &__info {
+    margin-left: 12px;
+  }
+
+  &__names {
+    color: var(--text--1);
+    margin: 0;
+
+    &__divider {
+      color: var(--text--2);
+      margin: 0 0.5rem;
+    }
+
+    &__chain-name {
+      color: var(--text--2);
+    }
+  }
+
+  &__address {
+    align-items: center;
+    color: var(--text--2);
+    display: flex;
+    text-transform: none;
+
+    .line-icon {
+      margin-left: 5px;
+      .svg {
+        height: 0.875rem;
+        width: 0.875rem;
+      }
+    }
+  }
+}
+
+.split-panels {
+  align-items: center;
+  display: flex;
+  flex-flow: row wrap;
+  justify-content: space-between;
+
+  &__item {
+    width: 46%;
+  }
+
+  @media (max-width: $device--sm) {
+    justify-content: center;
+
+    .split-panels__item {
+      width: 100%;
+      margin-top: 2rem;
+    }
+  }
+}

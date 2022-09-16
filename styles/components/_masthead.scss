@@ -1,0 +1,29 @@
+.masthead {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 2.25rem 0;
+
+  .button {
+    &--circle {
+      .svg {
+        height: 1.25rem;
+        width: 1.25rem;
+      }
+    }
+  }
+
+  &__overview-details {
+    align-items: center;
+    display: flex;
+
+    .meta + .meta {
+      margin: 0 0 0 0.5rem;
+    }
+  }
+
+  &__action-buttons {
+    display: flex;
+    align-items: center;
+  }
+}
