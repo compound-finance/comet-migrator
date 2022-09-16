@@ -109,7 +109,7 @@ function getMigratorAddress(network: Network): string {
   if (network === 'mainnet') {
     return '0x3fdc08d815cc4ed3b7f69ee246716f2c8bcd6b07';
   } else if (network === 'goerli') {
-    return '0xc25c7ff6290a1139adf5c454083bb3ebf07beedd';
+    return '0x4BeF20E4a649586659Ae67f08fB7436b0Ae7Ff1A';
   }
 
   return null as never;
