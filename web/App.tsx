@@ -45,11 +45,23 @@ interface Collateral {
   amount: bigint
 }
 
-function showAmount(amount: bigint | undefined, decimals: bigint | undefined): string {
+function showAmount(amount: bigint | undefined, decimals: bigint | undefined, color: boolean = true): string | React.Element {
+  let number: number;
   if (amount && decimals) {
-    return (Number(amount) / Number(10n ** decimals)).toFixed(4);
+    number = Number(amount) / Number(10n ** decimals);
   } else {
-    return (0).toFixed(4);
+    number = 0;
+  }
+
+  if (color) {
+    let s = number.toFixed(4);
+    let [pre, post] = s.split('.');
+    return (<Fragment>
+      <span className="text-color--1">{pre}</span>
+      <span className="text-color--3">.{post}</span>
+    </Fragment>);
+  } else {
+    return number.toFixed(4);
   }
 }
 
@@ -257,6 +269,55 @@ export function App<N extends Network>({sendRPC, web3, account, networkConfig}: 
 
   let el;
   if (accountState.migratorEnabled) {
+    let collateralWithBalances = Array.from(accountState.cTokens.entries()).filter(([sym, state]) => {
+      return state.balance && state.balance > 0n;
+    });
+
+    let collateralEl;
+    if (collateralWithBalances.length === 0) {
+      collateralEl = <div className="asset-row asset-row--active L3">
+        <p className="L2 text-color--1">
+          Any collateral balances in Compound V2 will appear here.
+        </p>
+      </div>;
+    } else {
+      collateralEl = collateralWithBalances.map(([sym, state]) => {
+        return <div className="asset-row asset-row--active L3">
+          <div className="asset-row__detail-content">
+            <span className={`asset asset--${sym.slice(1)}`} />
+            <div className="asset-row__info">
+              { state.transfer === 'max' ?
+                <input className="action-input-view__input text-color--3" style={{fontSize: "2rem"}} disabled value="Max" /> :
+                <input className="action-input-view__input" style={{fontSize: "2rem"}} type="text" inputMode="decimal" value={state.transfer} onChange={(e) => setCTokenState(sym, 'transfer', e.target.value)} />
+              }
+            </div>
+          </div>
+          <div className="asset-row__balance">
+            <p className="body text-color--3">
+              {showAmount(state.exchangeRate ? (state.balance ?? 0n) * state.exchangeRate / 1000000000000000000n : 0n, state.underlyingDecimals)}
+            </p>
+          </div>
+          <div className="asset-row__actions">{ state.allowance === 0n ?
+              <button className="button button--selected" onClick={() => setTokenApproval(sym)}>
+                <span>Enable</span>
+              </button>
+            : (
+              state.transfer === 'max' ?
+                <button className="button button--selected" onClick={() => setCTokenState(sym, 'transfer', '0')}>
+                  <Close />
+                  <span>Max</span>
+                </button>
+              :
+                <button className="button button--selected" onClick={() => setCTokenState(sym, 'transfer', 'max')}>
+                  <span>Max</span>
+                </button>
+              )
+            }
+          </div>
+        </div>
+      });
+    }
+
     el = (<Fragment>
       <div className="panel__header-row">
         <label className="L1 label text-color--2">Borrowing</label>
@@ -292,43 +353,7 @@ export function App<N extends Network>({sendRPC, web3, account, networkConfig}: 
         <label className="L1 label text-color--2">Supplying</label>
       </div>
       <div>
-        { Array.from(accountState.cTokens.entries()).map(([sym, state]) => {
-          return <div className="asset-row asset-row--active L3" key={`${sym}`}>
-            <div className="asset-row asset-row--active L3">
-              <div className="asset-row__detail-content">
-                <span className={`asset asset--${sym.slice(1)}`} />
-                <div className="asset-row__info">
-                  { state.transfer === 'max' ?
-                    <input className="action-input-view__input text-color--3" style={{fontSize: "2rem"}} disabled value="Max" /> :
-                    <input className="action-input-view__input" style={{fontSize: "2rem"}} type="text" inputMode="decimal" value={state.transfer} onChange={(e) => setCTokenState(sym, 'transfer', e.target.value)} />
-                  }
-                </div>
-              </div>
-              <div className="asset-row__balance">
-                <p className="body text-color--3">
-                  {showAmount(state.exchangeRate ? (state.balance ?? 0n) * state.exchangeRate / 1000000000000000000n : 0n, state.underlyingDecimals)}
-                </p>
-              </div>
-              <div className="asset-row__actions">{ state.allowance === 0n ?
-                  <button className="button button--selected" onClick={() => setTokenApproval(sym)}>
-                    <span>Enable</span>
-                  </button>
-                : (
-                  state.transfer === 'max' ?
-                    <button className="button button--selected" onClick={() => setCTokenState(sym, 'transfer', '0')}>
-                      <Close />
-                      <span>Max</span>
-                    </button>
-                  :
-                    <button className="button button--selected" onClick={() => setCTokenState(sym, 'transfer', 'max')}>
-                      <span>Max</span>
-                    </button>
-                  )
-                }
-              </div>
-            </div>
-          </div>
-        })}
+        { collateralEl }
       </div>
     </Fragment>);
   } else {
