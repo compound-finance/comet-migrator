@@ -27,7 +27,7 @@
     "@web3-react/types": "8.0.20-beta.0",
     "@web3-react/url": "8.0.25-beta.0",
     "comet": "https://github.com/compound-finance/comet.git#c54ccc62e06186bdf237048ac7c9f3ce34d813b4",
-    "compound-config": "https://github.com/compound-finance/compound-config.git",
+    "compound-config": "https://github.com/compound-finance/compound-config.git#0815f079ebe6c7421361b3334f7b8eaab50722b0",
     "compound-styles": "https://github.com/compound-finance/compound-styles.git#f922f4b7fdfaab4f2dc2d65f966397524107ae2d",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",

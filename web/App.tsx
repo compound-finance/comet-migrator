@@ -132,7 +132,7 @@ function parseNumber<T>(str: string, f: (x: number) => bigint): bigint | null {
 export function App<N extends Network>({sendRPC, web3, account, networkConfig}: AppPropsExt<N>) {
   let { cTokenNames } = networkConfig;
 
-  let timer = usePoll(20000);
+  let timer = usePoll(10000);
 
   const signer = useMemo(() => {
     return web3.getSigner().connectUnchecked();
@@ -219,6 +219,7 @@ export function App<N extends Network>({sendRPC, web3, account, networkConfig}: 
         return [sym, state];
       }
     })));
+    console.log("tokenStates", tokenStates);
 
     let cUSDC = cTokenCtxs.get('cUSDC' as  CTokenSym<Network>);
     let usdcBorrowsV2 = await cUSDC?.callStatic.borrowBalanceCurrent(account);
@@ -231,7 +232,7 @@ export function App<N extends Network>({sendRPC, web3, account, networkConfig}: 
       usdcDecimals: BigInt(usdcDecimals),
       cTokens: tokenStates
     });
-  }, [timer, account, cTokenCtxs]);
+  }, [timer, account, networkConfig.network, cTokenCtxs]);
 
   function validateForm(): { borrowAmount: bigint, collateral: Collateral[] } | string {
     let borrowAmount = accountState.borrowBalanceV2;
@@ -313,7 +314,7 @@ export function App<N extends Network>({sendRPC, web3, account, networkConfig}: 
     </div>;
   } else {
     collateralEl = collateralWithBalances.map(([sym, state]) => {
-      return <div className="asset-row asset-row--active L3">
+      return <div className="asset-row asset-row--active L3" key={sym}>
         <div className="asset-row__detail-content">
           <span className={`asset asset--${sym.slice(1)}`} />
           <div className="asset-row__info">
