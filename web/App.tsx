@@ -47,7 +47,7 @@ interface Collateral {
   amount: bigint
 }
 
-function showAmount(amount: bigint | undefined, decimals: bigint | undefined, format: boolean = true): string | React.Element {
+function showAmount(amount: bigint | undefined, decimals: bigint | undefined, format: boolean = true): string | React.ReactNode {
   let number: number;
   if (amount && decimals) {
     number = weiToAmount(amount, decimals);
@@ -67,7 +67,7 @@ function showAmount(amount: bigint | undefined, decimals: bigint | undefined, fo
   }
 }
 
-function formatNumber(number: number): React.Element {
+function formatNumber(number: number): React.ReactNode {
   let s = number.toFixed(4);
   let [pre, post] = s.split('.');
   return (<Fragment>
