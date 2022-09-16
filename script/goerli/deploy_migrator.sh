@@ -31,6 +31,7 @@ fi
 #   sweepee_ :: Sweep excess tokens to this address.
 # )
 #
+# TODO: New addresses
 comet="0x44Ac0af6F39c98d59Ed6D16404210656dB912Ffd"
 borrowCToken="0x701Db4333e19C7fB72140B75Cac07F43D462A3d4"
 cETH="0x64078a6189Bf45f80091c6Ff2fCEe1B15Ac8dbde"
