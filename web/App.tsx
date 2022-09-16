@@ -8,6 +8,7 @@ import { CTokenSym, Network, NetworkConfig, getNetwork, getNetworkById, getNetwo
 import { JsonRpcProvider } from '@ethersproject/providers';
 import { Contract, ContractInterface } from '@ethersproject/contracts';
 import { Close } from './Icons/Close';
+import { CircleCheckmark } from './Icons/CircleCheckmark';
 
 const MAX_UINT256 = BigInt('115792089237316195423570985008687907853269984665640564039457584007913129639935');
 
@@ -187,51 +188,53 @@ export function App<N extends Network>({sendRPC, web3, account, networkConfig}: 
     console.log("enabled migrator");
   }
 
+  async function disableMigrator() {
+    console.log("disabling migrator");
+    await comet.allow(migrator.address, false);
+    console.log("disabling migrator");
+  }
+
   useAsyncEffect(async () => {
     let migratorEnabled = (await comet.allowance(account, migrator.address))?.toBigInt() > 0n;
-    if (migratorEnabled) {
-      let tokenStates = new Map(await Promise.all(Array.from(accountState.cTokens.entries()).map<Promise<[CTokenSym<Network>, CTokenState]>>(async ([sym, state]) => {
-        let cTokenCtx = cTokenCtxs.get(sym)!;
+    let tokenStates = new Map(await Promise.all(Array.from(accountState.cTokens.entries()).map<Promise<[CTokenSym<Network>, CTokenState]>>(async ([sym, state]) => {
+      let cTokenCtx = cTokenCtxs.get(sym)!;
 
-        let underlyingDecimals: bigint = state.underlyingDecimals ?? ( 'underlying' in cTokenCtx ? BigInt(await (new Contract(await cTokenCtx.underlying(), ERC20, web3)).decimals()) : 18n );
-        let balance: bigint = (await cTokenCtx.balanceOf(account)).toBigInt();
-        let exchangeRate: bigint = (await cTokenCtx.callStatic.exchangeRateCurrent()).toBigInt();
-        let balanceUnderlying = weiToAmount(balance * exchangeRate / 1000000000000000000n, underlyingDecimals);
+      let underlyingDecimals: bigint = state.underlyingDecimals ?? ( 'underlying' in cTokenCtx ? BigInt(await (new Contract(await cTokenCtx.underlying(), ERC20, web3)).decimals()) : 18n );
+      let balance: bigint = (await cTokenCtx.balanceOf(account)).toBigInt();
+      let exchangeRate: bigint = (await cTokenCtx.callStatic.exchangeRateCurrent()).toBigInt();
+      let balanceUnderlying = weiToAmount(balance * exchangeRate / 1000000000000000000n, underlyingDecimals);
 
-        return [sym, {
-          ...state,
-          address: await cTokenCtx.address,
-          balance,
-          balanceUnderlying,
-          allowance: (await cTokenCtx.allowance(account, migrator.address)).toBigInt(),
-          exchangeRate,
-          decimals: state.decimals ?? BigInt(await cTokenCtx.decimals()),
-          underlyingDecimals,
-        }];
-      })));
+      return [sym, {
+        ...state,
+        address: await cTokenCtx.address,
+        balance,
+        balanceUnderlying,
+        allowance: (await cTokenCtx.allowance(account, migrator.address)).toBigInt(),
+        exchangeRate,
+        decimals: state.decimals ?? BigInt(await cTokenCtx.decimals()),
+        underlyingDecimals,
+      }];
+    })));
 
-      let cUSDC = cTokenCtxs.get('cUSDC' as  CTokenSym<Network>);
-      let usdcBorrowsV2 = await cUSDC?.callStatic.borrowBalanceCurrent(account);
-      let usdcDecimals = cUSDC ? BigInt(await (new Contract(await cUSDC.underlying(), ERC20, web3)).decimals()) : 0n;
+    let cUSDC = cTokenCtxs.get('cUSDC' as  CTokenSym<Network>);
+    let usdcBorrowsV2 = await cUSDC?.callStatic.borrowBalanceCurrent(account);
+    let usdcDecimals = cUSDC ? BigInt(await (new Contract(await cUSDC.underlying(), ERC20, web3)).decimals()) : 0n;
 
-      setAccountState({
-        ...accountState,
-        migratorEnabled,
-        borrowBalanceV2: usdcBorrowsV2.toString(),
-        usdcDecimals: BigInt(usdcDecimals),
-        cTokens: tokenStates
-      });
-    } else {
-      setAccountState({
-        ...accountState,
-        migratorEnabled
-      });
-    }
+    setAccountState({
+      ...accountState,
+      migratorEnabled,
+      borrowBalanceV2: usdcBorrowsV2.toString(),
+      usdcDecimals: BigInt(usdcDecimals),
+      cTokens: tokenStates
+    });
   }, [timer, account, cTokenCtxs]);
 
   function validateForm(): { borrowAmount: bigint, collateral: Collateral[] } | string {
     let borrowAmount = accountState.borrowBalanceV2;
     let usdcDecimals = accountState.usdcDecimals;
+    if (!accountState.migratorEnabled) {
+      return "";
+    }
     if (!borrowAmount || !usdcDecimals) {
       return "";
     }
@@ -293,104 +296,106 @@ export function App<N extends Network>({sendRPC, web3, account, networkConfig}: 
     }
   };
 
-  let el;
-  if (accountState.migratorEnabled) {
-    let collateralWithBalances = Array.from(accountState.cTokens.entries()).filter(([sym, state]) => {
-      return state.balance && state.balance > 0n;
-    });
+  let collateralWithBalances = Array.from(accountState.cTokens.entries()).filter(([sym, state]) => {
+    return state.balance && state.balance > 0n;
+  });
 
-    let collateralEl;
-    if (collateralWithBalances.length === 0) {
-      collateralEl = <div className="asset-row asset-row--active L3">
-        <p className="L2 text-color--1">
-          Any collateral balances in Compound V2 will appear here.
-        </p>
-      </div>;
-    } else {
-      collateralEl = collateralWithBalances.map(([sym, state]) => {
-        return <div className="asset-row asset-row--active L3">
-          <div className="asset-row__detail-content">
-            <span className={`asset asset--${sym.slice(1)}`} />
-            <div className="asset-row__info">
-              { state.transfer === 'max' ?
-                <input className="action-input-view__input text-color--3" style={{fontSize: "2rem"}} disabled value="Max" /> :
-                <input className="action-input-view__input" style={{fontSize: "2rem"}} type="text" inputMode="decimal" value={state.transfer} onChange={(e) => setCTokenState(sym, 'transfer', e.target.value)} />
-              }
-            </div>
-          </div>
-          <div className="asset-row__balance">
-            <p className="body text-color--3">
-              {formatNumber(state.balanceUnderlying ?? 0)}
-            </p>
-          </div>
-          <div className="asset-row__actions">{ state.allowance === 0n ?
-              <button className="button button--selected" onClick={() => setTokenApproval(sym)}>
-                <span>Enable</span>
-              </button>
-            : (
-              state.transfer === 'max' ?
-                <button className="button button--selected" onClick={() => setCTokenState(sym, 'transfer', '0')}>
-                  <Close />
-                  <span>Max</span>
-                </button>
-              :
-                <button className="button button--selected" onClick={() => setCTokenState(sym, 'transfer', 'max')}>
-                  <span>Max</span>
-                </button>
-              )
-            }
-          </div>
-        </div>
-      });
-    }
-
-    el = (<Fragment>
-      <div className="panel__header-row">
-        <label className="L1 label text-color--2">Borrowing</label>
-      </div>
-      <div className="asset-row asset-row--active L3">
+  let collateralEl;
+  if (collateralWithBalances.length === 0) {
+    collateralEl = <div className="asset-row asset-row--active L3">
+      <p className="L2 text-color--1">
+        Any collateral balances in Compound V2 will appear here.
+      </p>
+    </div>;
+  } else {
+    collateralEl = collateralWithBalances.map(([sym, state]) => {
+      return <div className="asset-row asset-row--active L3">
         <div className="asset-row__detail-content">
-          <span className={`asset asset--${'USDC'}`} />
+          <span className={`asset asset--${sym.slice(1)}`} />
           <div className="asset-row__info">
-            { accountState.repayAmount === 'max' ?
+            { state.transfer === 'max' ?
               <input className="action-input-view__input text-color--3" style={{fontSize: "2rem"}} disabled value="Max" /> :
-              <input className="action-input-view__input" style={{fontSize: "2rem"}} type="text" inputMode="decimal" value={accountState.repayAmount} onChange={(e) => setAccountState({...accountState, repayAmount: e.target.value})} />
+              <input className="action-input-view__input" style={{fontSize: "2rem"}} type="text" inputMode="decimal" value={state.transfer} onChange={(e) => setCTokenState(sym, 'transfer', e.target.value)} />
             }
           </div>
         </div>
         <div className="asset-row__balance">
           <p className="body text-color--3">
-            {showAmount(accountState.borrowBalanceV2, accountState.usdcDecimals)}
+            {formatNumber(state.balanceUnderlying ?? 0)}
           </p>
         </div>
-        <div className="asset-row__actions">{ accountState.repayAmount === 'max' ?
-            <button className="button button--selected" onClick={() => setAccountState({...accountState, repayAmount: '0'})}>
-              <Close />
-              <span>Max</span>
+        <div className="asset-row__actions">{ state.allowance === 0n ?
+            <button className="button button--selected" onClick={() => setTokenApproval(sym)}>
+              <span>Enable</span>
             </button>
-          :
-            <button className="button button--selected" onClick={() => setAccountState({...accountState, repayAmount: 'max'})}>
-              <span>Max</span>
-            </button>
+          : (
+            state.transfer === 'max' ?
+              <button className="button button--selected" onClick={() => setCTokenState(sym, 'transfer', '0')}>
+                <Close />
+                <span>Max</span>
+              </button>
+            :
+              <button className="button button--selected" onClick={() => setCTokenState(sym, 'transfer', 'max')}>
+                <span>Max</span>
+              </button>
+            )
           }
         </div>
       </div>
-      <div className="panel__header-row">
-        <label className="L1 label text-color--2">Supplying</label>
-      </div>
-      <div>
-        { collateralEl }
-      </div>
-    </Fragment>);
-  } else {
-    el = (<div>
-      <button onClick={enableMigrator}>Enable Migrator</button>
-    </div>);
+    });
   }
+
+  let innerEl = (<Fragment>
+    <div className="panel__header-row">
+      <label className="L1 label text-color--2">Borrowing</label>
+    </div>
+    <div className="asset-row asset-row--active L3">
+      <div className="asset-row__detail-content">
+        <span className={`asset asset--${'USDC'}`} />
+        <div className="asset-row__info">
+          { accountState.repayAmount === 'max' ?
+            <input className="action-input-view__input text-color--3" style={{fontSize: "2rem"}} disabled value="Max" /> :
+            <input className="action-input-view__input" style={{fontSize: "2rem"}} type="text" inputMode="decimal" value={accountState.repayAmount} onChange={(e) => setAccountState({...accountState, repayAmount: e.target.value})} />
+          }
+        </div>
+      </div>
+      <div className="asset-row__balance">
+        <p className="body text-color--3">
+          {showAmount(accountState.borrowBalanceV2, accountState.usdcDecimals)}
+        </p>
+      </div>
+      <div className="asset-row__actions">{ accountState.repayAmount === 'max' ?
+          <button className="button button--selected" onClick={() => setAccountState({...accountState, repayAmount: '0'})}>
+            <Close />
+            <span>Max</span>
+          </button>
+        :
+          <button className="button button--selected" onClick={() => setAccountState({...accountState, repayAmount: 'max'})}>
+            <span>Max</span>
+          </button>
+        }
+      </div>
+    </div>
+    <div className="panel__header-row">
+      <label className="L1 label text-color--2">Supplying</label>
+    </div>
+    <div>
+      { collateralEl }
+    </div>
+  </Fragment>);
 
   return (
     <div className="page home">
       <div className="container">
+        <div className="masthead L1">
+          <h1 className="L0 heading heading--emphasized">Compound V2 Migration Tool (USDC)</h1>
+          { accountState.migratorEnabled ?
+            <button className="button button--large button--supply" onClick={disableMigrator}>
+              <CircleCheckmark />
+              <label>Enabled</label>
+            </button> :
+            <button className="button button--large button--supply" onClick={enableMigrator}>Enable</button> }
+        </div>
         <div className="home__content">
           <div className="home__assets">
             <div className="panel panel--assets">
@@ -405,7 +410,7 @@ export function App<N extends Network>({sendRPC, web3, account, networkConfig}: 
                   into an earning position in Compound V3.
                 </label>
               </div>
-              { el }
+              { innerEl }
               <div className="panel__header-row">
                 <label className="L1 label text-color--2">Debug Information</label>
                 <label className="label text-color--2">
@@ -439,7 +444,7 @@ export function App<N extends Network>({sendRPC, web3, account, networkConfig}: 
                   </div> : null
                 }
                 <div className="panel__header-row">
-                  <button disabled={typeof migrateParams === 'string'} onClick={migrate}>Migrate Balances</button>
+                  <button className="button button--large" disabled={typeof migrateParams === 'string'} onClick={migrate}>Migrate Balances</button>
                 </div>
               </div>
             </div>
