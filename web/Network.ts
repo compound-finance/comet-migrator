@@ -33,6 +33,7 @@ const mainnetTokens = [
 ] as const;
 
 const goerliTokens = [
+  "cETH",
   "cCOMP",
   "cDAI",
   "cUNI",
