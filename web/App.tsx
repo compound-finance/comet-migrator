@@ -21,6 +21,7 @@ type AppPropsExt<N extends Network> = AppProps & {
 };
 
 interface AccountState<Network> {
+  error: string | null;
   migratorEnabled: boolean;
   borrowBalanceV2?: bigint;
   usdcDecimals?: bigint;
@@ -110,6 +111,7 @@ export function App<N extends Network>({sendRPC, web3, account, networkConfig}: 
       (cTokenName) => [cTokenName, { transfer: "0" }]));
 
   const initialAccountState = () => ({
+    error: null,
     migratorEnabled: false,
     repayAmount: "0",
     cTokens: cTokensInitial()
@@ -128,6 +130,7 @@ export function App<N extends Network>({sendRPC, web3, account, networkConfig}: 
     (tokenSym: CTokenSym<Network>, key: keyof CTokenState, value: CTokenState[key]) {
     setAccountState({
       ...accountState,
+      error: null,
       cTokens: new Map(Array.from(accountState.cTokens.entries()).map<[CTokenSym<Network>, CTokenState]>(([sym, state]) => {
         if (sym === tokenSym) {
           return [sym, {
@@ -233,12 +236,21 @@ export function App<N extends Network>({sendRPC, web3, account, networkConfig}: 
     };
   }
 
-  let migrateParams = validateForm();
+  let migrateParams = accountState.error ?? validateForm();
 
   async function migrate() {
     console.log("migrate", accountState, migrateParams);
     if (typeof migrateParams !== 'string') {
-      await migrator.migrate(migrateParams.collateral, migrateParams.borrowAmount);
+      try {
+        await migrator.migrate(migrateParams.collateral, migrateParams.borrowAmount);
+      } catch (e: any) {
+        if ('code' in e && e.code === 'UNPREDICTABLE_GAS_LIMIT') {
+          setAccountState({
+            ...accountState,
+            error: "Migration will fail if sent, e.g. due to collateral factors. Please adjust parameters."
+          });
+        }
+      }
     }
   };
 
@@ -259,7 +271,6 @@ export function App<N extends Network>({sendRPC, web3, account, networkConfig}: 
             <button onClick={() => setAccountState({...accountState, repayAmount: 'max'})}>Max</button>
           </span>
         }
-
       </div>
       <div>
         { Array.from(accountState.cTokens.entries()).map(([sym, state]) => {
