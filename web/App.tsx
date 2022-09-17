@@ -1,5 +1,5 @@
 import '../styles/main.scss';
-import { SendRPC } from './lib/useRPC';
+import { RPC } from './lib/useRPC';
 import { read, write } from './lib/RPC';
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import ERC20 from '../abis/ERC20';
@@ -13,7 +13,7 @@ import { CircleCheckmark } from './Icons/CircleCheckmark';
 const MAX_UINT256 = BigInt('115792089237316195423570985008687907853269984665640564039457584007913129639935');
 
 interface AppProps {
-  sendRPC?: SendRPC
+  rpc?: RPC,
   web3: JsonRpcProvider
 }
 
@@ -129,8 +129,31 @@ function parseNumber<T>(str: string, f: (x: number) => bigint): bigint | null {
   }
 }
 
-export function App<N extends Network>({sendRPC, web3, account, networkConfig}: AppPropsExt<N>) {
+function getDocument(f: (document: HTMLDocument) => void) {
+  if (document.readyState !== 'loading') {
+    f(document);
+  } else {
+    window.addEventListener('DOMContentLoaded', (event) => {
+      f(document);
+    });
+  }
+}
+
+export function App<N extends Network>({rpc, web3, account, networkConfig}: AppPropsExt<N>) {
   let { cTokenNames } = networkConfig;
+
+  if (rpc) {
+    rpc.on({setTheme: ({theme}) => {
+      console.log('theme', theme);
+      getDocument((document) => {
+        console.log("document", document);
+        document.body.classList.add('theme');
+        document.body.classList.remove(`theme--dark`);
+        document.body.classList.remove(`theme--light`);
+        document.body.classList.add(`theme--${theme.toLowerCase()}`);
+      });
+    }});
+  }
 
   let timer = usePoll(10000);
 
@@ -460,7 +483,7 @@ export function App<N extends Network>({sendRPC, web3, account, networkConfig}: 
   );
 };
 
-export default ({sendRPC, web3}: AppProps) => {
+export default ({rpc, web3}: AppProps) => {
   let timer = usePoll(10000);
   const [account, setAccount] = useState<string | null>(null);
   const [networkConfig, setNetworkConfig] = useState<NetworkConfig<Network> | 'unsupported' | null>(null);
@@ -487,7 +510,7 @@ export default ({sendRPC, web3}: AppProps) => {
     if (networkConfig === 'unsupported') {
       return <div>Unsupported network...</div>;
     } else {
-      return <App sendRPC={sendRPC} web3={web3} account={account} networkConfig={networkConfig} />;
+      return <App rpc={rpc} web3={web3} account={account} networkConfig={networkConfig} />;
     }
   } else {
     return <div>Loading...</div>;
