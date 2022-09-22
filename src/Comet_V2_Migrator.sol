@@ -32,6 +32,13 @@ contract Comet_V2_Migrator is IUniswapV3FlashCallback {
     uint256 amount;
   }
 
+  /// @notice Represents a given repay amount of a cToken.
+  struct CompoundV2Repay {
+    CTokenLike cToken;
+    uint256 amount;
+    bytes path;
+  }
+
   /// @notice Represents all data required to continue operation after a flash loan is initiated.
   struct MigrationCallbackData {
     address user;
@@ -130,7 +137,7 @@ contract Comet_V2_Migrator is IUniswapV3FlashCallback {
    * @dev Note: `collateral` amounts of 0 are strictly ignored. Collateral amounts of max uint256 are set to the user's current balance.
    * @dev Note: `borrowAmount` may be set to max uint256 to migrate the entire current borrow balance.
    **/
-  function migrate(Collateral[] calldata collateral, uint256 borrowAmount) external {
+  function migrate(Collateral[] calldata collateral, CompoundV2Repay[] compoundV2Repays, swapPath[] swaps) external {
     // **REQUIRE** `inMigration == 0`
     if (inMigration != 0) {
       revert Reentrancy(0);
@@ -142,25 +149,46 @@ contract Comet_V2_Migrator is IUniswapV3FlashCallback {
     // **BIND** `user = msg.sender`
     address user = msg.sender;
 
-    uint256 repayAmount;
-    // **WHEN** `repayAmount == type(uint256).max)`:
-    if (borrowAmount == type(uint256).max) {
-      // **BIND READ** `repayAmount = borrowCToken.borrowBalanceCurrent(user)`
-      repayAmount = borrowCToken.borrowBalanceCurrent(user);
-    } else {
-      // **BIND** `repayAmount = borrowAmount`
-      repayAmount = borrowAmount;
+    uint256 flashAmount;
+
+    for (uint256 i = 0; i < compoundV2Repays.length; i++) {
+      CompoundV2Repay calldata repay = compoundV2Repays[i];
+      uint256 repayAmount;
+      // **WHEN** `repayAmount == type(uint256).max)`:
+      if (repay.amount == type(uint256).max) {
+        // **BIND READ** `repayAmount = borrowCToken.borrowBalanceCurrent(user)`
+        repayAmount = repay.cToken.borrowBalanceCurrent(user);
+      } else {
+        // **BIND** `repayAmount = borrowAmount`
+        repayAmount = repay.amount;
+      }
+
+      // Check if there's an associated swap, and if so, fetch a price
+      IERC20 underlying = getCompoundUnderlying(repay.token);
+      if (underyling == borrowToken) {
+        flashAmount += repayAmount;
+      } else {
+        flashAmount += getQuote(underlying, repayAmount, repay.path);
+      }
     }
 
     // **BIND** `data = abi.encode(MigrationCallbackData{user, repayAmount, collateral})`
     bytes memory data = abi.encode(MigrationCallbackData({
       user: user,
-      repayAmount: repayAmount,
+      flashAmount: flashAmount,
+      compoundV2Repays: compoundV2Repays, // TODO
       collateral: collateral
     }));
 
+    // Note: we don't really know how much we need to flash borrow right now, since we don't know how much USDC now we'll get for the say DAI collateral, so we now need to get
+    //       the price quotes here. We also need to handle cETH.
+
+    // Let's say we're trying to close off 50 DAI of borrows. Then we need to figure out how much USDC = 50 DAI of borrows, and add that to the total
+    // of the flash loan. Note: we don't actually have the USDC yet, so we can't actually do this trade at this moment, unless we do a swap callback.
+    // Use IQuoterV2 to tally up how much borrowToken we'll need to flash loan
+
     // **CALL** `uniswapLiquidityPool.flash(address(this), uniswapLiquidityPoolToken0 ? repayAmount : 0, uniswapLiquidityPoolToken0 ? 0 : repayAmount, data)`
-    uniswapLiquidityPool.flash(address(this), uniswapLiquidityPoolToken0 ? repayAmount : 0, uniswapLiquidityPoolToken0 ? 0 : repayAmount, data);
+    uniswapLiquidityPool.flash(address(this), uniswapLiquidityPoolToken0 ? flashAmount : 0, uniswapLiquidityPoolToken0 ? 0 : flashAmount, data);
 
     // **STORE** `inMigration -= 1`
     inMigration -= 1;
@@ -185,8 +213,10 @@ contract Comet_V2_Migrator is IUniswapV3FlashCallback {
     MigrationCallbackData memory migrationData = abi.decode(data, (MigrationCallbackData));
 
     // **BIND** `borrowAmountWithFee = repayAmount + uniswapLiquidityPoolToken0 ? fee0 : fee1`
-    uint256 borrowAmountWithFee = migrationData.repayAmount + ( uniswapLiquidityPoolToken0 ? fee0 : fee1 );
+    uint256 borrowAmountWithFee = migrationData.flashAmount + ( uniswapLiquidityPoolToken0 ? fee0 : fee1 );
 
+    // TODO: This is for repay in repays
+    // TODO: For each swap, run the swap here to get the exact out for each repay
     // **CALL** `borrowCToken.repayBorrowBehalf(user, repayAmountActual)`
     uint256 err = borrowCToken.repayBorrowBehalf(migrationData.user, migrationData.repayAmount);
     if (err != 0) {
