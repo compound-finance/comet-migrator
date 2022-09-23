@@ -4,6 +4,8 @@ pragma solidity 0.8.16;
 import "../vendor/@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 interface CTokenLike {
+  error TransferComptrollerRejection(uint256);
+
   function balanceOf(address holder) external returns (uint);
   function transfer(address dst, uint256 amt) external returns (bool);
   function transferFrom(address from, address to, uint256 amount) external returns (bool);
