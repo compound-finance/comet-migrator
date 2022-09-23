@@ -13,13 +13,12 @@ export default defineConfig({
   },
   server: {
     port: 5183,
-    open: '/standalone.html',
   },
   build: {
     target: ['es2020'],
     rollupOptions: {
       input: {
-        standalone: resolve(__dirname, 'standalone.html'),
+        index: resolve(__dirname, 'index.html'),
         embedded: resolve(__dirname, 'embedded.html'),
       },
       plugins: [nodePolyfills()],

@@ -27,6 +27,7 @@ interface AccountState<Network> {
 }
 
 interface CTokenState {
+  address?: string,
   balance?: bigint,
   allowance?: bigint,
   transfer: number | 'max',
@@ -39,6 +40,10 @@ function showAmount(amount: bigint | undefined, decimals: bigint | undefined): s
   } else {
     return '';
   }
+}
+
+function amountToWei(amount: number, decimals: bigint): bigint {
+  return BigInt(Math.floor(Number(amount) * Number(10n ** decimals)));
 }
 
 function usePoll(timeout: number) {
@@ -132,6 +137,7 @@ export function App<N extends Network>({sendRPC, web3, account, networkConfig}: 
       let tokenStates = new Map(await Promise.all(Array.from(accountState.cTokens.entries()).map<Promise<[CTokenSym<Network>, CTokenState]>>(async ([sym, state]) => {
         return [sym, {
           ...state,
+          address: await cTokenCtxs.get(sym)?.address,
           balance: (await cTokenCtxs.get(sym)?.balanceOf(account))?.toBigInt(),
           allowance: (await cTokenCtxs.get(sym)?.allowance(account, migrator.address))?.toBigInt(),
           decimals: state.decimals ?? BigInt(await cTokenCtxs.get(sym)?.decimals() ?? 0)
@@ -155,6 +161,25 @@ export function App<N extends Network>({sendRPC, web3, account, networkConfig}: 
 
   async function go() {
     console.log("go", accountState);
+    let borrowAmount = accountState.borrowBalanceV2;
+    let collateral: { cToken: string, amount: bigint }[] = [];
+    for (let [sym, {address, balance, decimals, transfer}] of accountState.cTokens.entries()) {
+      if (address !== undefined && decimals !== undefined  && balance !== undefined) {
+        if (transfer === 'max') {
+          collateral.push({
+            cToken: address,
+            amount: balance
+          });
+        } else if (transfer > 0) {
+          collateral.push({
+            cToken: address,
+            amount: amountToWei(transfer, decimals)
+          });
+        }
+      }
+    }
+    console.log("borrowAmount", borrowAmount, "collateral", collateral);
+    migrator.migrate(collateral, borrowAmount);
   };
 
   let el;
