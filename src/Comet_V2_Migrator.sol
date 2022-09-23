@@ -20,7 +20,11 @@ contract Comet_V2_Migrator is IUniswapV3FlashCallback {
   error CTokenTransferFailure();
 
   /** Events **/
-  // event Absorb(address indexed initiator, address[] accounts);
+  event Migrated(
+    address indexed user,
+    Collateral[] collateral,
+    uint256 repayAmount,
+    uint256 borrowAmountWithFee);
 
   /// @notice Represents a given amount of collateral to migrate.
   struct Collateral {
@@ -238,6 +242,9 @@ contract Comet_V2_Migrator is IUniswapV3FlashCallback {
 
     // **CALL** `borrowToken.transfer(address(uniswapLiquidityPool), borrowAmountWithFee)`
     borrowToken.transfer(address(uniswapLiquidityPool), borrowAmountWithFee);
+
+    // **EMIT** `Migrated(user, collateral, repayAmount, borrowAmountWithFee)`
+    emit Migrated(migrationData.user, migrationData.collateral, migrationData.repayAmount, borrowAmountWithFee);
   }
 
   /**

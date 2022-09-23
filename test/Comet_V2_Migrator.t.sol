@@ -8,6 +8,12 @@ import "./MainnetConstants.t.sol";
 import "./Positor.t.sol";
 
 contract ContractTest is Positor {
+    event Migrated(
+        address indexed user,
+        Comet_V2_Migrator.Collateral[] collateral,
+        uint256 repayAmount,
+        uint256 borrowAmountWithFee);
+
     address public constant borrower = address(0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266);
 
     function testMigrateSimpleUniPosition() public {
@@ -37,6 +43,11 @@ contract ContractTest is Positor {
         vm.startPrank(borrower);
         cUNI.approve(address(migrator), type(uint256).max);
         comet.allow(address(migrator), true);
+
+        // Check event
+        vm.expectEmit(true, false, false, true);
+        emit Migrated(borrower, collateral, 600e6, 600e6 * 1.0001);
+
         migrator.migrate(collateral, 600e6);
 
         // Check v2 balances

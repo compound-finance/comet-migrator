@@ -53,7 +53,13 @@ struct MigrationCallbackData {
 
 ## Events
 
-TODO
+```c
+event Migrated(
+  address indexed user,
+  Collateral[] collateral,
+  uint256 repayAmount,
+  uint256 borrowAmountWithFee)
+```
 
 ## Contract Functions
 
@@ -179,6 +185,7 @@ This function may only be called during a migration command. We ensure this by m
     - **CALL** `comet.supplyTo(user, cToken.underlying(), cToken.underlying().balanceOf(address(this)))`
   - **CALL** `comet.withdrawFrom(user, address(this), borrowToken, borrowAmountWithFee)`
   - **CALL** `borrowToken.transfer(address(uniswapLiquidityPool), borrowAmountWithFee)`
+  - **EMIT** `Migrated(user, collateral, repayAmount, borrowAmountWithFee)`
 
 ### Sweep Function
 
