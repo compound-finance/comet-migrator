@@ -1,10 +1,10 @@
-# Comet V2 Migrator
+# Comet Migrator
 
-The CToken Migrator is a set of contracts to transfer a positions from [Compound II](https://v2-app.compound.finance) to [Compound III](https://v3-app.compound.finance).
+The Comet Migrator is a set of contracts to transfer a positions from [Compound II](https://v2-app.compound.finance) and other DeFi protocols to [Compound III](https://v3-app.compound.finance).
 
-# Migration Spec Comet_V2_Migrator
+# Migration Spec CometMigrator
 
-The Comet_V2_Migrator contract is used to transfer a position where a user is borrowing a token from Compound II to a position where that user is now borrowing USDC in Compound III. We use a flash loan to faciliate the transition, but there are no swaps otherwise involved in this transfer. Positions can be transferred in whole or in part.
+The CometMigrator contract is used to transfer a position where a user is borrowing a token from Compound II to a position where that user is now borrowing USDC in Compound III. We use a flash loan to faciliate the transition, but there are no swaps otherwise involved in this transfer. Positions can be transferred in whole or in part.
 
 ## Knobs
 
@@ -78,7 +78,7 @@ This function describes the initialization process for this contract. We set the
 
 #### Function Spec
 
-`function Comet_V2_Migrator(Comet comet_, CToken borrowCToken_, CToken cETH_, WETH9 weth, UniswapV3Pool uniswapLiquidityPool_, address sweepee_) external`
+`function CometMigrator(Comet comet_, CToken borrowCToken_, CToken cETH_, WETH9 weth, UniswapV3Pool uniswapLiquidityPool_, address sweepee_) external`
 
  * **WRITE IMMUTABLE** `comet = comet_`
  * **WRITE IMMUTABLE** `borrowCToken = borrowCToken_`

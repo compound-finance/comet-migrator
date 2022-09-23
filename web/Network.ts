@@ -1,4 +1,4 @@
-import cometV2MigratorAbi from '../abis/Comet_V2_Migrator';
+import cometMigratorAbi from '../abis/CometMigrator';
 import { Contract, ContractInterface } from '@ethersproject/contracts';
 
 import mainnetV3Roots from '../node_modules/comet/deployments/mainnet/usdc/roots.json';
@@ -59,7 +59,7 @@ export type RootsV3<Network> =
 export interface NetworkConfig<Network> {
   network: Network,
   migratorAddress: string;
-  migratorAbi: typeof cometV2MigratorAbi;
+  migratorAbi: typeof cometMigratorAbi;
   cTokenNames: readonly CTokenSym<Network>[];
   cTokenAbi: [CTokenSym<Network>, string, ContractInterface][];
   rootsV2: RootsV2<Network>;
@@ -130,7 +130,7 @@ export function mainnetConfig<N extends 'mainnet'>(network: N): NetworkConfig<'m
 
   const cTokenAbi: [CTokenSym<'mainnet'>, string, ContractInterface][] = [];
   const rootsV2: RootsV2<'mainnet'> = mainnetV2Roots;
-  const migratorAbi = cometV2MigratorAbi;
+  const migratorAbi = cometMigratorAbi;
   const rootsV3: RootsV3<'mainnet'> = mainnetV3Roots;
   let v2ABI = mainnetV2Abi;
 
@@ -167,7 +167,7 @@ export function goerliConfig<N extends 'goerli'>(network: N): NetworkConfig<'goe
 
   const cTokenAbi: [CTokenSym<'goerli'>, string, ContractInterface][] = [];
   const rootsV2: RootsV2<'goerli'> = goerliV2Roots;
-  const migratorAbi = cometV2MigratorAbi;
+  const migratorAbi = cometMigratorAbi;
   const rootsV3: RootsV3<'goerli'> = goerliV3Roots;
 
   let v2ABI = goerliV2Abi;

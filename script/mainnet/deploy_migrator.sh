@@ -22,7 +22,7 @@ fi
 
 # Constructor Variables
 #
-# Comet_V2_Migrator::constructor(
+# CometMigrator::constructor(
 #   comet_ :: The Comet Ethereum mainnet USDC contract.
 #   borrowCToken_ :: The Compound II market for the borrowed token (e.g. `cUSDC`).
 #   cETH_ :: The address of the `cETH` token.
@@ -43,7 +43,7 @@ forge create \
   $etherscan_args \
   $wallet_args \
   $@ \
-  src/Comet_V2_Migrator.sol:Comet_V2_Migrator \
+  src/CometMigrator.sol:CometMigrator \
   --constructor-args \
     "$comet" \
     "$borrowCToken" \

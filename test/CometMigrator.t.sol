@@ -2,15 +2,15 @@
 pragma solidity ^0.8.13;
 
 import "forge-std/Script.sol";
-import "../src/Comet_V2_Migrator.sol";
+import "../src/CometMigrator.sol";
 import "forge-std/Test.sol";
 import "./MainnetConstants.t.sol";
 import "./Positor.t.sol";
 
-contract ContractTest is Positor {
+contract CometMigratorTest is Positor {
     event Migrated(
         address indexed user,
-        Comet_V2_Migrator.Collateral[] collateral,
+        CometMigrator.Collateral[] collateral,
         uint256 repayAmount,
         uint256 borrowAmountWithFee);
 
@@ -33,9 +33,9 @@ contract ContractTest is Positor {
         preflightChecks();
 
         // Migrate
-        Comet_V2_Migrator.Collateral[] memory collateral = new Comet_V2_Migrator.Collateral[](1);
+        CometMigrator.Collateral[] memory collateral = new CometMigrator.Collateral[](1);
         uint256 migrateAmount = amountToTokens(199e18, cUNI);
-        collateral[0] = Comet_V2_Migrator.Collateral({
+        collateral[0] = CometMigrator.Collateral({
             cToken: cUNI,
             amount: migrateAmount
         });
@@ -76,9 +76,9 @@ contract ContractTest is Positor {
         preflightChecks();
 
         // Migrate
-        Comet_V2_Migrator.Collateral[] memory collateral = new Comet_V2_Migrator.Collateral[](1);
+        CometMigrator.Collateral[] memory collateral = new CometMigrator.Collateral[](1);
         uint256 migrateAmount = amountToTokens(0.6e18, cETH);
-        collateral[0] = Comet_V2_Migrator.Collateral({
+        collateral[0] = CometMigrator.Collateral({
             cToken: cETH,
             amount: migrateAmount
         });
@@ -114,13 +114,13 @@ contract ContractTest is Positor {
         preflightChecks();
 
         // Migrate
-        Comet_V2_Migrator.Collateral[] memory collateral = new Comet_V2_Migrator.Collateral[](2);
+        CometMigrator.Collateral[] memory collateral = new CometMigrator.Collateral[](2);
         uint256 migrateAmount = amountToTokens(199e18, cUNI);
-        collateral[0] = Comet_V2_Migrator.Collateral({
+        collateral[0] = CometMigrator.Collateral({
             cToken: cUNI,
             amount: 0
         });
-        collateral[1] = Comet_V2_Migrator.Collateral({
+        collateral[1] = CometMigrator.Collateral({
             cToken: cUNI,
             amount: migrateAmount
         });
@@ -155,8 +155,8 @@ contract ContractTest is Positor {
         preflightChecks();
 
         // Migrate
-        Comet_V2_Migrator.Collateral[] memory collateral = new Comet_V2_Migrator.Collateral[](1);
-        collateral[0] = Comet_V2_Migrator.Collateral({
+        CometMigrator.Collateral[] memory collateral = new CometMigrator.Collateral[](1);
+        collateral[0] = CometMigrator.Collateral({
             cToken: cUNI,
             amount: type(uint256).max
         });
@@ -191,8 +191,8 @@ contract ContractTest is Positor {
         preflightChecks();
 
         // Migrate
-        Comet_V2_Migrator.Collateral[] memory collateral = new Comet_V2_Migrator.Collateral[](1);
-        collateral[0] = Comet_V2_Migrator.Collateral({
+        CometMigrator.Collateral[] memory collateral = new CometMigrator.Collateral[](1);
+        collateral[0] = CometMigrator.Collateral({
             cToken: cUNI,
             amount: type(uint256).max
         });
@@ -232,9 +232,9 @@ contract ContractTest is Positor {
         preflightChecks();
 
         // Migrate
-        Comet_V2_Migrator.Collateral[] memory collateral = new Comet_V2_Migrator.Collateral[](1);
+        CometMigrator.Collateral[] memory collateral = new CometMigrator.Collateral[](1);
         uint256 migrateAmount = amountToTokens(199e18, cUNI);
-        collateral[0] = Comet_V2_Migrator.Collateral({
+        collateral[0] = CometMigrator.Collateral({
             cToken: cUNI,
             amount: migrateAmount
         });
@@ -275,14 +275,14 @@ contract ContractTest is Positor {
         preflightChecks();
 
         // Migrate
-        Comet_V2_Migrator.Collateral[] memory collateral = new Comet_V2_Migrator.Collateral[](2);
+        CometMigrator.Collateral[] memory collateral = new CometMigrator.Collateral[](2);
         uint256 uniMigrateAmount = amountToTokens(199e18, cUNI);
-        collateral[0] = Comet_V2_Migrator.Collateral({
+        collateral[0] = CometMigrator.Collateral({
             cToken: cUNI,
             amount: uniMigrateAmount
         });
         uint256 ethMigrateAmount = amountToTokens(0.6e18, cETH);
-        collateral[1] = Comet_V2_Migrator.Collateral({
+        collateral[1] = CometMigrator.Collateral({
             cToken: cETH,
             amount: ethMigrateAmount
         });
@@ -321,9 +321,9 @@ contract ContractTest is Positor {
         preflightChecks();
 
         // Migrate
-        Comet_V2_Migrator.Collateral[] memory collateral = new Comet_V2_Migrator.Collateral[](1);
+        CometMigrator.Collateral[] memory collateral = new CometMigrator.Collateral[](1);
         uint256 migrateAmount = amountToTokens(199e18, cUNI);
-        collateral[0] = Comet_V2_Migrator.Collateral({
+        collateral[0] = CometMigrator.Collateral({
             cToken: cUNI,
             amount: migrateAmount
         });
@@ -360,9 +360,9 @@ contract ContractTest is Positor {
         preflightChecks();
 
         // Migrate
-        Comet_V2_Migrator.Collateral[] memory collateral = new Comet_V2_Migrator.Collateral[](1);
+        CometMigrator.Collateral[] memory collateral = new CometMigrator.Collateral[](1);
         uint256 migrateAmount = amountToTokens(0.6e18, cETH);
-        collateral[0] = Comet_V2_Migrator.Collateral({
+        collateral[0] = CometMigrator.Collateral({
             cToken: cETH,
             amount: migrateAmount
         });
@@ -371,7 +371,7 @@ contract ContractTest is Positor {
         cETH.approve(address(migrator), 0);
         comet.allow(address(migrator), true);
 
-        vm.expectRevert(Comet_V2_Migrator.CTokenTransferFailure.selector);
+        vm.expectRevert(CometMigrator.CTokenTransferFailure.selector);
         migrator.migrate(collateral, 600e6);
 
         // Check v2 balances
@@ -400,9 +400,9 @@ contract ContractTest is Positor {
         preflightChecks();
 
         // Migrate
-        Comet_V2_Migrator.Collateral[] memory collateral = new Comet_V2_Migrator.Collateral[](1);
+        CometMigrator.Collateral[] memory collateral = new CometMigrator.Collateral[](1);
         uint256 migrateAmount = amountToTokens(400e18, cUNI);
-        collateral[0] = Comet_V2_Migrator.Collateral({
+        collateral[0] = CometMigrator.Collateral({
             cToken: cUNI,
             amount: migrateAmount
         });
@@ -439,9 +439,9 @@ contract ContractTest is Positor {
         preflightChecks();
 
         // Migrate
-        Comet_V2_Migrator.Collateral[] memory collateral = new Comet_V2_Migrator.Collateral[](1);
+        CometMigrator.Collateral[] memory collateral = new CometMigrator.Collateral[](1);
         uint256 migrateAmount = amountToTokens(200e18, cETH);
-        collateral[0] = Comet_V2_Migrator.Collateral({
+        collateral[0] = CometMigrator.Collateral({
             cToken: cETH,
             amount: migrateAmount
         });
@@ -450,7 +450,7 @@ contract ContractTest is Positor {
         cETH.approve(address(migrator), type(uint256).max);
         comet.allow(address(migrator), true);
 
-        vm.expectRevert(Comet_V2_Migrator.CTokenTransferFailure.selector);
+        vm.expectRevert(CometMigrator.CTokenTransferFailure.selector);
         migrator.migrate(collateral, 600e6);
 
         // Check v2 balances
@@ -479,9 +479,9 @@ contract ContractTest is Positor {
         preflightChecks();
 
         // Migrate
-        Comet_V2_Migrator.Collateral[] memory collateral = new Comet_V2_Migrator.Collateral[](1);
+        CometMigrator.Collateral[] memory collateral = new CometMigrator.Collateral[](1);
         uint256 migrateAmount = amountToTokens(200e18, cUNI);
-        collateral[0] = Comet_V2_Migrator.Collateral({
+        collateral[0] = CometMigrator.Collateral({
             cToken: cUNI,
             amount: migrateAmount
         });
@@ -517,9 +517,9 @@ contract ContractTest is Positor {
         preflightChecks();
 
         // Migrate
-        Comet_V2_Migrator.Collateral[] memory collateral = new Comet_V2_Migrator.Collateral[](1);
+        CometMigrator.Collateral[] memory collateral = new CometMigrator.Collateral[](1);
         uint256 migrateAmount = amountToTokens(200e18, cUNI);
-        collateral[0] = Comet_V2_Migrator.Collateral({
+        collateral[0] = CometMigrator.Collateral({
             cToken: cUNI,
             amount: migrateAmount
         });
@@ -557,9 +557,9 @@ contract ContractTest is Positor {
         preflightChecks();
 
         // Migrate
-        Comet_V2_Migrator.Collateral[] memory collateral = new Comet_V2_Migrator.Collateral[](1);
+        CometMigrator.Collateral[] memory collateral = new CometMigrator.Collateral[](1);
         uint256 migrateAmount = amountToTokens(200e18, cUNI);
-        collateral[0] = Comet_V2_Migrator.Collateral({
+        collateral[0] = CometMigrator.Collateral({
             cToken: cUNI,
             amount: migrateAmount
         });
@@ -568,7 +568,7 @@ contract ContractTest is Positor {
         cUNI.approve(address(migrator), type(uint256).max);
         comet.allow(address(migrator), true);
 
-        vm.expectRevert(abi.encodeWithSelector(Comet_V2_Migrator.CompoundV2Error.selector, 0, 9));
+        vm.expectRevert(abi.encodeWithSelector(CometMigrator.CompoundV2Error.selector, 0, 9));
         migrator.migrate(collateral, 800e6);
 
         // Check v2 balances
@@ -597,8 +597,8 @@ contract ContractTest is Positor {
         preflightChecks();
 
         // Migrate
-        Comet_V2_Migrator.Collateral[] memory collateral = new Comet_V2_Migrator.Collateral[](1);
-        collateral[0] = Comet_V2_Migrator.Collateral({
+        CometMigrator.Collateral[] memory collateral = new CometMigrator.Collateral[](1);
+        collateral[0] = CometMigrator.Collateral({
             cToken: CTokenLike(address(uni)),
             amount: 0
         });
@@ -607,7 +607,7 @@ contract ContractTest is Positor {
         cUNI.approve(address(migrator), type(uint256).max);
         comet.allow(address(migrator), true);
 
-        vm.expectRevert(abi.encodeWithSelector(Comet_V2_Migrator.CompoundV2Error.selector, 0, 9));
+        vm.expectRevert(abi.encodeWithSelector(CometMigrator.CompoundV2Error.selector, 0, 9));
         migrator.migrate(collateral, 800e6);
 
         // Check v2 balances
@@ -636,8 +636,8 @@ contract ContractTest is Positor {
         preflightChecks();
 
         // Migrate
-        Comet_V2_Migrator.Collateral[] memory collateral = new Comet_V2_Migrator.Collateral[](1);
-        collateral[0] = Comet_V2_Migrator.Collateral({
+        CometMigrator.Collateral[] memory collateral = new CometMigrator.Collateral[](1);
+        collateral[0] = CometMigrator.Collateral({
             cToken: CTokenLike(0x0000000000000000000000000000000000000000),
             amount: 0
         });
@@ -646,7 +646,7 @@ contract ContractTest is Positor {
         cUNI.approve(address(migrator), type(uint256).max);
         comet.allow(address(migrator), true);
 
-        vm.expectRevert(abi.encodeWithSelector(Comet_V2_Migrator.CompoundV2Error.selector, 0, 9));
+        vm.expectRevert(abi.encodeWithSelector(CometMigrator.CompoundV2Error.selector, 0, 9));
         migrator.migrate(collateral, 800e6);
 
         // Check v2 balances
@@ -675,7 +675,7 @@ contract ContractTest is Positor {
         preflightChecks();
 
         // Migrate
-        Comet_V2_Migrator.Collateral[] memory collateral = new Comet_V2_Migrator.Collateral[](0);
+        CometMigrator.Collateral[] memory collateral = new CometMigrator.Collateral[](0);
 
         vm.startPrank(borrower);
         cUNI.approve(address(migrator), type(uint256).max);

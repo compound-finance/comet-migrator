@@ -53,16 +53,16 @@ To run this in embedded mode (see Embedding below), you should run the following
 
 ```sh
 # in webb3/
-VITE_WEBB3_MAINNET_URL=http://localhost:8545 VITE_COMET_V2_MIGRATOR_SOURCE=http://localhost:5183/embedded.html yarn dev
+VITE_WEBB3_MAINNET_URL=http://localhost:8545 VITE_COMET_MIGRATOR_SOURCE=http://localhost:5183/embedded.html yarn dev
 ```
 
-## Compound v2 Migrator Operator
+## Comet Migrator Operator
 
-The Compound v2 Migrator Operator code lives in `src/Comet_V2_Migrator.sol`. Note: we use a large amount of vendoring to pull in Uniswap, Compound v2 and Compound v3 source files. We use [vendoza](https://github.com/hayesgm/vendoza) to track the diffs.
+The Comet Migrator Operator code lives in `src/CometMigrator.sol`. Note: we use a large amount of vendoring to pull in Uniswap, Compound v2 and Compound v3 source files. We use [vendoza](https://github.com/hayesgm/vendoza) to track the diffs.
 
-The [Compound v2 Migrator Spec](./SPEC.md) contains the full spec on the specifics of the migrator code.
+The [Comet Migrator Spec](./SPEC.md) contains the full spec on the specifics of the migrator code.
 
-Note: `script/copy-abi.sh` is currently used to sync the ABI from the `Comet_V2_Migrator.sol` to `abis/Comet_V2_Migrator.ts` for use in the Extension. We may want to find a simpler system for this at some point.
+Note: `script/copy-abi.sh` is currently used to sync the ABI from the `CometMigrator.sol` to `abis/CometMigrator.ts` for use in the Extension. We may want to find a simpler system for this at some point.
 
 ## Deploying
 
@@ -99,7 +99,7 @@ TODO
 You can run [Webb3](https://github.com/compound-finance/webb3) locally with a local version of the extension running. First, run this extension:
 
 ```sh
-# in comet_v2_migrator/
+# in comet-migrator/
 yarn web:dev
 ```
 
@@ -107,7 +107,7 @@ Take a note of the port (it should be 5183). Then run Webb3 with the following e
 
 ```sh
 # in webb3/
-VITE_COMET_V2_MIGRATOR_SOURCE=http://localhost:5183/embedded.html yarn dev
+VITE_COMET_MIGRATOR_SOURCE=http://localhost:5183/embedded.html yarn dev
 ```
 
 When the extension loads at [http://localhost:5173](http://localhost:5173), it should load this local extension, instead of the production version.
@@ -116,7 +116,7 @@ If you are using the playground, you should also make sure Webb3 uses that URL f
 
 ```sh
 # in webb3/
-VITE_WEBB3_MAINNET_URL=http://localhost:8545 VITE_COMET_V2_MIGRATOR_SOURCE=http://localhost:5183/embedded.html yarn dev
+VITE_WEBB3_MAINNET_URL=http://localhost:8545 VITE_COMET_MIGRATOR_SOURCE=http://localhost:5183/embedded.html yarn dev
 ```
 
 ## Contributing

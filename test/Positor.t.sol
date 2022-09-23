@@ -2,7 +2,7 @@
 pragma solidity ^0.8.13;
 
 import "forge-std/Script.sol";
-import "../src/Comet_V2_Migrator.sol";
+import "../src/CometMigrator.sol";
 import "forge-std/Test.sol";
 import "./MainnetConstants.t.sol";
 
@@ -19,22 +19,22 @@ contract Positor is Test, MainnetConstants {
     }
 
     mapping (CTokenLike => address) holders;
-    Comet_V2_Migrator public immutable migrator;
+    CometMigrator public immutable migrator;
 
     constructor() {
         holders[cUNI] = cHolderUni;
         holders[cETH] = cHolderEth;
 
-        console.log("Deploying Comet v2 Migrator");
-        migrator = deployCometV2Migrator();
-        console.log("Deployed Comet v2 Migrator", address(migrator));
+        console.log("Deploying Comet Migrator");
+        migrator = deployCometMigrator();
+        console.log("Deployed Comet Migrator", address(migrator));
     }
 
     function posit(Posit memory posit_) public {
         setupMigratorBorrow(posit_.borrower, posit_.positions, posit_.borrow);
     }
 
-    function setupMigratorBorrow(address borrower, Position[] memory positions, uint256 borrowAmount) internal returns (Comet_V2_Migrator) {
+    function setupMigratorBorrow(address borrower, Position[] memory positions, uint256 borrowAmount) internal returns (CometMigrator) {
         for (uint8 i = 0; i < positions.length; i++) {
             setupV2Borrows(borrower, positions[i].collateral, positions[i].amount);
         }
@@ -63,8 +63,8 @@ contract Positor is Test, MainnetConstants {
         comptroller.enterMarkets(markets);
     }
 
-    function deployCometV2Migrator() internal returns (Comet_V2_Migrator) {
-        return new Comet_V2_Migrator(
+    function deployCometMigrator() internal returns (CometMigrator) {
+        return new CometMigrator(
             comet,
             cUSDC,
             cETH,

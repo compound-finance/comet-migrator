@@ -9,11 +9,11 @@ import "./interfaces/CTokenInterface.sol";
 import "./interfaces/CometInterface.sol";
 
 /**
- * @title Compound Migrate V2 USDC to V3 USDC
- * @notice A contract to help migrate a Compound v2 position where a user is borrowing USDC, to a similar Compound v3 position.
+ * @title Compound V3 Migrator
+ * @notice A contract to help migrate a Compound v2 position or other DeFi position into a similar Compound v3 position.
  * @author Compound
  */
-contract Comet_V2_Migrator is IUniswapV3FlashCallback {
+contract CometMigrator is IUniswapV3FlashCallback {
   error Reentrancy(uint256 loc);
   error CompoundV2Error(uint256 loc, uint256 code);
   error SweepFailure(uint256 loc);
