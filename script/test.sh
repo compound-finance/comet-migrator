@@ -7,4 +7,4 @@ set -exo pipefail
 
 export fork_url="${ETHEREUM_REMOTE_NODE_MAINNET:-https://mainnet-eth.compound.finance/}"
 
-forge test --fork-url "$fork_url" --fork-block-number 15441851 --etherscan-api-key "$ETHERSCAN_API_KEY" $@
+forge test --fork-url "$fork_url" --fork-block-number 15525659 --etherscan-api-key "$ETHERSCAN_API_KEY" $@
