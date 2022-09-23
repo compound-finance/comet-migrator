@@ -89,7 +89,21 @@ TODO
 
 ## Embedding
 
-TODO: Describe how to test as an embedded Webb3 extension.
+You can run [Webb3](https://github.com/compound-finance/webb3) locally with a local version of the extension running. First, run this extension:
+
+```sh
+# in comet_v2_migrator/
+yarn web:dev
+```
+
+Take a note of the port (it should be 5183). Then run Webb3 with the following env var set:
+
+```sh
+# in webb3/
+VITE_COMET_V2_MIGRATOR_SOURCE=http://localhost:5183/embedded.html yarn dev
+```
+
+When the extension loads at [http://localhost:5173](http://localhost:5173), it should load this local extension, instead of the production version.
 
 ## Contributing
 
