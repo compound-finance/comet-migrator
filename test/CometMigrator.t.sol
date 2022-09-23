@@ -48,7 +48,14 @@ contract CometMigratorTest is Positor {
         vm.expectEmit(true, false, false, true);
         emit Migrated(borrower, collateral, 600e6, 600e6 * 1.0001);
 
-        migrator.migrate(collateral, 600e6);
+        Comet_V2_Migrator.BorrowData[] memory borrowData = new Comet_V2_Migrator.BorrowData[](1);
+        borrowData[0] = Comet_V2_Migrator.BorrowData({
+            borrowCToken: cUSDC,
+            borrowAmount: 600e6,
+            pool: pool_DAI_USDC,
+            isFlashLoan: true
+        });
+        migrator.migrate(collateral, borrowData);
 
         // Check v2 balances
         assertEq(cUNI.balanceOf(borrower), cUNIPre - migrateAmount, "Amount of cUNI should have been migrated");
@@ -86,7 +93,15 @@ contract CometMigratorTest is Positor {
         vm.startPrank(borrower);
         cETH.approve(address(migrator), type(uint256).max);
         comet.allow(address(migrator), true);
-        migrator.migrate(collateral, 600e6);
+
+        Comet_V2_Migrator.BorrowData[] memory borrowData = new Comet_V2_Migrator.BorrowData[](1);
+        borrowData[0] = Comet_V2_Migrator.BorrowData({
+            borrowCToken: cUSDC,
+            borrowAmount: 600e6,
+            pool: pool_DAI_USDC,
+            isFlashLoan: true
+        });
+        migrator.migrate(collateral, borrowData);
 
         // Check v2 balances
         assertEq(cETH.balanceOf(borrower), cETHPre - migrateAmount, "Amount of cETH should have been migrated");
@@ -128,7 +143,15 @@ contract CometMigratorTest is Positor {
         vm.startPrank(borrower);
         cUNI.approve(address(migrator), type(uint256).max);
         comet.allow(address(migrator), true);
-        migrator.migrate(collateral, 600e6);
+
+        Comet_V2_Migrator.BorrowData[] memory borrowData = new Comet_V2_Migrator.BorrowData[](1);
+        borrowData[0] = Comet_V2_Migrator.BorrowData({
+            borrowCToken: cUSDC,
+            borrowAmount: 600e6,
+            pool: pool_DAI_USDC,
+            isFlashLoan: true
+        });
+        migrator.migrate(collateral, borrowData);
 
         // Check v2 balances
         assertEq(cUNI.balanceOf(borrower), cUNIPre - migrateAmount, "Amount of cUNI should have been migrated");
@@ -164,7 +187,15 @@ contract CometMigratorTest is Positor {
         vm.startPrank(borrower);
         cUNI.approve(address(migrator), type(uint256).max);
         comet.allow(address(migrator), true);
-        migrator.migrate(collateral, 700e6);
+
+        Comet_V2_Migrator.BorrowData[] memory borrowData = new Comet_V2_Migrator.BorrowData[](1);
+        borrowData[0] = Comet_V2_Migrator.BorrowData({
+            borrowCToken: cUSDC,
+            borrowAmount: 700e6,
+            pool: pool_DAI_USDC,
+            isFlashLoan: true
+        });
+        migrator.migrate(collateral, borrowData);
 
         // Check v2 balances
         assertEq(cUNI.balanceOf(borrower), 0, "Amount of cUNI should have been migrated");
@@ -200,7 +231,15 @@ contract CometMigratorTest is Positor {
         vm.startPrank(borrower);
         cUNI.approve(address(migrator), type(uint256).max);
         comet.allow(address(migrator), true);
-        migrator.migrate(collateral, type(uint256).max);
+
+        Comet_V2_Migrator.BorrowData[] memory borrowData = new Comet_V2_Migrator.BorrowData[](1);
+        borrowData[0] = Comet_V2_Migrator.BorrowData({
+            borrowCToken: cUSDC,
+            borrowAmount: type(uint256).max,
+            pool: pool_DAI_USDC,
+            isFlashLoan: true
+        });
+        migrator.migrate(collateral, borrowData);
 
         // Check v2 balances
         assertEq(cUNI.balanceOf(borrower), 0, "Amount of cUNI should have been migrated");
@@ -242,7 +281,15 @@ contract CometMigratorTest is Positor {
         vm.startPrank(borrower);
         cUNI.approve(address(migrator), type(uint256).max);
         comet.allow(address(migrator), true);
-        migrator.migrate(collateral, 600e6);
+
+        Comet_V2_Migrator.BorrowData[] memory borrowData = new Comet_V2_Migrator.BorrowData[](1);
+        borrowData[0] = Comet_V2_Migrator.BorrowData({
+            borrowCToken: cUSDC,
+            borrowAmount: 600e6,
+            pool: pool_DAI_USDC,
+            isFlashLoan: true
+        });
+        migrator.migrate(collateral, borrowData);
 
         // Check v2 balances
         assertEq(cUNI.balanceOf(borrower), cUNIPre - migrateAmount, "Amount of cUNI should have been migrated");
@@ -291,7 +338,15 @@ contract CometMigratorTest is Positor {
         cETH.approve(address(migrator), type(uint256).max); // TODO: Test without approval
         cUNI.approve(address(migrator), type(uint256).max);
         comet.allow(address(migrator), true);
-        migrator.migrate(collateral, 1200e6);
+
+        Comet_V2_Migrator.BorrowData[] memory borrowData = new Comet_V2_Migrator.BorrowData[](1);
+        borrowData[0] = Comet_V2_Migrator.BorrowData({
+            borrowCToken: cUSDC,
+            borrowAmount: 1200e6,
+            pool: pool_DAI_USDC,
+            isFlashLoan: true
+        });
+        migrator.migrate(collateral, borrowData);
 
         // Check v2 balances
         assertEq(cUNI.balanceOf(borrower), cUNIPre - uniMigrateAmount, "Amount of cUNI should have been migrated");
@@ -332,7 +387,15 @@ contract CometMigratorTest is Positor {
         cUNI.approve(address(migrator), 0);
         comet.allow(address(migrator), true);
         vm.expectRevert(stdError.arithmeticError);
-        migrator.migrate(collateral, 600e6);
+
+        Comet_V2_Migrator.BorrowData[] memory borrowData = new Comet_V2_Migrator.BorrowData[](1);
+        borrowData[0] = Comet_V2_Migrator.BorrowData({
+            borrowCToken: cUSDC,
+            borrowAmount: 600e6,
+            pool: pool_DAI_USDC,
+            isFlashLoan: true
+        });
+        migrator.migrate(collateral, borrowData);
 
         // Check v2 balances
         assertEq(cUNI.balanceOf(borrower), cUNIPre, "Amount of cUNI should have been migrated");
@@ -371,8 +434,16 @@ contract CometMigratorTest is Positor {
         cETH.approve(address(migrator), 0);
         comet.allow(address(migrator), true);
 
-        vm.expectRevert(CometMigrator.CTokenTransferFailure.selector);
-        migrator.migrate(collateral, 600e6);
+        vm.expectRevert(Comet_V2_Migrator.CTokenTransferFailure.selector);
+
+        Comet_V2_Migrator.BorrowData[] memory borrowData = new Comet_V2_Migrator.BorrowData[](1);
+        borrowData[0] = Comet_V2_Migrator.BorrowData({
+            borrowCToken: cUSDC,
+            borrowAmount: 600e6,
+            pool: pool_DAI_USDC,
+            isFlashLoan: true
+        });
+        migrator.migrate(collateral, borrowData);
 
         // Check v2 balances
         assertEq(cETH.balanceOf(borrower), cETHPre, "Amount of cETH should have been migrated");
@@ -411,7 +482,15 @@ contract CometMigratorTest is Positor {
         cUNI.approve(address(migrator), type(uint256).max);
         comet.allow(address(migrator), true);
         vm.expectRevert(abi.encodeWithSelector(CTokenLike.TransferComptrollerRejection.selector, 4));
-        migrator.migrate(collateral, 600e6);
+
+        Comet_V2_Migrator.BorrowData[] memory borrowData = new Comet_V2_Migrator.BorrowData[](1);
+        borrowData[0] = Comet_V2_Migrator.BorrowData({
+            borrowCToken: cUSDC,
+            borrowAmount: 600e6,
+            pool: pool_DAI_USDC,
+            isFlashLoan: true
+        });
+        migrator.migrate(collateral, borrowData);
 
         // Check v2 balances
         assertEq(cUNI.balanceOf(borrower), cUNIPre, "Amount of cUNI should have been migrated");
@@ -450,8 +529,16 @@ contract CometMigratorTest is Positor {
         cETH.approve(address(migrator), type(uint256).max);
         comet.allow(address(migrator), true);
 
-        vm.expectRevert(CometMigrator.CTokenTransferFailure.selector);
-        migrator.migrate(collateral, 600e6);
+        vm.expectRevert(Comet_V2_Migrator.CTokenTransferFailure.selector);
+
+        Comet_V2_Migrator.BorrowData[] memory borrowData = new Comet_V2_Migrator.BorrowData[](1);
+        borrowData[0] = Comet_V2_Migrator.BorrowData({
+            borrowCToken: cUSDC,
+            borrowAmount: 600e6,
+            pool: pool_DAI_USDC,
+            isFlashLoan: true
+        });
+        migrator.migrate(collateral, borrowData);
 
         // Check v2 balances
         assertEq(cETH.balanceOf(borrower), cETHPre, "Amount of cETH should have been migrated");
@@ -489,7 +576,15 @@ contract CometMigratorTest is Positor {
         vm.startPrank(borrower);
         cUNI.approve(address(migrator), type(uint256).max);
         vm.expectRevert(Comet.Unauthorized.selector);
-        migrator.migrate(collateral, 600e6);
+
+        Comet_V2_Migrator.BorrowData[] memory borrowData = new Comet_V2_Migrator.BorrowData[](1);
+        borrowData[0] = Comet_V2_Migrator.BorrowData({
+            borrowCToken: cUSDC,
+            borrowAmount: 600e6,
+            pool: pool_DAI_USDC,
+            isFlashLoan: true
+        });
+        migrator.migrate(collateral, borrowData);
 
         // Check v2 balances
         assertEq(cUNI.balanceOf(borrower), cUNIPre, "Amount of cUNI should have been migrated");
@@ -529,7 +624,15 @@ contract CometMigratorTest is Positor {
         comet.allow(address(migrator), true);
 
         vm.expectRevert(abi.encodeWithSelector(CTokenLike.TransferComptrollerRejection.selector, 4));
-        migrator.migrate(collateral, 0e6);
+
+        Comet_V2_Migrator.BorrowData[] memory borrowData = new Comet_V2_Migrator.BorrowData[](1);
+        borrowData[0] = Comet_V2_Migrator.BorrowData({
+            borrowCToken: cUSDC,
+            borrowAmount: 0e6,
+            pool: pool_DAI_USDC,
+            isFlashLoan: true
+        });
+        migrator.migrate(collateral, borrowData);
 
         // Check v2 balances
         assertEq(cUNI.balanceOf(borrower), cUNIPre, "Amount of cUNI should have been migrated");
@@ -568,8 +671,16 @@ contract CometMigratorTest is Positor {
         cUNI.approve(address(migrator), type(uint256).max);
         comet.allow(address(migrator), true);
 
-        vm.expectRevert(abi.encodeWithSelector(CometMigrator.CompoundV2Error.selector, 0, 9));
-        migrator.migrate(collateral, 800e6);
+        vm.expectRevert(abi.encodeWithSelector(Comet_V2_Migrator.CompoundV2Error.selector, 0, 9));
+
+        Comet_V2_Migrator.BorrowData[] memory borrowData = new Comet_V2_Migrator.BorrowData[](1);
+        borrowData[0] = Comet_V2_Migrator.BorrowData({
+            borrowCToken: cUSDC,
+            borrowAmount: 800e6,
+            pool: pool_DAI_USDC,
+            isFlashLoan: true
+        });
+        migrator.migrate(collateral, borrowData);
 
         // Check v2 balances
         assertEq(cUNI.balanceOf(borrower), cUNIPre, "Amount of cUNI should have been migrated");
@@ -607,8 +718,16 @@ contract CometMigratorTest is Positor {
         cUNI.approve(address(migrator), type(uint256).max);
         comet.allow(address(migrator), true);
 
-        vm.expectRevert(abi.encodeWithSelector(CometMigrator.CompoundV2Error.selector, 0, 9));
-        migrator.migrate(collateral, 800e6);
+        vm.expectRevert(abi.encodeWithSelector(Comet_V2_Migrator.CompoundV2Error.selector, 0, 9));
+
+        Comet_V2_Migrator.BorrowData[] memory borrowData = new Comet_V2_Migrator.BorrowData[](1);
+        borrowData[0] = Comet_V2_Migrator.BorrowData({
+            borrowCToken: cUSDC,
+            borrowAmount: 800e6,
+            pool: pool_DAI_USDC,
+            isFlashLoan: true
+        });
+        migrator.migrate(collateral, borrowData);
 
         // Check v2 balances
         assertEq(cUNI.balanceOf(borrower), cUNIPre, "Amount of cUNI should have been migrated");
@@ -646,8 +765,16 @@ contract CometMigratorTest is Positor {
         cUNI.approve(address(migrator), type(uint256).max);
         comet.allow(address(migrator), true);
 
-        vm.expectRevert(abi.encodeWithSelector(CometMigrator.CompoundV2Error.selector, 0, 9));
-        migrator.migrate(collateral, 800e6);
+        vm.expectRevert(abi.encodeWithSelector(Comet_V2_Migrator.CompoundV2Error.selector, 0, 9));
+
+        Comet_V2_Migrator.BorrowData[] memory borrowData = new Comet_V2_Migrator.BorrowData[](1);
+        borrowData[0] = Comet_V2_Migrator.BorrowData({
+            borrowCToken: cUSDC,
+            borrowAmount: 800e6,
+            pool: pool_DAI_USDC,
+            isFlashLoan: true
+        });
+        migrator.migrate(collateral, borrowData);
 
         // Check v2 balances
         assertEq(cUNI.balanceOf(borrower), cUNIPre, "Amount of cUNI should have been migrated");
@@ -681,7 +808,14 @@ contract CometMigratorTest is Positor {
         cUNI.approve(address(migrator), type(uint256).max);
         comet.allow(address(migrator), true);
 
-        migrator.migrate(collateral, 0e6);
+        Comet_V2_Migrator.BorrowData[] memory borrowData = new Comet_V2_Migrator.BorrowData[](1);
+        borrowData[0] = Comet_V2_Migrator.BorrowData({
+            borrowCToken: cUSDC,
+            borrowAmount: 0e6,
+            pool: pool_DAI_USDC,
+            isFlashLoan: true
+        });
+        migrator.migrate(collateral, borrowData);
 
         // Check v2 balances
         assertEq(cUNI.balanceOf(borrower), cUNIPre, "Amount of cUNI should have been migrated");

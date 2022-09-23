@@ -66,10 +66,8 @@ contract Positor is Test, MainnetConstants {
     function deployCometMigrator() internal returns (CometMigrator) {
         return new CometMigrator(
             comet,
-            cUSDC,
             cETH,
             weth,
-            pool_DAI_USDC,
             sweepee
         );
     }
