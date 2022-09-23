@@ -2,7 +2,6 @@
 pragma solidity 0.8.16;
 
 import "./vendor/@uniswap/v3-core/contracts/interfaces/callback/IUniswapV3FlashCallback.sol";
-import "./vendor/@uniswap/v3-core/contracts/libraries/FullMath.sol";
 import "./vendor/@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
 import "./vendor/@uniswap/v3-periphery/contracts/interfaces/external/IWETH9.sol";
 import "./vendor/@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -33,7 +32,6 @@ contract Comet_V2_Migrator is IUniswapV3FlashCallback {
   struct MigrationCallbackData {
     address user;
     uint256 repayAmount;
-    uint256 borrowAmountWithFee;
     Collateral[] collateral;
   }
 
@@ -150,14 +148,10 @@ contract Comet_V2_Migrator is IUniswapV3FlashCallback {
       repayAmount = borrowAmount;
     }
 
-    // **BIND** `borrowAmountWithFee = repayAmount + FullMath.mulDivRoundingUp(repayAmount, uniswapLiquidityPoolFee, 1e6)`
-    uint256 borrowAmountWithFee = repayAmount + FullMath.mulDivRoundingUp(repayAmount, uniswapLiquidityPoolFee, 1e6);
-
-    // **BIND** `data = abi.encode(MigrationCallbackData{user, repayAmountActual, borrowAmountWithFee, collateral})`
+    // **BIND** `data = abi.encode(MigrationCallbackData{user, repayAmount, collateral})`
     bytes memory data = abi.encode(MigrationCallbackData({
       user: user,
       repayAmount: repayAmount,
-      borrowAmountWithFee: borrowAmountWithFee,
       collateral: collateral
     }));
 
@@ -170,9 +164,11 @@ contract Comet_V2_Migrator is IUniswapV3FlashCallback {
 
   /**
    * @notice This function handles a callback from the Uniswap Liquidity Pool after it has sent this contract the requested tokens. We are responsible for repaying those tokens, with a fee, before we return from this function call.
+   * @param fee0 The fee for borrowing token0 from pool.
+   * @param fee1 The fee for borrowing token1 from pool.
    * @param data The data encoded above, which is the ABI-encoding of XXX.
    **/
-  function uniswapV3FlashCallback(uint256, uint256, bytes calldata data) external {
+  function uniswapV3FlashCallback(uint256 fee0, uint256 fee1, bytes calldata data) external {
     // **REQUIRE** `inMigration == 1`
     if (inMigration != 1) {
       revert Reentrancy(1);
@@ -183,6 +179,9 @@ contract Comet_V2_Migrator is IUniswapV3FlashCallback {
 
     // **BIND** `MigrationCallbackData{user, repayAmountActual, borrowAmountTotal, collateral} = abi.decode(data, (MigrationCallbackData))`
     MigrationCallbackData memory migrationData = abi.decode(data, (MigrationCallbackData));
+
+    // **BIND** `borrowAmountWithFee = repayAmount + uniswapLiquidityPoolToken0 ? fee0 : fee1`
+    uint256 borrowAmountWithFee = migrationData.repayAmount + ( uniswapLiquidityPoolToken0 ? fee0 : fee1 );
 
     // **CALL** `borrowCToken.repayBorrowBehalf(user, repayAmountActual)`
     uint256 err = borrowCToken.repayBorrowBehalf(migrationData.user, migrationData.repayAmount);
@@ -235,10 +234,10 @@ contract Comet_V2_Migrator is IUniswapV3FlashCallback {
     }
 
     // **CALL** `comet.withdrawFrom(user, address(this), borrowToken, borrowAmountWithFee)`
-    comet.withdrawFrom(migrationData.user, address(this), address(borrowToken), migrationData.borrowAmountWithFee);
+    comet.withdrawFrom(migrationData.user, address(this), address(borrowToken), borrowAmountWithFee);
 
-    // **CALL** `borrowToken.transfer(address(uniswapLiquidityPool), migrationData.borrowAmountWithFee)`
-    borrowToken.transfer(address(uniswapLiquidityPool), migrationData.borrowAmountWithFee);
+    // **CALL** `borrowToken.transfer(address(uniswapLiquidityPool), borrowAmountWithFee)`
+    borrowToken.transfer(address(uniswapLiquidityPool), borrowAmountWithFee);
   }
 
   /**

@@ -47,7 +47,6 @@ Represents all data required to continue operation after a flash loan is initiat
 struct MigrationCallbackData {
   address user,
   uint256 repayAmount,
-  uint256 borrowAmountWithFee,
   Collateral[] collateral
 }
 ```
@@ -118,7 +117,6 @@ Notes:
 
  * `user: address`: Alias for `msg.sender`
  * `repayAmount: uint256`: The repay amount, after accounting for max.
- * `borrowAmountWithFee: uint256`: The amount to borrow from Compound III, accounting for fees.
  * `data: bytes[]`: The ABI-encoding of the `MigrationCallbackData`, to be passed to the Uniswap Liquidity Pool Callback.
 
 #### Function Spec
@@ -132,8 +130,7 @@ Notes:
   - **BIND READ** `repayAmount = borrowCToken.borrowBalanceCurrent(user)`
 - **ELSE**
   - **BIND** `repayAmount = borrowAmount`
-- **BIND** `borrowAmountWithFee = repayAmount + FullMath.mulDivRoundingUp(repayAmount, uniswapLiquidityPoolFee, 1e6)` # TODO: Spec FullMath
-- **BIND** `data = abi.encode(MigrationCallbackData{user, repayAmount, borrowAmountWithFee, collateral})`
+- **BIND** `data = abi.encode(MigrationCallbackData{user, repayAmount, collateral})`
 - **CALL** `uniswapLiquidityPool.flash(address(this), uniswapLiquidityPoolToken0 ? repayAmount : 0, uniswapLiquidityPoolToken0 ? 0 : repayAmount, data)`
 - **STORE** `inMigration -= 1`
 
@@ -149,8 +146,8 @@ This function may only be called during a migration command. We ensure this by m
 
 #### Inputs
 
- - `uint fee0`: The fee for borrowing token0 from pool. Ignored.
- - `uint fee1`: The fee for borrowing token1 from pool. Ignored.
+ - `uint fee0`: The fee for borrowing token0 from pool.
+ - `uint fee1`: The fee for borrowing token1 from pool.
  - `calldata data`: The data encoded above, which is the ABI-encoding of `MigrationCallbackData`.
 
 #### Bindings
@@ -167,7 +164,8 @@ This function may only be called during a migration command. We ensure this by m
 
   - **REQUIRE** `inMigration == 1`
   - **REQUIRE** `msg.sender == uniswapLiquidityPool`
-  - **BIND** `MigrationCallbackData{user, repayAmountActual, borrowAmountWithFee, collateral} = abi.decode(data, (MigrationCallbackData))`
+  - **BIND** `MigrationCallbackData{user, repayAmount, collateral} = abi.decode(data, (MigrationCallbackData))`
+  - **BIND** `borrowAmountWithFee = repayAmount + uniswapLiquidityPoolToken0 ? fee0 : fee1`
   - **CALL** `borrowCToken.repayBorrowBehalf(user, repayAmountActual)`
   - **FOREACH** `(cToken, amount)` in `collateral`:
     - **CALL** `cToken.transferFrom(user, address(this), amount == type(uint256).max ? cToken.balanceOf(user) : amount)`
@@ -180,7 +178,7 @@ This function may only be called during a migration command. We ensure this by m
     - **CALL** `underlying.approve(address(comet), type(uint256).max)`
     - **CALL** `comet.supplyTo(user, cToken.underlying(), cToken.underlying().balanceOf(address(this)))`
   - **CALL** `comet.withdrawFrom(user, address(this), borrowToken, borrowAmountWithFee)`
-  - **CALL** `borrowToken.transfer(address(uniswapLiquidityPool), migrationData.borrowAmountWithFee)`
+  - **CALL** `borrowToken.transfer(address(uniswapLiquidityPool), borrowAmountWithFee)`
 
 ### Sweep Function
 
