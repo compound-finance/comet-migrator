@@ -21,17 +21,26 @@ type AppPropsExt<N extends Network> = AppProps & {
 };
 
 interface AccountState<Network> {
-  migratorEnabled: boolean,
-  borrowBalanceV2?: bigint
-  cTokens: Map<CTokenSym<Network>, CTokenState>
+  migratorEnabled: boolean;
+  borrowBalanceV2?: bigint;
+  usdcDecimals?: bigint;
+  repayAmount: string;
+  cTokens: Map<CTokenSym<Network>, CTokenState>;
 }
 
 interface CTokenState {
   address?: string,
   balance?: bigint,
   allowance?: bigint,
-  transfer: number | 'max',
+  exchangeRate?: bigint,
+  transfer: string | 'max',
   decimals?: bigint,
+  underlyingDecimals?: bigint,
+}
+
+interface Collateral {
+  cToken: string,
+  amount: bigint
 }
 
 function showAmount(amount: bigint | undefined, decimals: bigint | undefined): string {
@@ -74,6 +83,15 @@ function useAsyncEffect(fn: () => Promise<void>, deps: any[] = []) {
   }, deps);
 }
 
+function parseNumber(str: string): number | null {
+  let num = Number(str);
+  if (Number.isNaN(num)) {
+    return null;
+  } else {
+    return num;
+  }
+}
+
 export function App<N extends Network>({sendRPC, web3, account, networkConfig}: AppPropsExt<N>) {
   let { cTokenNames } = networkConfig;
 
@@ -85,10 +103,11 @@ export function App<N extends Network>({sendRPC, web3, account, networkConfig}: 
 
   const cTokensInitial = () => new Map(
     cTokenNames.map<[CTokenSym<Network>, CTokenState]>(
-      (cTokenName) => [cTokenName, { transfer: 0 }]));
+      (cTokenName) => [cTokenName, { transfer: "0" }]));
 
   const initialAccountState = () => ({
     migratorEnabled: false,
+    repayAmount: "0",
     cTokens: cTokensInitial()
   });
   const [accountState, setAccountState] = useState<AccountState<Network>>(initialAccountState);
@@ -103,7 +122,6 @@ export function App<N extends Network>({sendRPC, web3, account, networkConfig}: 
 
   function setCTokenState<key extends keyof CTokenState, value extends CTokenState[key]>
     (tokenSym: CTokenSym<Network>, key: keyof CTokenState, value: CTokenState[key]) {
-    console.log([tokenSym, key, value]);
     setAccountState({
       ...accountState,
       cTokens: new Map(Array.from(accountState.cTokens.entries()).map<[CTokenSym<Network>, CTokenState]>(([sym, state]) => {
@@ -135,20 +153,28 @@ export function App<N extends Network>({sendRPC, web3, account, networkConfig}: 
     let migratorEnabled = (await comet.allowance(account, migrator.address))?.toBigInt() > 0n;
     if (migratorEnabled) {
       let tokenStates = new Map(await Promise.all(Array.from(accountState.cTokens.entries()).map<Promise<[CTokenSym<Network>, CTokenState]>>(async ([sym, state]) => {
+        let cTokenCtx = cTokenCtxs.get(sym)!;
+
         return [sym, {
           ...state,
-          address: await cTokenCtxs.get(sym)?.address,
-          balance: (await cTokenCtxs.get(sym)?.balanceOf(account))?.toBigInt(),
-          allowance: (await cTokenCtxs.get(sym)?.allowance(account, migrator.address))?.toBigInt(),
-          decimals: state.decimals ?? BigInt(await cTokenCtxs.get(sym)?.decimals() ?? 0)
+          address: await cTokenCtx.address,
+          balance: (await cTokenCtx.balanceOf(account)).toBigInt(),
+          allowance: (await cTokenCtx.allowance(account, migrator.address)).toBigInt(),
+          exchangeRate: (await cTokenCtx.callStatic.exchangeRateCurrent()).toBigInt(),
+          decimals: state.decimals ?? BigInt(await cTokenCtx.decimals()),
+          underlyingDecimals: state.underlyingDecimals ?? ( 'underlying' in cTokenCtx ? BigInt(await (new Contract(await cTokenCtx.underlying(), ERC20, web3)).decimals()) : 18n )
         }];
       })));
 
-      let usdcBorrowsV2 = await cTokenCtxs.get('cUSDC' as  CTokenSym<Network>)?.callStatic.borrowBalanceCurrent(account);
+      let cUSDC = cTokenCtxs.get('cUSDC' as  CTokenSym<Network>);
+      let usdcBorrowsV2 = await cUSDC?.callStatic.borrowBalanceCurrent(account);
+      let usdcDecimals = cUSDC ? BigInt(await (new Contract(await cUSDC.underlying(), ERC20, web3)).decimals()) : 0n;
 
       setAccountState({
+        ...accountState,
         migratorEnabled,
         borrowBalanceV2: usdcBorrowsV2.toString(),
+        usdcDecimals: BigInt(usdcDecimals),
         cTokens: tokenStates
       });
     } else {
@@ -159,37 +185,73 @@ export function App<N extends Network>({sendRPC, web3, account, networkConfig}: 
     }
   }, [timer, account, cTokenCtxs]);
 
-  async function go() {
-    console.log("go", accountState);
+  function validateForm(): { borrowAmount: bigint, collateral: Collateral[] } | string {
     let borrowAmount = accountState.borrowBalanceV2;
-    let collateral: { cToken: string, amount: bigint }[] = [];
-    for (let [sym, {address, balance, decimals, transfer}] of accountState.cTokens.entries()) {
-      if (address !== undefined && decimals !== undefined  && balance !== undefined) {
+    let usdcDecimals = accountState.usdcDecimals;
+    if (!borrowAmount || !usdcDecimals) {
+      return "Invalid borrowAmount || usdcDecimals";
+    }
+    let repayAmount = parseNumber(accountState.repayAmount);
+    if (repayAmount === null) {
+      return "Invalid repay amount";
+    }
+    let repayAmountWei = amountToWei(repayAmount, usdcDecimals);
+    if (repayAmountWei > borrowAmount) {
+      return "Too much repay";
+    }
+
+    let collateral: Collateral[] = [];
+    for (let [sym, {address, balance, decimals, underlyingDecimals, transfer, exchangeRate}] of accountState.cTokens.entries()) {
+      if (address !== undefined && decimals !== undefined && underlyingDecimals !== undefined && balance !== undefined) {
         if (transfer === 'max') {
           collateral.push({
             cToken: address,
             amount: balance
           });
-        } else if (transfer > 0) {
-          collateral.push({
-            cToken: address,
-            amount: amountToWei(transfer, decimals)
-          });
+        } else {
+          let transferNum = parseNumber(transfer);
+          if (transferNum === null) {
+            return `Invalid collateral amount ${sym}: ${transfer}`;
+          } else {
+            if (transferNum > 0 && exchangeRate) {
+              // TODO: Check too much
+              collateral.push({
+                cToken: address,
+                amount: amountToWei(transferNum * 1e18 / Number(exchangeRate), underlyingDecimals)
+              });
+            }
+          }
         }
       }
     }
-    console.log("borrowAmount", borrowAmount, "collateral", collateral);
-    migrator.migrate(collateral, borrowAmount);
+    return {
+      borrowAmount: repayAmountWei,
+      collateral
+    };
+  }
+
+  let migrateParams = validateForm();
+
+  async function migrate() {
+    console.log("migrate", accountState, migrateParams);
+    if (typeof migrateParams !== 'string') {
+      await migrator.migrate(migrateParams.collateral, migrateParams.borrowAmount);
+    }
   };
 
   let el;
   if (accountState.migratorEnabled) {
     el = (<div>
       <div>
+        <label>cUSDC Repay</label>
+        <span>balance={showAmount(accountState.borrowBalanceV2, accountState.usdcDecimals)}</span>
+        <input type="text" inputMode="decimal" value={accountState.repayAmount} onChange={(e) => setAccountState({...accountState, repayAmount: e.target.value})} />
+      </div>
+      <div>
         { Array.from(accountState.cTokens.entries()).map(([sym, state]) => {
           return <div key={`${sym}`}>
             <label>{sym}</label>
-            <span>balance={showAmount(state.balance, state.decimals)}</span>
+            <span>balance={showAmount(state.exchangeRate ? (state.balance ?? 0n) * state.exchangeRate / 1000000000000000000n : 0n, state.underlyingDecimals)}</span>
             { state.allowance === 0n ?
               <button onClick={() => setTokenApproval(sym)}>Enable</button> :
               <span>
@@ -199,7 +261,7 @@ export function App<N extends Network>({sendRPC, web3, account, networkConfig}: 
                     <button onClick={() => setCTokenState(sym, 'transfer', 0)}>Max</button>
                   </span> :
                   <span>
-                    <input type="number" value={state.transfer} onChange={(e) => setCTokenState(sym, 'transfer', Number(e.target.value))} />
+                    <input type="text" inputMode="decimal" value={state.transfer} onChange={(e) => setCTokenState(sym, 'transfer', e.target.value)} />
                     <button onClick={() => setCTokenState(sym, 'transfer', 'max')}>Max</button>
                   </span>
                 }
@@ -208,7 +270,16 @@ export function App<N extends Network>({sendRPC, web3, account, networkConfig}: 
           </div>
         })}
       </div>
-      <button onClick={go}>Fire Trx</button>
+      {
+        typeof migrateParams === 'string' ?
+          <div>
+            <label>{ migrateParams }</label>
+            <button disabled={true}>Migrate</button>
+          </div> :
+          <div>
+            <button onClick={migrate}>Migrate</button>
+          </div>
+      }
     </div>);
   } else {
     el = (<div>
