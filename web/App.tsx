@@ -4,7 +4,7 @@ import { read, write } from './lib/RPC';
 import { useEffect, useMemo, useState } from 'react';
 import ERC20 from '../abis/ERC20';
 import Comet from '../abis/Comet';
-import { CTokenSym, Network, NetworkConfig, getNetwork, getNetworkById, getNetworkConfig, isNetwork } from './Network';
+import { CTokenSym, Network, NetworkConfig, getNetwork, getNetworkById, getNetworkConfig, isNetwork, showNetwork } from './Network';
 import { JsonRpcProvider } from '@ethersproject/providers';
 import { Contract, ContractInterface } from '@ethersproject/contracts';
 
@@ -15,9 +15,9 @@ interface AppProps {
   web3: JsonRpcProvider
 }
 
-type AppPropsExt<Network> = AppProps & {
+type AppPropsExt<N extends Network> = AppProps & {
   account: string,
-  networkConfig: NetworkConfig<Network>
+  networkConfig: NetworkConfig<N>
 };
 
 interface AccountState<Network> {
@@ -69,7 +69,7 @@ function useAsyncEffect(fn: () => Promise<void>, deps: any[] = []) {
   }, deps);
 }
 
-export function App<Network>({sendRPC, web3, account, networkConfig}: AppPropsExt<Network>) {
+export function App<N extends Network>({sendRPC, web3, account, networkConfig}: AppPropsExt<N>) {
   let { cTokenNames } = networkConfig;
 
   let timer = usePoll(20000);
@@ -195,6 +195,7 @@ export function App<Network>({sendRPC, web3, account, networkConfig}: AppPropsEx
     <div className="container">
       Compound II to Compound III Migrator<br/>
       timer={ timer }<br/>
+      network={ showNetwork(networkConfig.network) }<br/>
       account={ account }<br/>
       { el }
     </div>

@@ -86,6 +86,15 @@ export function getNetwork(network: string): Network {
   }
 }
 
+export function showNetwork(network: Network): string {
+  if (network === 'mainnet') {
+    return 'mainnet';
+  } else if (network === 'goerli') {
+    return 'goerli';
+  }
+  throw 'invalid';
+}
+
 export function getNetworkById(chainId: number): Network | null {
   if (chainId === 1) {
     return 'mainnet';
