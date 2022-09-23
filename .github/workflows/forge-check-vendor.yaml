@@ -1,0 +1,20 @@
+name: Forge Check Vendor
+on: push
+
+env:
+  FOUNDRY_PROFILE: ci
+
+jobs:
+  check:
+    strategy:
+      fail-fast: true
+
+    name: Forge Check Vendor
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
+      - name: Run Forge Check Vendor
+        run: script/check-vendor.sh
