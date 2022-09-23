@@ -1,5 +1,5 @@
 {
-  "name": "comet_v2_migator",
+  "name": "@compound-finance/comet_migrator",
   "version": "0.1.0",
   "type": "module",
   "private": true,
@@ -8,6 +8,7 @@
     "web:build": "tsc && vite build",
     "web:preview": "vite preview",
     "web:test": "jest",
+    "forge:build": "forge build",
     "forge:test": "script/test.sh",
     "forge:lint": "solhint '{src,script,test}/**/*.sol'",
     "forge:playground": "script/playground.sh",

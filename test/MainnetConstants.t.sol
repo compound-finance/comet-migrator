@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-import "../src/Comet_V2_Migrator.sol";
+import "../src/CometMigrator.sol";
 import "../src/vendor/@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol";
 
 interface Comptroller {

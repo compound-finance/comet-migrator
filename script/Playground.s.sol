@@ -2,7 +2,7 @@
 pragma solidity ^0.8.13;
 
 import "forge-std/Script.sol";
-import "../src/Comet_V2_Migrator.sol";
+import "../src/CometMigrator.sol";
 import "forge-std/Test.sol";
 import "../test/MainnetConstants.t.sol";
 import "forge-std/console2.sol";
@@ -15,9 +15,9 @@ contract Playground is Script, Test, MainnetConstants {
     function run() public {
         vm.startBroadcast();
 
-        console.log("Deploying Comet v2 Migrator");
-        Comet_V2_Migrator migrator = deployCometV2Migrator();
-        console.log("Deployed Comet v2 Migrator", address(migrator));
+        console.log("Deploying Comet Migrator");
+        CometMigrator migrator = deployCometMigrator();
+        console.log("Deployed Comet Migrator", address(migrator));
 
         console.log("Wrapping WETH");
         weth.deposit{value: 50 ether}();
@@ -51,8 +51,8 @@ contract Playground is Script, Test, MainnetConstants {
         console.log("Proceed.");
     }
 
-    function deployCometV2Migrator() internal returns (Comet_V2_Migrator) {
-        return new Comet_V2_Migrator(
+    function deployCometMigrator() internal returns (CometMigrator) {
+        return new CometMigrator(
             comet,
             cUSDC,
             cETH,

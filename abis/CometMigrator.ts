@@ -101,7 +101,7 @@ export default [
           }
         ],
         "indexed": false,
-        "internalType": "struct Comet_V2_Migrator.Collateral[]",
+        "internalType": "struct CometMigrator.Collateral[]",
         "name": "collateral",
         "type": "tuple[]"
       },
@@ -220,7 +220,7 @@ export default [
             "type": "uint256"
           }
         ],
-        "internalType": "struct Comet_V2_Migrator.Collateral[]",
+        "internalType": "struct CometMigrator.Collateral[]",
         "name": "collateral",
         "type": "tuple[]"
       },
