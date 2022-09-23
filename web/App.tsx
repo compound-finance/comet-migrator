@@ -83,12 +83,16 @@ function useAsyncEffect(fn: () => Promise<void>, deps: any[] = []) {
   }, deps);
 }
 
-function parseNumber(str: string): number | null {
-  let num = Number(str);
-  if (Number.isNaN(num)) {
-    return null;
+function parseNumber<T>(str: string, f: (x: number) => bigint): bigint | null {
+  if (str === 'max') {
+    return MAX_UINT256;
   } else {
-    return num;
+    let num = Number(str);
+    if (Number.isNaN(num)) {
+      return null;
+    } else {
+      return f(num);
+    }
   }
 }
 
@@ -191,33 +195,32 @@ export function App<N extends Network>({sendRPC, web3, account, networkConfig}: 
     if (!borrowAmount || !usdcDecimals) {
       return "Invalid borrowAmount || usdcDecimals";
     }
-    let repayAmount = parseNumber(accountState.repayAmount);
+    let repayAmount = parseNumber(accountState.repayAmount, (n) => amountToWei(n, usdcDecimals!));
     if (repayAmount === null) {
       return "Invalid repay amount";
     }
-    let repayAmountWei = amountToWei(repayAmount, usdcDecimals);
-    if (repayAmountWei > borrowAmount) {
+    if (repayAmount !== MAX_UINT256 && repayAmount > borrowAmount) {
       return "Too much repay";
     }
 
     let collateral: Collateral[] = [];
     for (let [sym, {address, balance, decimals, underlyingDecimals, transfer, exchangeRate}] of accountState.cTokens.entries()) {
-      if (address !== undefined && decimals !== undefined && underlyingDecimals !== undefined && balance !== undefined) {
+      if (address !== undefined && decimals !== undefined && underlyingDecimals !== undefined && balance !== undefined && exchangeRate !== undefined) {
         if (transfer === 'max') {
           collateral.push({
             cToken: address,
             amount: balance
           });
         } else {
-          let transferNum = parseNumber(transfer);
-          if (transferNum === null) {
+          let transferAmount = parseNumber(transfer, (n) => amountToWei(n * 1e18 / Number(exchangeRate), underlyingDecimals!));
+          if (transferAmount === null) {
             return `Invalid collateral amount ${sym}: ${transfer}`;
           } else {
-            if (transferNum > 0 && exchangeRate) {
+            if (transferAmount > 0n) {
               // TODO: Check too much
               collateral.push({
                 cToken: address,
-                amount: amountToWei(transferNum * 1e18 / Number(exchangeRate), underlyingDecimals)
+                amount: transferAmount
               });
             }
           }
@@ -225,7 +228,7 @@ export function App<N extends Network>({sendRPC, web3, account, networkConfig}: 
       }
     }
     return {
-      borrowAmount: repayAmountWei,
+      borrowAmount: repayAmount,
       collateral
     };
   }
@@ -245,7 +248,18 @@ export function App<N extends Network>({sendRPC, web3, account, networkConfig}: 
       <div>
         <label>cUSDC Repay</label>
         <span>balance={showAmount(accountState.borrowBalanceV2, accountState.usdcDecimals)}</span>
-        <input type="text" inputMode="decimal" value={accountState.repayAmount} onChange={(e) => setAccountState({...accountState, repayAmount: e.target.value})} />
+        { accountState.repayAmount === 'max' ?
+          <span>
+            <input disabled value="Max" />
+            <button onClick={() => setAccountState({...accountState, repayAmount: '0'})}>Max</button>
+          </span>
+        :
+          <span>
+            <input type="text" inputMode="decimal" value={accountState.repayAmount} onChange={(e) => setAccountState({...accountState, repayAmount: e.target.value})} />
+            <button onClick={() => setAccountState({...accountState, repayAmount: 'max'})}>Max</button>
+          </span>
+        }
+
       </div>
       <div>
         { Array.from(accountState.cTokens.entries()).map(([sym, state]) => {
@@ -258,7 +272,7 @@ export function App<N extends Network>({sendRPC, web3, account, networkConfig}: 
                 { state.transfer === 'max' ?
                   <span>
                     <input disabled value="Max" />
-                    <button onClick={() => setCTokenState(sym, 'transfer', 0)}>Max</button>
+                    <button onClick={() => setCTokenState(sym, 'transfer', '0')}>Max</button>
                   </span> :
                   <span>
                     <input type="text" inputMode="decimal" value={state.transfer} onChange={(e) => setCTokenState(sym, 'transfer', e.target.value)} />
