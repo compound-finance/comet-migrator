@@ -19,10 +19,12 @@ Users can specify the following parameters, generally:
  * `uniswapLiquidityPool: IUniswapV3Pool` **immutable**: The Uniswap pool used by this contract to source liquidity (i.e. flash loans).
  * `uniswapLiquidityPoolToken0: boolean` **immutable**: True if borrow token is token 0 in the Uniswap liquidity pool, otherwise false if token 1.
  * `uniswapLiquidityPoolFee: uint256` **immutable**: Fee for a flash loan from the liquidity pool as a fixed decimal (e.g. `0.001e18 = 0.1%`)
- * `collateralTokens: IERC20[]`: A list of valid collateral tokens
  * `borrowCToken: CToken` **immutable**: The Compound II market for the borrowed token (e.g. `cUSDC`).
  * `borrowToken: IERC20` **immutable**: The underlying borrow token (e.g. `USDC`).
- * `sweepee: address` **immutable**: Address of an address to send swept tokens to, if for any reason they remain locked in this contract.
+ * `cETH: CToken` **immutable**: The address of the `cETH` token.
+ * `weth: WETH9` **immutable**: The address of the `weth` token.
+ * `sweepee: address` **immutable**: Sweep excess tokens to this address.
+ * `inMigration: uint256`: A rëentrancy guard.
 
 ## Structs
 
@@ -54,10 +56,6 @@ struct MigrationCallbackData {
 
 TODO
 
-## Inherits
-
- * `PeripheryPayments` - https://github.com/Uniswap/v3-periphery/blob/main/contracts/base/PeripheryPayments.sol
-
 ## Contract Functions
 
 ### Constructor
@@ -67,23 +65,26 @@ This function describes the initialization process for this contract. We set the
 #### Inputs
 
  * `comet_: Comet`: The Comet Ethereum mainnet USDC contract.
+ * `borrowCToken_: CToken`: The Compound II market for the borrowed token (e.g. `cUSDC`).
+ * `cETH_: CToken`: The address of the `cETH` token.
+ * `weth_: IWETH9`: The address of the `WETH9` token.
  * `uniswapLiquidityPool_: IUniswapV3Pool` : The Uniswap pool used by this contract to source liquidity (i.e. flash loans).
- * `collateralTokens_: IERC20[]`: A list of valid collateral tokens
- * `borrowCToken_`: The Compound II market for the borrowed token (e.g. `cUSDC`).
+ * `sweepee_: address`: Sweep excess tokens to this address.
 
 #### Function Spec
 
-`function Comet_V2_Migrator(Comet comet_, CToken borrowCToken_, IUniswapV3Pool uniswapLiquidityPool_, IERC20[] memory collateralTokens_, address sweepee_) external`
+`function Comet_V2_Migrator(Comet comet_, CToken borrowCToken_, CToken cETH_, WETH9 weth, UniswapV3Pool uniswapLiquidityPool_, address sweepee_) external`
 
  * **WRITE IMMUTABLE** `comet = comet_`
  * **WRITE IMMUTABLE** `borrowCToken = borrowCToken_`
  * **WRITE IMMUTABLE** `borrowToken = borrowCToken_.underlying()`
+ * **WRITE IMMUTABLE** `cETH = cETH_`
+ * **WRITE IMMUTABLE** `weth = weth_`
  * **WRITE IMMUTABLE** `uniswapLiquidityPool = uniswapLiquidityPool_`
  * **WRITE IMMUTABLE** `uniswapLiquidityPoolFee = uniswapLiquidityPool.fee()`
  * **WRITE IMMUTABLE** `uniswapLiquidityPoolToken0 = uniswapLiquidityPool.token0() == borrowToken`
  * **WRITE IMMUTABLE** `sweepee = sweepee_`
- * **FOREACH** `collateralToken` in `collateralTokens_`
-   * **WRITE** `colllateralTokens.push(collateralToken)`
+ * **CALL** `borrowToken.approve(address(borrowCToken), type(uint256).max)`
 
 ### Migrate Function
 
@@ -109,7 +110,6 @@ Notes for (b):
  * `borrowAmount: uint256` - Amount of borrow to migrate (i.e. close in Compound II, and borrow from Compound III). See notes below.
 
 Notes:
- - Each `collateral` market must exist in `collateralTokens` array, defined on contract creation.
  - Each `collateral` market must be supported in Compound III.
  - `collateral` amounts of 0 are strictly ignored. Collateral amounts of max uint256 are set to the user's current balance.
  - `borrowAmount` may be set to max uint256 to migrate the entire current borrow balance.
@@ -132,7 +132,7 @@ Notes:
   - **BIND READ** `repayAmount = borrowCToken.borrowBalanceCurrent(user)`
 - **ELSE**
   - **BIND** `repayAmount = borrowAmount`
-- **BIND** `borrowAmountWithFee = repayAmount + FullMath.mulDivRoundingUp(repayAmount, uniswapLiquidityPoolFee, 1e6)` # TODO: FullMath
+- **BIND** `borrowAmountWithFee = repayAmount + FullMath.mulDivRoundingUp(repayAmount, uniswapLiquidityPoolFee, 1e6)` # TODO: Spec FullMath
 - **BIND** `data = abi.encode(MigrationCallbackData{user, repayAmount, repayBorrowBehalf, collateral})`
 - **CALL** `uniswapLiquidityPool.flash(address(this), uniswapLiquidityPoolToken0 ? repayAmount : 0, uniswapLiquidityPoolToken0 ? 0 : repayAmount, data)`
 - **STORE** `inMigration -= 1`
@@ -159,6 +159,7 @@ This function may only be called during a migration command. We ensure this by m
  * `repayAmount: uint256`: The repay amount, after accounting for max.
  * `borrowAmountWithFee: uint256`: The amount to borrow from Compound III, accounting for fees.
  * `collateral: Collateral[]` - Array of collateral to transfer into Compound III.
+ * `underlying: IERC20` - The underlying of a cToken, or `weth` in the case of `cETH`.
 
 #### Function Spec
 
@@ -166,15 +167,20 @@ This function may only be called during a migration command. We ensure this by m
 
   - **REQUIRE** `inMigration == 1`
   - **REQUIRE** `msg.sender == uniswapLiquidityPool`
-  - **REQUIRE** `sender == address(this)`
   - **BIND** `MigrationCallbackData{user, repayAmountActual, borrowAmountWithFee, collateral} = abi.decode(data, (MigrationCallbackData))`
   - **CALL** `borrowCToken.repayBorrowBehalf(user, repayAmountActual)`
   - **FOREACH** `(cToken, amount)` in `collateral`:
     - **CALL** `cToken.transferFrom(user, address(this), amount == type(uint256).max ? cToken.balanceOf(user) : amount)`
     - **CALL** `cToken.redeem(cToken.balanceOf(address(this)))`
+    - **WHEN** `cToken == cETH`:
+      - **CALL** `weth.deposit{value: address(this).balance}()`
+      - **BIND** `underlying = weth`
+    - **ELSE**
+      - **BIND** `underlying = cToken.underlying()`
+    - **CALL** `underlying.approve(address(comet), type(uint256).max)`
     - **CALL** `comet.supplyTo(user, cToken.underlying(), cToken.underlying().balanceOf(address(this)))`
   - **CALL** `comet.withdrawFrom(user, address(this), borrowToken, borrowAmountWithFee)`
-  - **CALL** `pay(borrowToken, address(this), msg.sender, borrowAmountWithFee)`
+  - **CALL** `borrowToken.transfer(address(uniswapLiquidityPool), migrationData.borrowAmountWithFee)`
 
 ### Sweep Function
 

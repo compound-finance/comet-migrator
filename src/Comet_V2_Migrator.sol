@@ -3,12 +3,8 @@ pragma solidity 0.8.16;
 
 import "./vendor/@uniswap/v3-core/contracts/interfaces/callback/IUniswapV3FlashCallback.sol";
 import "./vendor/@uniswap/v3-core/contracts/libraries/FullMath.sol";
-import "./vendor/@uniswap/v3-periphery/contracts/base/PeripheryPayments.sol";
-import "./vendor/@uniswap/v3-periphery/contracts/base/PeripheryImmutableState.sol";
-import "./vendor/@uniswap/v3-periphery/contracts/libraries/PoolAddress.sol";
-import "./vendor/@uniswap/v3-periphery/contracts/libraries/CallbackValidation.sol";
-import "./vendor/@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol";
-import "./vendor/@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol";
+import "./vendor/@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
+import "./vendor/@uniswap/v3-periphery/contracts/interfaces/external/IWETH9.sol";
 import "./vendor/@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./interfaces/CTokenInterface.sol";
 import "./interfaces/CometInterface.sol";
@@ -18,8 +14,10 @@ import "./interfaces/CometInterface.sol";
  * @notice A contract to help migrate a Compound v2 position where a user is borrowing USDC, to a similar Compound v3 position.
  * @author Compound
  */
-contract Comet_V2_Migrator is IUniswapV3FlashCallback, PeripheryImmutableState, PeripheryPayments {
-  error CompoundV2Error(uint256 code);
+contract Comet_V2_Migrator is IUniswapV3FlashCallback {
+  error Reentrancy(uint256 loc);
+  error CompoundV2Error(uint256 loc, uint256 code);
+  error SweepFailure(uint256 loc);
 
   /** Events **/
   // event Absorb(address indexed initiator, address[] accounts);
@@ -54,40 +52,69 @@ contract Comet_V2_Migrator is IUniswapV3FlashCallback, PeripheryImmutableState, 
   IERC20[] public collateralTokens;
 
   /// @notice The Compound II market for the borrowed token (e.g. `cUSDC`).
-  CErc20 public immutable borrowCToken; 
+  CErc20 public immutable borrowCToken;
 
   /// @notice The underlying borrow token (e.g. `USDC`).
   IERC20 public immutable borrowToken;
 
+  /// @notice The address of the `cETH` token.
+  CTokenLike public immutable cETH;
+
+  /// @notice The address of the `weth` token.
+  IWETH9 public immutable weth;
+
   /// @notice Address to send swept tokens to, if for any reason they remain locked in this contract.
-  address public immutable sweepee;
+  address payable public immutable sweepee;
+
+  /// @notice A rëentrancy guard.
+  uint public inMigration;
 
   /**
    * @notice Construct a new Compound_Migrate_V2_USDC_to_V3_USDC
    * @param comet_ The Comet Ethereum mainnet USDC contract.
-   * @param uniswapLiquidityPool_ The Uniswap pool used by this contract to source liquidity (i.e. flash loans).
-   * @param collateralTokens_ A list of valid collateral tokens
    * @param borrowCToken_ The Compound II market for the borrowed token (e.g. `cUSDC`).
+   * @param cETH_ The address of the `cETH` token.
+   * @param weth_ The address of the `WETH9` token.
+   * @param uniswapLiquidityPool_ The Uniswap pool used by this contract to source liquidity (i.e. flash loans).
+   * @param sweepee_ Sweep excess tokens to this address.
    **/
   constructor(
     Comet comet_,
     CErc20 borrowCToken_,
+    CTokenLike cETH_,
+    IWETH9 weth_,
     IUniswapV3Pool uniswapLiquidityPool_,
-    IERC20[] memory collateralTokens_,
-    address sweepee_,
-    address _factory, // TODO
-    address _WETH9 // TODO
-  ) PeripheryImmutableState(_factory, _WETH9) {
+    address payable sweepee_
+  ) {
+    // **WRITE IMMUTABLE** `comet = comet_`
     comet = comet_;
+
+    // **WRITE IMMUTABLE** `borrowCToken = borrowCToken_`
     borrowCToken = borrowCToken_;
+
+    // **WRITE IMMUTABLE** `borrowToken = borrowCToken_.underlying()`
     borrowToken = borrowCToken_.underlying();
+
+    // **WRITE IMMUTABLE** `cETH = cETH_`
+    cETH = cETH_;
+
+    // **WRITE IMMUTABLE** `weth = weth_`
+    weth = weth_;
+
+    // **WRITE IMMUTABLE** `uniswapLiquidityPool = uniswapLiquidityPool_`
     uniswapLiquidityPool = uniswapLiquidityPool_;
+
+    // **WRITE IMMUTABLE** `uniswapLiquidityPoolFee = uniswapLiquidityPool.fee()`
     uniswapLiquidityPoolFee = uniswapLiquidityPool.fee();
+
+    // **WRITE IMMUTABLE** `uniswapLiquidityPoolToken0 = uniswapLiquidityPool.token0() == borrowToken`
     uniswapLiquidityPoolToken0 = uniswapLiquidityPool.token0() == address(borrowToken);
+
+    // **WRITE IMMUTABLE** `sweepee = sweepee_`
     sweepee = sweepee_;
-    for (uint8 i = 0; i < collateralTokens_.length; i++) {
-      collateralTokens.push(collateralTokens_[i]);
-    }
+
+    // **CALL** `borrowToken.approve(address(borrowCToken), type(uint256).max)`
+    borrowToken.approve(address(borrowCToken), type(uint256).max);
   }
 
   /**
@@ -101,9 +128,14 @@ contract Comet_V2_Migrator is IUniswapV3FlashCallback, PeripheryImmutableState, 
    * @dev Note: `borrowAmount` may be set to max uint256 to migrate the entire current borrow balance.
    **/
   function migrate(Collateral[] calldata collateral, uint256 borrowAmount) external {
-    // TODO: **REQUIRE** `inMigration == 0`
-    // TODO: **STORE** `inMigration += 1`
-    
+    // **REQUIRE** `inMigration == 0`
+    if (inMigration != 0) {
+      revert Reentrancy(0);
+    }
+
+    // **STORE** `inMigration += 1`
+    inMigration += 1;
+
     // **BIND** `user = msg.sender`
     address user = msg.sender;
 
@@ -131,35 +163,30 @@ contract Comet_V2_Migrator is IUniswapV3FlashCallback, PeripheryImmutableState, 
     // **CALL** `uniswapLiquidityPool.flash(address(this), uniswapLiquidityPoolToken0 ? repayAmount : 0, uniswapLiquidityPoolToken0 ? 0 : repayAmount, data)`
     uniswapLiquidityPool.flash(address(this), uniswapLiquidityPoolToken0 ? repayAmount : 0, uniswapLiquidityPoolToken0 ? 0 : repayAmount, data);
 
-    // TODO: **STORE** `inMigration -= 1`
+    // **STORE** `inMigration -= 1`
+    inMigration -= 1;
   }
 
   /**
    * @notice This function handles a callback from the Uniswap Liquidity Pool after it has sent this contract the requested tokens. We are responsible for repaying those tokens, with a fee, before we return from this function call.
-   * @param fee0 The fee for borrowing token0 from pool. Ingored.
-   * @param fee1 The fee for borrowing token1 from pool. Ingored.
    * @param data The data encoded above, which is the ABI-encoding of XXX.
    **/
-  function uniswapV3FlashCallback(uint256 fee0, uint256 fee1, bytes calldata data) external {
-    // TODO: **REQUIRE** `inMigration == 1`
+  function uniswapV3FlashCallback(uint256, uint256, bytes calldata data) external {
+    // **REQUIRE** `inMigration == 1`
+    if (inMigration != 1) {
+      revert Reentrancy(1);
+    }
 
     // **REQUIRE** `msg.sender == uniswapLiquidityPool`
     require(msg.sender == address(uniswapLiquidityPool), "must be called from uniswapLiquidityPool");
 
-    // TODO: **REQUIRE** `sender == address(this)`
-    
     // **BIND** `MigrationCallbackData{user, repayAmountActual, borrowAmountTotal, collateral} = abi.decode(data, (MigrationCallbackData))`
     MigrationCallbackData memory migrationData = abi.decode(data, (MigrationCallbackData));
-
-    // TODO: Move this to the right place
-    borrowToken.approve(address(borrowCToken), type(uint256).max);
-
-    // TODO: This shouldn't be max here
 
     // **CALL** `borrowCToken.repayBorrowBehalf(user, repayAmountActual)`
     uint256 err = borrowCToken.repayBorrowBehalf(migrationData.user, migrationData.repayAmount);
     if (err != 0) {
-      revert CompoundV2Error(err);
+      revert CompoundV2Error(0, err);
     }
 
     // **FOREACH** `(cToken, amount)` in `collateral`
@@ -175,15 +202,27 @@ contract Comet_V2_Migrator is IUniswapV3FlashCallback, PeripheryImmutableState, 
       // **CALL** `cToken.redeem(cToken.balanceOf(address(this)))`
       err = collateral.cToken.redeem(collateral.cToken.balanceOf(address(this)));
       if (err != 0) {
-        revert CompoundV2Error(err);
+        revert CompoundV2Error(1 + i, err);
       }
 
-      IERC20 underlying = CErc20(address(collateral.cToken)).underlying(); // TODO: This isn't right because cETH
+      IERC20 underlying;
 
-      // TODO: Move this to the right place
+      // **WHEN** `cToken == cETH`:
+      if (collateral.cToken == cETH) {
+        // **CALL** `weth.deposit{value: address(this).balance}()`
+        weth.deposit{value: address(this).balance}();
+
+        // **BIND** `underlying = weth`
+        underlying = weth;
+      } else {
+        // **BIND** `underlying = cToken.underlying()`
+        underlying = CErc20(address(collateral.cToken)).underlying();
+      }
+
+      // **CALL** `underlying.approve(address(comet), type(uint256).max)`
       underlying.approve(address(comet), type(uint256).max);
 
-      // **CALL** `comet.supplyTo(address(this), user, cToken.underlying(), cToken.underlying().balanceOf(address(this)))`  
+      // **CALL** `comet.supplyTo(address(this), user, cToken.underlying(), cToken.underlying().balanceOf(address(this)))`
       comet.supplyTo(
         migrationData.user,
         address(underlying),
@@ -194,8 +233,8 @@ contract Comet_V2_Migrator is IUniswapV3FlashCallback, PeripheryImmutableState, 
     // **CALL** `comet.withdrawFrom(user, address(this), borrowToken, borrowAmountWithFee)`
     comet.withdrawFrom(migrationData.user, address(this), address(borrowToken), migrationData.borrowAmountWithFee);
 
-    // **CALL** `pay(borrowToken, address(this), msg.sender, borrowAmountWithFee)`
-    pay(address(borrowToken), address(this), msg.sender, migrationData.borrowAmountWithFee);
+    // **CALL** `borrowToken.transfer(address(uniswapLiquidityPool), migrationData.borrowAmountWithFee)`
+    borrowToken.transfer(address(uniswapLiquidityPool), migrationData.borrowAmountWithFee);
   }
 
   /**
@@ -203,6 +242,22 @@ contract Comet_V2_Migrator is IUniswapV3FlashCallback, PeripheryImmutableState, 
    * @param token The token to sweep
    **/
   function sweep(IERC20 token) external {
+    // **REQUIRE** `inMigration == 0`
+    if (inMigration != 0) {
+      revert Reentrancy(2);
+    }
 
+    // **WHEN** `token == 0x0000000000000000000000000000000000000000`:
+    if (token == IERC20(0x0000000000000000000000000000000000000000)) {
+      // **EXEC** `sweepee.send(address(this).balance)`
+      if (!sweepee.send(address(this).balance)) {
+        revert SweepFailure(0);
+      }
+    } else {
+      // **CALL** `token.transfer(sweepee, token.balanceOf(address(this)))`
+      if (!token.transfer(sweepee, token.balanceOf(address(this)))) {
+        revert SweepFailure(1);
+      }
+    }
   }
 }
