@@ -1,0 +1,41 @@
+@use '../abstracts/variables' as *;
+
+.market-selector {
+  &__selected-market {
+    align-items: center;
+    border-radius: 10rem;
+    display: flex;
+    padding: 0.375rem 1rem;
+    transition: all 0.25s ease;
+
+    &__info {
+      display: flex;
+      flex-direction: column;
+      margin-left: 0.5rem;
+    }
+  }
+
+  &__option {
+    cursor: pointer;
+    align-items: center;
+    border-radius: 0.5rem;
+    display: flex;
+    padding: 0.375rem 0.75rem;
+    width: 100%;
+    text-transform: none;
+
+    .svg {
+      margin-left: auto;
+    }
+
+    &__info {
+      display: flex;
+      flex-direction: column;
+      margin-left: 0.5rem;
+    }
+
+    &:hover {
+      background: var(--ui--foreground--1);
+    }
+  }
+}

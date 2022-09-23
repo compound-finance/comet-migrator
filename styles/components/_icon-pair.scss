@@ -1,0 +1,9 @@
+.icon-pair {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+
+  &__item:first-child {
+    margin-right: -0.35rem;
+  }
+}

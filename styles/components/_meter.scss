@@ -1,0 +1,59 @@
+@use '../abstracts/variables' as *;
+
+.meter {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+
+  --height: 4px;
+
+  p {
+    flex-shrink: 0;
+  }
+
+  &__bar {
+    border-radius: 8px;
+    height: var(--height);
+    position: relative;
+    width: 100%;
+
+    &--dark {
+      background-color: $neutral--100;
+    }
+
+    &--light {
+      background-color: var(--data--neutral--2);
+    }
+  }
+
+  &__percentage {
+    color: $neutral--00;
+    font-size: 0.5625rem;
+    font-style: normal;
+    font-weight: normal;
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 5;
+  }
+
+  &__fill {
+    border-radius: 8px;
+    height: var(--height);
+    max-width: 100%;
+    transition: width 0.25s ease;
+
+    &--low {
+      background-color: $green--30;
+    }
+
+    &--medium {
+      background-color: $gold--30;
+    }
+
+    &--high {
+      background-color: $red--50;
+    }
+  }
+}

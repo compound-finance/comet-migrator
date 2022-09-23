@@ -1,0 +1,36 @@
+@use '../abstracts/variables' as *;
+
+body,
+html {
+  margin: 0;
+  padding: 0;
+  font-size: 16px;
+}
+
+.container {
+  margin: 0 auto;
+  padding: 0 1.25rem;
+  position: relative;
+  max-width: 74em;
+}
+
+// @media (min-width: $device--sm) {
+//   html,
+//   body {
+//     font-size: 14px;
+//   }
+// }
+
+// @media (min-width: $device--md) {
+//   html,
+//   body {
+//     font-size: 15px;
+//   }
+// }
+
+// @media (min-width: $device--lg) {
+//   html,
+//   body {
+//     font-size: 16px;
+//   }
+// }

@@ -1,0 +1,39 @@
+@use '../abstracts/variables' as *;
+
+.svg {
+  &--icon--1 {
+    .svg__path {
+      fill: var(--icon--1);
+    }
+  }
+  &--icon--2 {
+    .svg__path {
+      fill: var(--icon--2);
+    }
+  }
+  &--icon--3 {
+    .svg__path {
+      fill: var(--icon--3);
+    }
+  }
+  &--borrow {
+    .svg__path {
+      fill: var(--icon--borrow);
+    }
+  }
+  &--claim {
+    .svg__path {
+      fill: $gold--30;
+    }
+  }
+  &--caution {
+    .svg__path {
+      fill: var(--data--caution);
+    }
+  }
+  &--supply {
+    .svg__path {
+      fill: var(--icon--supply);
+    }
+  }
+}

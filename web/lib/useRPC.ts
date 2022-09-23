@@ -1,5 +1,10 @@
-import { useEffect, useState } from 'react';
-import { InMessage, OutMessage } from './MessageTypes';
+import { useMemo, useEffect, useState } from 'react';
+import { ExtMessage, ExtMessageHandler, InMessage, OutMessage } from './MessageTypes';
+
+export interface RPC {
+  on: (handler: ExtMessageHandler) => void;
+  sendRPC: SendRPC;
+}
 
 export type SendRPC = (inMsg: InMessage) => Promise<OutMessage<InMessage>>;
 
@@ -7,8 +12,20 @@ type Handler = Record<number, {resolve: (res: any) => void, reject: (err: any) =
 
 let msgId = 1;
 let handlers: Handler = {};
+let extHandlers: ExtMessageHandler[] = [];
+let extBacklog: ExtMessage[] = [];
 
-export function useRPC(): SendRPC {
+function handleExtMessage(extMsg: ExtMessage) {
+  console.log("ext message", extMsg);
+  let type = extMsg.type;
+  for (let handler of extHandlers) {
+    if (type in handler) {
+      handler[type]!(extMsg);
+    }
+  }
+}
+
+export function useRPC(): RPC {
   function sendRPC(inMsg: InMessage): Promise<OutMessage<InMessage>> {
     msgId++;
     let resolve: (res: any) => void;
@@ -25,15 +42,24 @@ export function useRPC(): SendRPC {
 
   useEffect(() => {
     const handler = (event: MessageEvent) => {
-      let msgId: number | undefined = event.data.msgId;
-      let result: any | undefined = event.data.result;
-      let error: any | undefined = event.data.error;
-      if (msgId !== undefined && msgId in handlers) {
-        let { resolve, reject } = handlers[msgId]!;
-        if (error) {
-          reject(error);
-        } else if (result) {
-          resolve(result);
+      if ('type' in event.data) {
+        let extMsg = event.data as ExtMessage;
+        if (extHandlers.length === 0) {
+          extBacklog.push(extMsg);
+        } else {
+          handleExtMessage(extMsg);
+        }
+      } else {
+        let msgId: number | undefined = event.data.msgId;
+        let result: any | undefined = event.data.result;
+        let error: any | undefined = event.data.error;
+        if (msgId !== undefined && msgId in handlers) {
+          let { resolve, reject } = handlers[msgId]!;
+          if (error) {
+            reject(error);
+          } else if (result) {
+            resolve(result);
+          }
         }
       }
     }
@@ -43,5 +69,15 @@ export function useRPC(): SendRPC {
     return () => window.removeEventListener("message", handler)
   }, [handlers]);
 
-  return sendRPC;
+  function on(handler: ExtMessageHandler) {
+    extHandlers.push(handler);
+    extBacklog.forEach(handleExtMessage);
+  }
+
+  let rpc = useMemo(() => ({
+    on,
+    sendRPC
+  }), []);
+
+  return rpc;
 }

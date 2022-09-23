@@ -1,0 +1,79 @@
+@use '../abstracts/variables' as *;
+
+.asset-row {
+  display: flex;
+  position: relative;
+  align-items: center;
+  flex-wrap: nowrap;
+  border-radius: 0.5rem;
+  padding: 1.125rem 1.25rem;
+
+  &--active {
+    background: var(--ui--foreground--2);
+  }
+
+  &__hover {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 65%;
+    background: var(--ui--foreground--2);
+    border-radius: 0.5rem;
+    opacity: 0;
+    transition: opacity 300ms ease;
+    z-index: 1;
+
+    &--active {
+      opacity: 1;
+    }
+  }
+
+  .meta {
+    color: var(--text--2);
+    min-height: var(--meta-line-height);
+  }
+
+  .meta + .meta {
+    margin-left: 0.25rem;
+    margin-top: 0;
+  }
+
+  &__detail-content {
+    align-items: center;
+    display: flex;
+    width: 40%;
+    z-index: 5;
+    cursor: pointer;
+  }
+
+  &__info {
+    margin-left: 0.75rem;
+    width: 100%;
+
+    &__details {
+      align-items: flex-end;
+      display: flex;
+    }
+  }
+
+  &__balance {
+    width: calc(60% - $actions-width);
+    margin-left: auto;
+    text-align: right;
+  }
+
+  &__actions {
+    align-items: center;
+    display: flex;
+    justify-content: flex-end;
+    flex-shrink: 0;
+    white-space: nowrap;
+    width: $actions-width;
+    text-align: right;
+
+    .button + .button {
+      margin-left: 0.5rem;
+    }
+  }
+}

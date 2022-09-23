@@ -33,6 +33,7 @@ const mainnetTokens = [
 ] as const;
 
 const goerliTokens = [
+  "cETH",
   "cCOMP",
   "cDAI",
   "cUNI",
@@ -107,9 +108,9 @@ export function getNetworkById(chainId: number): Network | null {
 
 function getMigratorAddress(network: Network): string {
   if (network === 'mainnet') {
-    return '0x3fdc08d815cc4ed3b7f69ee246716f2c8bcd6b07';
+    return '0xC9c445CAAC98B23D1b7439cD75938e753307b2e6';
   } else if (network === 'goerli') {
-    return '0x4BeF20E4a649586659Ae67f08fB7436b0Ae7Ff1A';
+    return '0xC25c7fF6290A1139ADF5c454083Bb3ebF07BeedD';
   }
 
   return null as never;

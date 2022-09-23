@@ -1,0 +1,148 @@
+@use '../abstracts/variables' as *;
+
+.card-switcher {
+  position: relative;
+  transition: max-height 300ms ease;
+
+  &--input-view-active {
+    .position-card__wallet-balance {
+      position: absolute;
+      width: 100%;
+      background: var(--ui--foreground--1);
+      box-shadow: inset 0 0 0 2rem rgba(0, 0, 0, 0.12);
+      opacity: 0.33;
+      transform: scale(0.92) translateY(-1rem);
+    }
+
+    .action-input-card {
+      box-shadow: var(--action-input--shadow);
+      transform: translateY(0);
+    }
+  }
+
+  &--input-view-inactive {
+    .action-input-card {
+      padding: 0;
+    }
+  }
+}
+
+.action-input-card {
+  background: var(--ui--foreground--2);
+  transform: translateY(100%);
+  transition: transform 300ms ease;
+  border-radius: 0.5rem 0.5rem 0 0;
+  padding: 2.5rem;
+}
+
+.position-card {
+  background-color: var(--ui--foreground--1);
+  border-radius: 0.5rem;
+  padding: 2.5rem 1.25rem;
+
+  &__wallet-balance {
+    transition: transform 300ms ease;
+
+    .position-card__row {
+      padding-bottom: 0;
+      padding-top: 0;
+      min-height: 2.5rem;
+
+      &__info {
+        gap: 0.75rem;
+      }
+    }
+  }
+
+  &__summary {
+    position: relative;
+    margin-top: 1.25rem;
+    width: 100%;
+    z-index: 5;
+    transition: transform 300ms ease, margin 300ms ease;
+  }
+
+  &__button-row {
+    margin-top: 0.875rem;
+    padding: 0 1.25rem;
+  }
+
+  .divider {
+    margin: 2.5rem 0;
+  }
+
+  &__header-row {
+    align-items: center;
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.875rem;
+    padding: 0 1.25rem;
+  }
+
+  &__row {
+    display: flex;
+    align-items: center;
+    flex-wrap: nowrap;
+    padding: 1rem 1.25rem;
+    width: 100%;
+
+    .svg {
+      align-self: center;
+      height: 0.75rem;
+      width: 0.75rem;
+    }
+
+    .body {
+      color: var(--text--1);
+    }
+
+    .meta + .meta {
+      margin-left: 0.25rem;
+      margin-top: 0;
+    }
+
+    &__info {
+      align-items: center;
+      display: flex;
+
+      &__details {
+        align-items: flex-end;
+        display: flex;
+      }
+    }
+
+    &__balance {
+      margin-left: auto;
+      text-align: right;
+
+      &__details {
+        align-items: center;
+        display: flex;
+        justify-content: flex-end;
+      }
+    }
+
+    &:last-child {
+      padding-bottom: 0;
+    }
+
+    .position-card__tooltip__icon {
+      height: 1rem;
+      margin-left: 0.5rem;
+      width: 1rem;
+
+      .svg {
+        height: 100%;
+        width: 100%;
+      }
+
+      .svg__path {
+        fill: var(--text--2);
+      }
+    }
+  }
+
+  & + & {
+    margin-top: 1.25rem;
+  }
+}

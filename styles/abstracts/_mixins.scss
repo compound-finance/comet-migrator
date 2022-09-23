@@ -1,0 +1,12 @@
+@use '../abstracts/variables' as *;
+
+@mixin state-circle($background-color) {
+  position: absolute;
+  transform: translateY(-50%);
+  content: ' ';
+  border-radius: 50%;
+  background: $background-color;
+  height: 24px;
+  width: 24px;
+  background-size: 100% 100%;
+}

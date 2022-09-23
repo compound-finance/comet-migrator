@@ -6,10 +6,10 @@ import { useRPC } from './lib/useRPC';
 import { useWeb3 } from './lib/useWeb3';
 
 function EmbeddedApp() {
-  let sendRPC = useRPC();
-  let web3 = useWeb3(sendRPC);
+  let rpc = useRPC();
+  let web3 = useWeb3(rpc.sendRPC);
 
-  return <App sendRPC={sendRPC} web3={web3} />
+  return <App rpc={rpc} web3={web3} />
 }
 
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(

@@ -1,0 +1,104 @@
+@use '../abstracts/variables' as *;
+
+.market-history-panel {
+  p {
+    line-height: 1;
+  }
+
+  &__overview {
+    background: transparent;
+    width: 100%;
+    padding-bottom: 1rem;
+
+    --label-color: #{$neutral--00};
+
+    &--earn {
+      --label-color: #{$green--50};
+    }
+
+    &--borrow {
+      --label-color: #{$purple--50};
+    }
+
+    &__label {
+      color: var(--label-color);
+    }
+
+    &__value {
+      color: var(--text--1);
+      display: flex;
+      align-items: center;
+    }
+  }
+
+  svg {
+    overflow: visible;
+    padding-top: 1.25rem;
+  }
+
+  &__hover {
+    &__value {
+      fill: var(--text--1);
+      font-weight: 600;
+      font-size: 1em;
+      text-anchor: middle;
+    }
+
+    &__label {
+      fill: #{$neutral--50};
+      font-weight: 500;
+      font-size: 0.8em;
+      text-anchor: middle;
+      text-transform: uppercase;
+    }
+  }
+
+  &__graph {
+    .bar-group {
+      transition: opacity 0.3s;
+
+      rect {
+        fill: #2f3f4e;
+      }
+
+      &__label {
+        fill: #{$neutral--50};
+        font-weight: 500;
+        font-size: 0.8em;
+        opacity: 0;
+        text-anchor: middle;
+        text-transform: uppercase;
+      }
+
+      --active-bar-color: #2f3f4e;
+
+      &--earn {
+        --active-bar-color: #{$green--50};
+      }
+
+      &--borrow {
+        --active-bar-color: #{$purple--50};
+      }      
+
+      &--active {
+        .bar-group__total {
+          opacity: 1;
+        }
+
+        .bar-group__label {
+          opacity: 1;
+        }
+
+        rect {
+          fill: var(--active-bar-color);
+        }
+      }
+    }
+  }
+
+  .hover-bar-group {
+    rect {
+      fill: #00000000;
+    }
+  }
+}

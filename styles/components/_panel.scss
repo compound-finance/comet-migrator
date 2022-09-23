@@ -1,0 +1,58 @@
+@use '../abstracts/variables' as *;
+
+.panel {
+  position: relative;
+  background-color: var(--ui--foreground--1);
+  overflow: hidden;
+  border-radius: 0.5rem;
+  padding: 2.5rem 1.25rem;
+
+  &--markets-overview,
+  &--markets-assets {
+    padding: 2.5rem 2.5rem 2rem;
+    color: var(--text--1);
+
+    @media (max-width: $device--sm) {
+      border-radius: 0;
+      padding: 1.5rem;
+      margin: 0 -1.25rem;
+    }
+
+    .panel__header-row {
+      justify-content: flex-start;
+      padding: 0;
+      margin: 0 0 0.75rem 0;
+
+      .asset {
+        margin-right: 0.75rem;
+      }
+    }
+  }
+
+  &--markets-assets {
+    @media (max-width: $device--sm) {
+      &:after {
+        content: '';
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        right: 0;
+        width: 2.75rem;
+        background: var(--asset-table--gradient);
+      }
+    }
+    &__content {
+      overflow: auto;
+      padding: 0 2.5rem;
+      margin: 0 -2.5rem;
+    }
+  }
+
+  &__header-row {
+    align-items: center;
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.875rem;
+    padding: 0 1.25rem;
+  }
+}

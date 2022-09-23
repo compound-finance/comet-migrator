@@ -1,17 +1,19 @@
 import '../styles/main.scss';
-import { SendRPC } from './lib/useRPC';
+import { RPC } from './lib/useRPC';
 import { read, write } from './lib/RPC';
-import { useEffect, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 import ERC20 from '../abis/ERC20';
 import Comet from '../abis/Comet';
 import { CTokenSym, Network, NetworkConfig, getNetwork, getNetworkById, getNetworkConfig, isNetwork, showNetwork } from './Network';
 import { JsonRpcProvider } from '@ethersproject/providers';
 import { Contract, ContractInterface } from '@ethersproject/contracts';
+import { Close } from './Icons/Close';
+import { CircleCheckmark } from './Icons/CircleCheckmark';
 
 const MAX_UINT256 = BigInt('115792089237316195423570985008687907853269984665640564039457584007913129639935');
 
 interface AppProps {
-  sendRPC?: SendRPC
+  rpc?: RPC,
   web3: JsonRpcProvider
 }
 
@@ -32,6 +34,7 @@ interface AccountState<Network> {
 interface CTokenState {
   address?: string,
   balance?: bigint,
+  balanceUnderlying?: number,
   allowance?: bigint,
   exchangeRate?: bigint,
   transfer: string | 'max',
@@ -44,11 +47,40 @@ interface Collateral {
   amount: bigint
 }
 
-function showAmount(amount: bigint | undefined, decimals: bigint | undefined): string {
+function showAmount(amount: bigint | undefined, decimals: bigint | undefined, format: boolean = true): string | React.ReactNode {
+  let number: number;
   if (amount && decimals) {
-    return (Number(amount) / Number(10n ** decimals)).toFixed(4);
+    number = weiToAmount(amount, decimals);
   } else {
-    return '';
+    number = 0;
+  }
+
+  if (format) {
+    let s = number.toFixed(4);
+    let [pre, post] = s.split('.');
+    return (<Fragment>
+      <span className="text-color--1">{pre}</span>
+      <span className="text-color--3">.{post}</span>
+    </Fragment>);
+  } else {
+    return number.toFixed(4);
+  }
+}
+
+function formatNumber(number: number): React.ReactNode {
+  let s = number.toFixed(4);
+  let [pre, post] = s.split('.');
+  return (<Fragment>
+    <span className="text-color--1">{pre}</span>
+    <span className="text-color--3">.{post}</span>
+  </Fragment>);
+}
+
+function weiToAmount(wei: bigint | undefined, decimals: bigint | undefined): number {
+  if (wei && decimals) {
+    return Number(wei) / Number(10n ** decimals);
+  } else {
+    return 0;
   }
 }
 
@@ -97,10 +129,33 @@ function parseNumber<T>(str: string, f: (x: number) => bigint): bigint | null {
   }
 }
 
-export function App<N extends Network>({sendRPC, web3, account, networkConfig}: AppPropsExt<N>) {
+function getDocument(f: (document: HTMLDocument) => void) {
+  if (document.readyState !== 'loading') {
+    f(document);
+  } else {
+    window.addEventListener('DOMContentLoaded', (event) => {
+      f(document);
+    });
+  }
+}
+
+export function App<N extends Network>({rpc, web3, account, networkConfig}: AppPropsExt<N>) {
   let { cTokenNames } = networkConfig;
 
-  let timer = usePoll(20000);
+  if (rpc) {
+    rpc.on({setTheme: ({theme}) => {
+      console.log('theme', theme);
+      getDocument((document) => {
+        console.log("document", document);
+        document.body.classList.add('theme');
+        document.body.classList.remove(`theme--dark`);
+        document.body.classList.remove(`theme--light`);
+        document.body.classList.add(`theme--${theme.toLowerCase()}`);
+      });
+    }});
+  }
+
+  let timer = usePoll(10000);
 
   const signer = useMemo(() => {
     return web3.getSigner().connectUnchecked();
@@ -156,47 +211,60 @@ export function App<N extends Network>({sendRPC, web3, account, networkConfig}: 
     console.log("enabled migrator");
   }
 
+  async function disableMigrator() {
+    console.log("disabling migrator");
+    await comet.allow(migrator.address, false);
+    console.log("disabling migrator");
+  }
+
   useAsyncEffect(async () => {
     let migratorEnabled = (await comet.allowance(account, migrator.address))?.toBigInt() > 0n;
-    if (migratorEnabled) {
-      let tokenStates = new Map(await Promise.all(Array.from(accountState.cTokens.entries()).map<Promise<[CTokenSym<Network>, CTokenState]>>(async ([sym, state]) => {
-        let cTokenCtx = cTokenCtxs.get(sym)!;
+    let tokenStates = new Map(await Promise.all(Array.from(accountState.cTokens.entries()).map<Promise<[CTokenSym<Network>, CTokenState]>>(async ([sym, state]) => {
+      let cTokenCtx = cTokenCtxs.get(sym);
+
+      if (cTokenCtx) {
+        let underlyingDecimals: bigint = state.underlyingDecimals ?? ( 'underlying' in cTokenCtx ? BigInt(await (new Contract(await cTokenCtx.underlying(), ERC20, web3)).decimals()) : 18n );
+        let balance: bigint = (await cTokenCtx.balanceOf(account)).toBigInt();
+        let exchangeRate: bigint = (await cTokenCtx.callStatic.exchangeRateCurrent()).toBigInt();
+        let balanceUnderlying = weiToAmount(balance * exchangeRate / 1000000000000000000n, underlyingDecimals);
 
         return [sym, {
           ...state,
           address: await cTokenCtx.address,
-          balance: (await cTokenCtx.balanceOf(account)).toBigInt(),
+          balance,
+          balanceUnderlying,
           allowance: (await cTokenCtx.allowance(account, migrator.address)).toBigInt(),
-          exchangeRate: (await cTokenCtx.callStatic.exchangeRateCurrent()).toBigInt(),
+          exchangeRate,
           decimals: state.decimals ?? BigInt(await cTokenCtx.decimals()),
-          underlyingDecimals: state.underlyingDecimals ?? ( 'underlying' in cTokenCtx ? BigInt(await (new Contract(await cTokenCtx.underlying(), ERC20, web3)).decimals()) : 18n )
+          underlyingDecimals,
         }];
-      })));
+      } else {
+        return [sym, state];
+      }
+    })));
+    console.log("tokenStates", tokenStates);
 
-      let cUSDC = cTokenCtxs.get('cUSDC' as  CTokenSym<Network>);
-      let usdcBorrowsV2 = await cUSDC?.callStatic.borrowBalanceCurrent(account);
-      let usdcDecimals = cUSDC ? BigInt(await (new Contract(await cUSDC.underlying(), ERC20, web3)).decimals()) : 0n;
+    let cUSDC = cTokenCtxs.get('cUSDC' as  CTokenSym<Network>);
+    let usdcBorrowsV2 = await cUSDC?.callStatic.borrowBalanceCurrent(account);
+    let usdcDecimals = cUSDC ? BigInt(await (new Contract(await cUSDC.underlying(), ERC20, web3)).decimals()) : 0n;
 
-      setAccountState({
-        ...accountState,
-        migratorEnabled,
-        borrowBalanceV2: usdcBorrowsV2.toString(),
-        usdcDecimals: BigInt(usdcDecimals),
-        cTokens: tokenStates
-      });
-    } else {
-      setAccountState({
-        ...accountState,
-        migratorEnabled
-      });
-    }
-  }, [timer, account, cTokenCtxs]);
+    setAccountState({
+      ...accountState,
+      migratorEnabled,
+      borrowBalanceV2: usdcBorrowsV2.toString(),
+      usdcDecimals: BigInt(usdcDecimals),
+      cTokens: tokenStates
+    });
+  }, [timer, account, networkConfig.network, cTokenCtxs]);
 
   function validateForm(): { borrowAmount: bigint, collateral: Collateral[] } | string {
     let borrowAmount = accountState.borrowBalanceV2;
     let usdcDecimals = accountState.usdcDecimals;
+    if (!accountState.migratorEnabled) {
+      return "";
+    }
     if (!borrowAmount || !usdcDecimals) {
-      return "Invalid borrowAmount || usdcDecimals";
+      return "";
     }
     let repayAmount = parseNumber(accountState.repayAmount, (n) => amountToWei(n, usdcDecimals!));
     if (repayAmount === null) {
@@ -207,7 +275,7 @@ export function App<N extends Network>({sendRPC, web3, account, networkConfig}: 
     }
 
     let collateral: Collateral[] = [];
-    for (let [sym, {address, balance, decimals, underlyingDecimals, transfer, exchangeRate}] of accountState.cTokens.entries()) {
+    for (let [sym, {address, balance, balanceUnderlying, decimals, underlyingDecimals, transfer, exchangeRate}] of accountState.cTokens.entries()) {
       if (address !== undefined && decimals !== undefined && underlyingDecimals !== undefined && balance !== undefined && exchangeRate !== undefined) {
         if (transfer === 'max') {
           collateral.push({
@@ -215,12 +283,14 @@ export function App<N extends Network>({sendRPC, web3, account, networkConfig}: 
             amount: balance
           });
         } else {
+          if (balanceUnderlying && Number(transfer) > balanceUnderlying) {
+            return `Exceeded collateral amount for ${sym}`;
+          }
           let transferAmount = parseNumber(transfer, (n) => amountToWei(n * 1e18 / Number(exchangeRate), underlyingDecimals!));
           if (transferAmount === null) {
             return `Invalid collateral amount ${sym}: ${transfer}`;
           } else {
             if (transferAmount > 0n) {
-              // TODO: Check too much
               collateral.push({
                 cToken: address,
                 amount: transferAmount
@@ -254,76 +324,166 @@ export function App<N extends Network>({sendRPC, web3, account, networkConfig}: 
     }
   };
 
-  let el;
-  if (accountState.migratorEnabled) {
-    el = (<div>
-      <div>
-        <label>cUSDC Repay</label>
-        <span>balance={showAmount(accountState.borrowBalanceV2, accountState.usdcDecimals)}</span>
-        { accountState.repayAmount === 'max' ?
-          <span>
-            <input disabled value="Max" />
-            <button onClick={() => setAccountState({...accountState, repayAmount: '0'})}>Max</button>
-          </span>
-        :
-          <span>
-            <input type="text" inputMode="decimal" value={accountState.repayAmount} onChange={(e) => setAccountState({...accountState, repayAmount: e.target.value})} />
-            <button onClick={() => setAccountState({...accountState, repayAmount: 'max'})}>Max</button>
-          </span>
-        }
-      </div>
-      <div>
-        { Array.from(accountState.cTokens.entries()).map(([sym, state]) => {
-          return <div key={`${sym}`}>
-            <label>{sym}</label>
-            <span>balance={showAmount(state.exchangeRate ? (state.balance ?? 0n) * state.exchangeRate / 1000000000000000000n : 0n, state.underlyingDecimals)}</span>
-            { state.allowance === 0n ?
-              <button onClick={() => setTokenApproval(sym)}>Enable</button> :
-              <span>
-                { state.transfer === 'max' ?
-                  <span>
-                    <input disabled value="Max" />
-                    <button onClick={() => setCTokenState(sym, 'transfer', '0')}>Max</button>
-                  </span> :
-                  <span>
-                    <input type="text" inputMode="decimal" value={state.transfer} onChange={(e) => setCTokenState(sym, 'transfer', e.target.value)} />
-                    <button onClick={() => setCTokenState(sym, 'transfer', 'max')}>Max</button>
-                  </span>
-                }
-              </span>
+  let collateralWithBalances = Array.from(accountState.cTokens.entries()).filter(([sym, state]) => {
+    return state.balance && state.balance > 0n;
+  });
+
+  let collateralEl;
+  if (collateralWithBalances.length === 0) {
+    collateralEl = <div className="asset-row asset-row--active L3">
+      <p className="L2 text-color--1">
+        Any collateral balances in Compound V2 will appear here.
+      </p>
+    </div>;
+  } else {
+    collateralEl = collateralWithBalances.map(([sym, state]) => {
+      return <div className="asset-row asset-row--active L3" key={sym}>
+        <div className="asset-row__detail-content">
+          <span className={`asset asset--${sym.slice(1)}`} />
+          <div className="asset-row__info">
+            { state.transfer === 'max' ?
+              <input className="action-input-view__input text-color--3" style={{fontSize: "2rem"}} disabled value="Max" /> :
+              <input className="action-input-view__input" style={{fontSize: "2rem"}} type="text" inputMode="decimal" value={state.transfer} onChange={(e) => setCTokenState(sym, 'transfer', e.target.value)} />
             }
           </div>
-        })}
+        </div>
+        <div className="asset-row__balance">
+          <p className="body text-color--3">
+            {formatNumber(state.balanceUnderlying ?? 0)}
+          </p>
+        </div>
+        <div className="asset-row__actions">{ state.allowance === 0n ?
+            <button className="button button--selected" onClick={() => setTokenApproval(sym)}>
+              <span>Enable</span>
+            </button>
+          : (
+            state.transfer === 'max' ?
+              <button className="button button--selected" onClick={() => setCTokenState(sym, 'transfer', '0')}>
+                <Close />
+                <span>Max</span>
+              </button>
+            :
+              <button className="button button--selected" onClick={() => setCTokenState(sym, 'transfer', 'max')}>
+                <span>Max</span>
+              </button>
+            )
+          }
+        </div>
       </div>
-      {
-        typeof migrateParams === 'string' ?
-          <div>
-            <label>{ migrateParams }</label>
-            <button disabled={true}>Migrate</button>
-          </div> :
-          <div>
-            <button onClick={migrate}>Migrate</button>
-          </div>
-      }
-    </div>);
-  } else {
-    el = (<div>
-      <button onClick={enableMigrator}>Enable Migrator</button>
-    </div>);
+    });
   }
 
+  let innerEl = (<Fragment>
+    <div className="panel__header-row">
+      <label className="L1 label text-color--2">Borrowing</label>
+    </div>
+    <div className="asset-row asset-row--active L3">
+      <div className="asset-row__detail-content">
+        <span className={`asset asset--${'USDC'}`} />
+        <div className="asset-row__info">
+          { accountState.repayAmount === 'max' ?
+            <input className="action-input-view__input text-color--3" style={{fontSize: "2rem"}} disabled value="Max" /> :
+            <input className="action-input-view__input" style={{fontSize: "2rem"}} type="text" inputMode="decimal" value={accountState.repayAmount} onChange={(e) => setAccountState({...accountState, repayAmount: e.target.value})} />
+          }
+        </div>
+      </div>
+      <div className="asset-row__balance">
+        <p className="body text-color--3">
+          {showAmount(accountState.borrowBalanceV2, accountState.usdcDecimals)}
+        </p>
+      </div>
+      <div className="asset-row__actions">{ accountState.repayAmount === 'max' ?
+          <button className="button button--selected" onClick={() => setAccountState({...accountState, repayAmount: '0'})}>
+            <Close />
+            <span>Max</span>
+          </button>
+        :
+          <button className="button button--selected" onClick={() => setAccountState({...accountState, repayAmount: 'max'})}>
+            <span>Max</span>
+          </button>
+        }
+      </div>
+    </div>
+    <div className="panel__header-row">
+      <label className="L1 label text-color--2">Supplying</label>
+    </div>
+    <div>
+      { collateralEl }
+    </div>
+  </Fragment>);
+
   return (
-    <div className="container">
-      Compound II to Compound III Migrator<br/>
-      timer={ timer }<br/>
-      network={ showNetwork(networkConfig.network) }<br/>
-      account={ account }<br/>
-      { el }
+    <div className="page home">
+      <div className="container">
+        <div className="masthead L1">
+          <h1 className="L0 heading heading--emphasized">Compound V2 Migration Tool (USDC)</h1>
+          { accountState.migratorEnabled ?
+            <button className="button button--large button--supply" onClick={disableMigrator}>
+              <CircleCheckmark />
+              <label>Enabled</label>
+            </button> :
+            <button className="button button--large button--supply" onClick={enableMigrator}>Enable</button> }
+        </div>
+        <div className="home__content">
+          <div className="home__assets">
+            <div className="panel panel--assets">
+              <div className="panel__header-row">
+                <label className="L1 label text-color--1">V2 Balances</label>
+              </div>
+              <div className="panel__header-row">
+                <label className="label text-color--1">
+                  Select the assets you want to migrate from Compound V2 to Compound V3.
+                  If you are supplying USDC on one market while borrowing on another, any
+                  supplied USDC will be used to repay borrowed USDC before entering you
+                  into an earning position in Compound V3.
+                </label>
+              </div>
+              { innerEl }
+              <div className="panel__header-row">
+                <label className="L1 label text-color--2">Debug Information</label>
+                <label className="label text-color--2">
+                  timer={ timer }<br/>
+                  network={ showNetwork(networkConfig.network) }<br/>
+                  account={ account }<br/>
+                </label>
+              </div>
+            </div>
+          </div>
+          <div className="home__sidebar">
+            <div className="position-card__summary">
+              <div className="panel position-card L3">
+                <div className="panel__header-row">
+                  <label className="L1 label text-color--1">Summary</label>
+                </div>
+                <div className="panel__header-row">
+                  <p className="text-color--1">
+                    If you are borrowing other assets on Compound V2,
+                    migrating too much collateral could increase your
+                    liquidation risk.
+                  </p>
+                </div>
+                { typeof migrateParams === 'string' ?
+                  <div className="panel__header-row">
+                    <div className="action-input-view action-input-view--error L2">
+                      { migrateParams.length > 0 ? <label className="action-input-view__title">
+                        { migrateParams }
+                      </label> : null }
+                    </div>
+                  </div> : null
+                }
+                <div className="panel__header-row">
+                  <button className="button button--large" disabled={typeof migrateParams === 'string'} onClick={migrate}>Migrate Balances</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
 
-export default ({sendRPC, web3}: AppProps) => {
+export default ({rpc, web3}: AppProps) => {
   let timer = usePoll(10000);
   const [account, setAccount] = useState<string | null>(null);
   const [networkConfig, setNetworkConfig] = useState<NetworkConfig<Network> | 'unsupported' | null>(null);
@@ -350,7 +510,7 @@ export default ({sendRPC, web3}: AppProps) => {
     if (networkConfig === 'unsupported') {
       return <div>Unsupported network...</div>;
     } else {
-      return <App sendRPC={sendRPC} web3={web3} account={account} networkConfig={networkConfig} />;
+      return <App rpc={rpc} web3={web3} account={account} networkConfig={networkConfig} />;
     }
   } else {
     return <div>Loading...</div>;
