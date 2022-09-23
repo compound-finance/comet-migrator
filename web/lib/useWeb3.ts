@@ -13,7 +13,7 @@ class RpcWeb3Provider extends JsonRpcProvider  {
 
   send(method: string, params: Array<any>): Promise<any> {
     const cache = ["eth_chainId", "eth_blockNumber"].indexOf(method) >= 0;
-    if (cache && this._cache[method]) {
+    if (cache && method in this._cache) {
       return this._cache[method];
     }
     let res = sendWeb3(this.sendRPC, method, params);
@@ -21,7 +21,7 @@ class RpcWeb3Provider extends JsonRpcProvider  {
     if (cache) {
       this._cache[method] = res;
       setTimeout(() => {
-        this._cache[method] = null as any;
+        delete this._cache[method];
       }, 0);
     }
     return res;
