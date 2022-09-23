@@ -1,19 +1,19 @@
 
-# Comet v2 Migrator
+# Comet Migrator
 
-The Comet v2 Migrator is a Compound v3 Operator and Extension for migrating a position from Compound v2 to Compound v3. The "Operator" is a smart contract which interacts with the Compound v3 Protocol on behalf of a user who approves the migrator. The "Extension" is a front-end integration into the Compound v3 interface. The Operator code is built on [Foundry](https://book.getfoundry.sh/), and the Extension code is built on [React](https://reactjs.org/) using [Vite](https://vitejs.dev/).
+The Comet Migrator is a Compound v3 Operator and Extension for migrating a position from Compound v2 and other DeFi protocols to Compound v3. The "Operator" is a smart contract which interacts with the Compound v3 Protocol on behalf of a user who approves the migrator. The "Extension" is a front-end integration into the Compound v3 interface. The Operator code is built on [Foundry](https://book.getfoundry.sh/), and the Extension code is built on [React](https://reactjs.org/) using [Vite](https://vitejs.dev/).
 
 ## Getting Started
 
 First, [install Foundry](https://book.getfoundry.sh/getting-started/installation) and NodeJS 18+ and [yarn](https://yarnpkg.com/). 
 
-You can build the Compound v2 Migrator Operator smart contract by running:
+You can build the Compound Migrator Operator smart contract by running:
 
 ```
 yarn forge:build
 ```
 
-And you can build the Compound v2 Migrator Extension by running:
+And you can build the Compound Migrator Extension by running:
 
 ```
 yarn web:build
