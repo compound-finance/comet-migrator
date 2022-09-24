@@ -129,11 +129,12 @@ contract CometMigrator is IUniswapV3FlashCallback {
 
     // **BIND** `data = abi.encode(MigrationCallbackData{user, repayAmount, collateral})`
     // XXX can check if remaingBorrowData is empty. if so, then remove all collateral and repay
-    bytes memory data = abi.encode(MigrationCallbackData({
+    uint256 step = 0;
+    bytes memory callbackData = abi.encode(MigrationCallbackData({
       user: user,
       borrowData: borrowData,
       collateral: collateral,
-      step: 0 // used to access data in borrowData
+      step: step // used to access data in borrowData
     }));
 
     /**
@@ -143,26 +144,7 @@ contract CometMigrator is IUniswapV3FlashCallback {
       Input is: 500 WETH, 50 WBTC, [{ cDAI, 1000, USDC-DAI }, { cDAI, 1000, USDC-DAI XXX ugh...might need to use a flash loan }]
      */
 
-    // XXX use helper to either flash or swap
-    BorrowData memory initialBorrowData = borrowData[0];
-    IERC20 borrowToken = initialBorrowData.borrowCToken.underlying();
-    bool isPoolToken0 = initialBorrowData.pool.token0() == address(borrowToken);
-    if (initialBorrowData.isFlashLoan) {
-      // **CALL** `uniswapLiquidityPool.flash(address(this), uniswapLiquidityPoolToken0 ? repayAmount : 0, uniswapLiquidityPoolToken0 ? 0 : repayAmount, data)`
-      uint repayAmount = initialBorrowData.borrowAmount;
-      initialBorrowData.pool.flash(address(this), isPoolToken0 ? repayAmount : 0, isPoolToken0 ? 0 : repayAmount, data);
-    } else {
-      // // XXX check for empty borrowData
-      // IERC20 borrowToken = initialBorrowData.borrowCToken.underlying();
-      // bool isPoolToken0 = uniswapLiquidityPool.token0() == address(borrowToken);
-      // initialBorrowData.pool.swap(
-      //     address(this),
-      //     !isPoolToken0,
-      //     initialBorrowData.borrowAmount,
-      //     0, // XXX sqrtPriceLimitX96
-      //     data
-      // );
-    }
+    flashLoanOrSwap(borrowData, step, callbackData);
 
     // **STORE** `inMigration -= 1`
     inMigration -= 1;
@@ -185,6 +167,7 @@ contract CometMigrator is IUniswapV3FlashCallback {
     BorrowData memory currentBorrowData = migrationData.borrowData[migrationData.step];
 
     // **REQUIRE** `msg.sender == uniswapLiquidityPool`
+    // Instead of checking pool directly, use `UniswapPool.poolFor(token0, token1)`
     require(msg.sender == address(currentBorrowData.pool), "must be called from uniswapLiquidityPool");
 
     IERC20 borrowToken = currentBorrowData.borrowCToken.underlying(); // XXX gassy, should just pass in as calldata from migrate()
@@ -206,7 +189,52 @@ contract CometMigrator is IUniswapV3FlashCallback {
 
     // XXX OVER HERE, REDEEM COLLATERAL ONLY IF REMAINING BORROW DATA IS EMPTY
     // OTHERWISE, TRIGGER A RECURSIVE FLASH SWAP / LOAN
+    // If not the last step, trigger another flash swap or loan to repay more borrows
+    // Otherwise, redeem collateral and borrow from v3 to repay loans
+    bool isLastStep = migrationData.step >= migrationData.borrowData.length - 1;
+    if (isLastStep) {
+      migrateCollateralAndBorrow(migrationData, borrowAmountWithFee);
+    } else {
+      // XXX TRIGGER ANOTHER FLASH LOAN
+      return;
+    }
 
+    // **CALL** `borrowToken.transfer(address(uniswapLiquidityPool), borrowAmountWithFee)`
+    borrowToken.transfer(address(currentBorrowData.pool), borrowAmountWithFee);
+
+    // **EMIT** `Migrated(user, collateral, repayAmount, borrowAmountWithFee)`
+    emit Migrated(migrationData.user, migrationData.collateral, repayAmount, borrowAmountWithFee);
+  }
+
+  function uniswapV3SwapCallback(
+    int256 amount0Delta,
+    int256 amount1Delta,
+    bytes calldata data
+  ) external {
+    // XXX implement
+  }
+
+  function flashLoanOrSwap(BorrowData[] memory borrowData, uint256 step, bytes memory callbackData) internal {
+    // XXX assert that borrowData[step] is within range
+    BorrowData memory initialBorrowData = borrowData[step];
+    IERC20 borrowToken = initialBorrowData.borrowCToken.underlying();
+    bool isPoolToken0 = initialBorrowData.pool.token0() == address(borrowToken);
+    uint repayAmount = initialBorrowData.borrowAmount;
+    if (initialBorrowData.isFlashLoan) {
+      // **CALL** `uniswapLiquidityPool.flash(address(this), uniswapLiquidityPoolToken0 ? repayAmount : 0, uniswapLiquidityPoolToken0 ? 0 : repayAmount, data)`
+      initialBorrowData.pool.flash(address(this), isPoolToken0 ? repayAmount : 0, isPoolToken0 ? 0 : repayAmount, callbackData);
+    } else {
+      initialBorrowData.pool.swap(
+          address(this),
+          !isPoolToken0,
+          int256(repayAmount), // XXX need to do safe convert
+          0, // XXX sqrtPriceLimitX96
+          callbackData
+      );
+    }
+  }
+
+  function migrateCollateralAndBorrow(MigrationCallbackData memory migrationData, uint256 borrowAmountWithFee) internal {
     // **FOREACH** `(cToken, amount)` in `collateral`
     for (uint8 i = 0; i < migrationData.collateral.length; i++) {
       // **CALL** `cToken.transferFrom(user, amount == type(uint256).max ? cToken.balanceOf(user) : amount)`
@@ -221,7 +249,7 @@ contract CometMigrator is IUniswapV3FlashCallback {
       }
 
       // **CALL** `cToken.redeem(cToken.balanceOf(address(this)))`
-      err = collateral.cToken.redeem(collateral.cToken.balanceOf(address(this)));
+      uint256 err = collateral.cToken.redeem(collateral.cToken.balanceOf(address(this)));
       if (err != 0) {
         revert CompoundV2Error(1 + i, err);
       }
@@ -251,14 +279,10 @@ contract CometMigrator is IUniswapV3FlashCallback {
       );
     }
 
+    IERC20 borrowToken = migrationData.borrowData[migrationData.step].borrowCToken.underlying(); // XXX gassy, should just pass in as calldata from migrate()
+
     // **CALL** `comet.withdrawFrom(user, address(this), borrowToken, borrowAmountWithFee)`
     comet.withdrawFrom(migrationData.user, address(this), address(borrowToken), borrowAmountWithFee);
-
-    // **CALL** `borrowToken.transfer(address(uniswapLiquidityPool), borrowAmountWithFee)`
-    borrowToken.transfer(address(currentBorrowData.pool), borrowAmountWithFee);
-
-    // **EMIT** `Migrated(user, collateral, repayAmount, borrowAmountWithFee)`
-    emit Migrated(migrationData.user, migrationData.collateral, repayAmount, borrowAmountWithFee);
   }
 
   /**
@@ -284,14 +308,6 @@ contract CometMigrator is IUniswapV3FlashCallback {
       }
     }
   }
-
-  // function uniswapV3SwapCallback(
-  //   int256 amount0Delta,
-  //   int256 amount1Delta,
-  //   bytes data
-  // ) external {
-
-  // }
 
   receive() external payable {
     // NO-OP
