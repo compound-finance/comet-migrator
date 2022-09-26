@@ -74,25 +74,37 @@ To deploy the operator, first build it:
 yarn forge:build
 ```
 
-Next, you can deploy it:
+Next, you can deploy it to goerli:
 
+```sh
+script/goerli/deploy_migrator.sh
 ```
-# TODO
+
+or mainnet:
+
+```sh
+script/mainnet/deploy_migrator.sh
 ```
+
+But the recommended way to deploy is through GitHub Actions via Seacrest. Simply run the `Deploy Migrator [Goerli]` or `Deploy Migrator [Mainnet]` GitHub actions and connect your WalletConnect wallet in the task.
 
 ### Build and Deploying Extension
 
-First, build the dist for the extension:
+First, build the extension for web:
 
 ```
 yarn web:build
 ```
 
-Next, make it available for the Webb3...
+Next, make it available on the web, we recommend on IPFS by running:
 
 ```
-TODO
+IPFS_AUTH="..." IPFS_HOST="..." yarn deploy
 ```
+
+For example, to deploy to Infura, use IPFS_AUTH="{project_id}:{api_key_secret}" and IPFS_HOST="ipfs.infura.io". You can also deploy from GitHub actions if you set these values into GitHub secrets.
+
+Once the app is deployed to IPFS, get the cid (IPFS hash) and make a pull request in [comet-extension](https://github.com/compound-finance/comet-extension) including the IPFS hash from this deploy.
 
 ## Embedding
 
@@ -121,8 +133,8 @@ VITE_WEBB3_MAINNET_URL=http://localhost:8545 VITE_COMET_MIGRATOR_SOURCE=http://l
 
 ## Contributing
 
-TODO
+Please feel free to make a pull request or issue to contribute to this project.
 
 ## License
 
-TODO
+All rights reserved, 2022, Compound Labs, Inc.
