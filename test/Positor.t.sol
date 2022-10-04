@@ -101,6 +101,7 @@ contract Positor is Test, MainnetConstants {
             comet,
             cETH,
             weth,
+            uniswapFactory,
             sweepee
         );
     }

@@ -52,7 +52,11 @@ contract CometMigratorTest is Positor {
         borrowData[0] = Comet_V2_Migrator.BorrowData({
             borrowCToken: cUSDC,
             borrowAmount: 600e6,
-            pool: pool_DAI_USDC,
+            poolInfo: Comet_V2_Migrator.UniswapPoolInfo({
+                token0: address(dai),
+                token1: address(usdc),
+                fee: 100
+            }),
             isFlashLoan: true
         });
         migrator.migrate(collateral, borrowData, address(usdc));
@@ -872,7 +876,11 @@ contract CometMigratorTest is Positor {
         borrowData[0] = Comet_V2_Migrator.BorrowData({
             borrowCToken: cDAI,
             borrowAmount: 350e18,
-            pool: pool_DAI_USDC,
+            poolInfo: Comet_V2_Migrator.UniswapPoolInfo({
+                token0: address(dai),
+                token1: address(usdc),
+                fee: 100
+            }),
             isFlashLoan: false
         });
         migrator.migrate(collateral, borrowData, address(usdc));
@@ -929,7 +937,11 @@ contract CometMigratorTest is Positor {
         borrowData[0] = Comet_V2_Migrator.BorrowData({
             borrowCToken: cUSDT,
             borrowAmount: 350e6,
-            pool: pool_USDT_USDC,
+            poolInfo: Comet_V2_Migrator.UniswapPoolInfo({
+                token0: address(usdt),
+                token1: address(usdc),
+                fee: 100
+            }),
             isFlashLoan: false
         });
         migrator.migrate(collateral, borrowData, address(usdc));
@@ -988,13 +1000,21 @@ contract CometMigratorTest is Positor {
         borrowData[0] = Comet_V2_Migrator.BorrowData({
             borrowCToken: cUSDC,
             borrowAmount: 350e6,
-            pool: pool_USDT_USDC,
+            poolInfo: Comet_V2_Migrator.UniswapPoolInfo({
+                token0: address(usdt),
+                token1: address(usdc),
+                fee: 100
+            }),
             isFlashLoan: true
         });
         borrowData[1] = Comet_V2_Migrator.BorrowData({
             borrowCToken: cDAI,
             borrowAmount: 350e18,
-            pool: pool_DAI_USDC,
+            poolInfo: Comet_V2_Migrator.UniswapPoolInfo({
+                token0: address(dai),
+                token1: address(usdc),
+                fee: 100
+            }),
             isFlashLoan: false
         });
         migrator.migrate(collateral, borrowData, address(usdc));
@@ -1054,13 +1074,21 @@ contract CometMigratorTest is Positor {
         borrowData[0] = Comet_V2_Migrator.BorrowData({
             borrowCToken: cDAI,
             borrowAmount: 350e18,
-            pool: pool_DAI_USDC,
+            poolInfo: Comet_V2_Migrator.UniswapPoolInfo({
+                token0: address(dai),
+                token1: address(usdc),
+                fee: 100
+            }),
             isFlashLoan: false
         });
         borrowData[1] = Comet_V2_Migrator.BorrowData({
             borrowCToken: cUSDC,
             borrowAmount: 350e6,
-            pool: pool_USDT_USDC,
+            poolInfo: Comet_V2_Migrator.UniswapPoolInfo({
+                token0: address(usdt),
+                token1: address(usdc),
+                fee: 100
+            }),
             isFlashLoan: true
         });
         migrator.migrate(collateral, borrowData, address(usdc));
@@ -1124,19 +1152,31 @@ contract CometMigratorTest is Positor {
         borrowData[0] = Comet_V2_Migrator.BorrowData({
             borrowCToken: cDAI,
             borrowAmount: 200e18,
-            pool: pool_DAI_USDC,
+            poolInfo: Comet_V2_Migrator.UniswapPoolInfo({
+                token0: address(dai),
+                token1: address(usdc),
+                fee: 100
+            }),
             isFlashLoan: false
         });
         borrowData[1] = Comet_V2_Migrator.BorrowData({
             borrowCToken: cUSDC,
             borrowAmount: 200e6,
-            pool: pool_DAI_USDC_high_fee,
+            poolInfo: Comet_V2_Migrator.UniswapPoolInfo({
+                token0: address(dai),
+                token1: address(usdc),
+                fee: 500
+            }),
             isFlashLoan: true
         });
         borrowData[2] = Comet_V2_Migrator.BorrowData({
             borrowCToken: cUSDT,
             borrowAmount: 200e16,
-            pool: pool_USDT_USDC,
+            poolInfo: Comet_V2_Migrator.UniswapPoolInfo({
+                token0: address(usdt),
+                token1: address(usdc),
+                fee: 100
+            }),
             isFlashLoan: false
         });
         migrator.migrate(collateral, borrowData, address(usdc));

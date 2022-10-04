@@ -3,6 +3,8 @@ pragma solidity 0.8.16;
 
 import "./vendor/@uniswap/v3-core/contracts/interfaces/callback/IUniswapV3FlashCallback.sol";
 import "./vendor/@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
+import "./vendor/@uniswap/v3-periphery/contracts/libraries/PoolAddress.sol";
+import "./vendor/@uniswap/v3-periphery/contracts/libraries/CallbackValidation.sol";
 import "./vendor/@uniswap/v3-periphery/contracts/interfaces/external/IWETH9.sol";
 import "./vendor/@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./interfaces/CTokenInterface.sol";
@@ -33,12 +35,19 @@ contract CometMigrator is IUniswapV3FlashCallback {
     uint256 amount;
   }
 
+  struct UniswapPoolInfo {
+    address token0;
+    address token1;
+    uint24 fee;
+  }
+
   struct BorrowData {
-     CErc20 borrowCToken; // XXX how would we adapt this for other sources?
-     uint256 borrowAmount;
-     // XXX apparently, the same pool can only be swapped/loaned from once per txn...they have a lock
-     IUniswapV3Pool pool;
-     bool isFlashLoan; // as opposed to flash swap
+    CErc20 borrowCToken; // XXX how would we adapt this for other sources?
+    uint256 borrowAmount;
+    // XXX apparently, the same pool can only be swapped/loaned from once per txn...they have a lock
+    // It's safer to have the input be pool info instead of the pool address itself
+    UniswapPoolInfo poolInfo;
+    bool isFlashLoan; // as opposed to flash swap
   }
 
   /// @notice Represents all data required to continue operation after a flash loan is initiated.
@@ -57,13 +66,16 @@ contract CometMigrator is IUniswapV3FlashCallback {
   /// @notice A list of valid collateral tokens
   IERC20[] public collateralTokens;
 
-  /// @notice The address of the `cETH` token.
+  /// @notice The address of the `cETH` token
   CTokenLike public immutable cETH;
 
-  /// @notice The address of the `weth` token.
+  /// @notice The address of the `weth` token
   IWETH9 public immutable weth;
 
-  /// @notice Address to send swept tokens to, if for any reason they remain locked in this contract.
+  /// @notice The Uniswap V3 pools factory contract address
+  address public immutable factory;
+
+  /// @notice Address to send swept tokens to, if for any reason they remain locked in this contract
   address payable public immutable sweepee;
 
   /// @notice A rëentrancy guard.
@@ -81,12 +93,14 @@ contract CometMigrator is IUniswapV3FlashCallback {
    * @param comet_ The Comet Ethereum mainnet USDC contract.
    * @param cETH_ The address of the `cETH` token.
    * @param weth_ The address of the `WETH9` token.
+   * @param factory_ The address of the Uniswap V3 pools factory contract.
    * @param sweepee_ Sweep excess tokens to this address.
    **/
   constructor(
     Comet comet_,
     CTokenLike cETH_,
     IWETH9 weth_,
+    address factory_,
     address payable sweepee_
   ) payable {
     // **WRITE IMMUTABLE** `comet = comet_`
@@ -97,6 +111,8 @@ contract CometMigrator is IUniswapV3FlashCallback {
 
     // **WRITE IMMUTABLE** `weth = weth_`
     weth = weth_;
+
+    factory = factory_;
 
     // **WRITE IMMUTABLE** `sweepee = sweepee_`
     sweepee = sweepee_;
@@ -163,6 +179,41 @@ contract CometMigrator is IUniswapV3FlashCallback {
     inMigration -= 1;
   }
 
+  // XXX borrowData already exists in callbackData, so see if we can optimize a bit
+  function flashLoanOrSwap(BorrowData[] memory borrowData, uint256 step, bytes memory callbackData) internal {
+    // XXX assert that borrowData[step] is within range
+    BorrowData memory initialBorrowData = borrowData[step];
+    IERC20 borrowToken = initialBorrowData.borrowCToken.underlying();
+    UniswapPoolInfo memory poolInfo = initialBorrowData.poolInfo;
+    IUniswapV3Pool pool = getPool(poolInfo.token0, poolInfo.token1, poolInfo.fee);
+    bool isPoolToken0 = pool.token0() == address(borrowToken);
+    uint repayAmount = initialBorrowData.borrowAmount;
+    if (initialBorrowData.isFlashLoan) {
+      // **CALL** `uniswapLiquidityPool.flash(address(this), uniswapLiquidityPoolToken0 ? repayAmount : 0, uniswapLiquidityPoolToken0 ? 0 : repayAmount, data)`
+      pool.flash(address(this), isPoolToken0 ? repayAmount : 0, isPoolToken0 ? 0 : repayAmount, callbackData);
+    } else {
+      bool zeroForOne = !isPoolToken0;
+      // Allow for max slippage
+      uint160 sqrtPriceLimitX96 = zeroForOne ? MIN_SQRT_RATIO + 1 : MAX_SQRT_RATIO - 1;
+      pool.swap(
+          address(this),
+          !isPoolToken0,
+          -int256(repayAmount), // XXX need to do safe convert
+          sqrtPriceLimitX96,
+          callbackData
+      );
+    }
+  }
+
+  /// @dev Returns the pool for the given token pair and fee. The pool contract may or may not exist.
+  function getPool(
+      address tokenA,
+      address tokenB,
+      uint24 fee
+  ) private view returns (IUniswapV3Pool) {
+      return IUniswapV3Pool(PoolAddress.computeAddress(factory, PoolAddress.getPoolKey(tokenA, tokenB, fee)));
+  }
+
   /**
    * @notice This function handles a callback from the Uniswap Liquidity Pool after it has sent this contract the requested tokens. We are responsible for repaying those tokens, with a fee, before we return from this function call.
    * @param fee0 The fee for borrowing token0 from pool.
@@ -191,10 +242,11 @@ contract CometMigrator is IUniswapV3FlashCallback {
 
     MigrationCallbackData memory migrationCallbackData = abi.decode(data, (MigrationCallbackData));
     BorrowData memory currentBorrowData = migrationCallbackData.borrowData[migrationCallbackData.step];
+    UniswapPoolInfo memory poolInfo = currentBorrowData.poolInfo;
 
     // **REQUIRE** `msg.sender == uniswapLiquidityPool`
-    // Instead of checking pool directly, use `UniswapPool.poolFor(token0, token1)`
-    require(msg.sender == address(currentBorrowData.pool), "must be called from uniswapLiquidityPool");
+    IUniswapV3Pool pool = getPool(poolInfo.token0, poolInfo.token1, poolInfo.fee);
+    require(msg.sender == address(pool), "must be called from uniswapLiquidityPool");
 
     IERC20 borrowToken = currentBorrowData.borrowCToken.underlying(); // XXX gassy, should just pass in as calldata from migrate()
 
@@ -203,7 +255,7 @@ contract CometMigrator is IUniswapV3FlashCallback {
 
     // **BIND** `borrowAmountWithFee = repayAmount + uniswapLiquidityPoolToken0 ? fee0 : fee1`
     uint repayAmount = currentBorrowData.borrowAmount;
-    bool isPoolToken0 = currentBorrowData.pool.token0() == address(borrowToken);
+    bool isPoolToken0 = pool.token0() == address(borrowToken);
     uint256 borrowAmountWithFee;
     if (isFlashCallback) {
       borrowAmountWithFee = repayAmount + ( isPoolToken0 ? amount0 : amount1 );
@@ -244,43 +296,13 @@ contract CometMigrator is IUniswapV3FlashCallback {
     }
 
     if (isFlashCallback) {
-      // FLASH LOAN, THEN FLASH SWAP
-      // borrow 100+1 USDC
-      // borrow 100 DAI, need to repay 102 USDC
-      // migrate collateral
-      // borrow USDC, need to borrow 203 to repay debts
-
       // **CALL** `borrowToken.transfer(address(uniswapLiquidityPool), borrowAmountWithFee)`
       // IMPORTANT: We only pay back `borrowAmountWithFee` to Uniswap pool rather than `totalAmount`
-      borrowToken.transfer(address(currentBorrowData.pool), borrowAmountWithFee);
+      borrowToken.transfer(address(pool), borrowAmountWithFee);
     } else {
       // XXX can also just always set `repayToken` as the `baseToken` (is that a safe assumption?)
-      IERC20 repayToken = IERC20(isPoolToken0 ? currentBorrowData.pool.token1() : currentBorrowData.pool.token0());
-      repayToken.transfer(address(currentBorrowData.pool), borrowAmountWithFee);
-    }
-  }
-
-  // XXX borrowData already exists in callbackData, so see if we can optimize a bit
-  function flashLoanOrSwap(BorrowData[] memory borrowData, uint256 step, bytes memory callbackData) internal {
-    // XXX assert that borrowData[step] is within range
-    BorrowData memory initialBorrowData = borrowData[step];
-    IERC20 borrowToken = initialBorrowData.borrowCToken.underlying();
-    bool isPoolToken0 = initialBorrowData.pool.token0() == address(borrowToken);
-    uint repayAmount = initialBorrowData.borrowAmount;
-    if (initialBorrowData.isFlashLoan) {
-      // **CALL** `uniswapLiquidityPool.flash(address(this), uniswapLiquidityPoolToken0 ? repayAmount : 0, uniswapLiquidityPoolToken0 ? 0 : repayAmount, data)`
-      initialBorrowData.pool.flash(address(this), isPoolToken0 ? repayAmount : 0, isPoolToken0 ? 0 : repayAmount, callbackData);
-    } else {
-      bool zeroForOne = !isPoolToken0;
-      // Allow for max slippage
-      uint160 sqrtPriceLimitX96 = zeroForOne ? MIN_SQRT_RATIO + 1 : MAX_SQRT_RATIO - 1;
-      initialBorrowData.pool.swap(
-          address(this),
-          !isPoolToken0,
-          -int256(repayAmount), // XXX need to do safe convert
-          sqrtPriceLimitX96,
-          callbackData
-      );
+      IERC20 repayToken = IERC20(isPoolToken0 ? pool.token1() : pool.token0());
+      repayToken.transfer(address(pool), borrowAmountWithFee);
     }
   }
 

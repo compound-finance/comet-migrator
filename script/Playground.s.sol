@@ -56,6 +56,7 @@ contract Playground is Script, Test, MainnetConstants {
             comet,
             cETH,
             weth,
+            uniswapFactory,
             sweepee
         );
     }
