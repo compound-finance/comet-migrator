@@ -20,6 +20,7 @@ contract MainnetConstants {
     CErc20 public constant cUNI = CErc20(0x35A18000230DA775CAc24873d00Ff85BccdeD550);
     CTokenLike public constant cETH = CTokenLike(0x4Ddc2D193948926D02f9B1fE9e1daa0718270ED5);
     IUniswapV3Pool public constant pool_DAI_USDC = IUniswapV3Pool(0x5777d92f208679DB4b9778590Fa3CAB3aC9e2168);
+    IUniswapV3Pool public constant pool_DAI_USDC_high_fee = IUniswapV3Pool(0x6c6Bc977E13Df9b0de53b251522280BB72383700);
     IUniswapV3Pool public constant pool_USDT_USDC = IUniswapV3Pool(0x3416cF6C708Da44DB2624D63ea0AAef7113527C6);
     address payable public constant sweepee = payable(0x6d903f6003cca6255D85CcA4D3B5E5146dC33925);
     address public constant uniswapFactory = address(0x1F98431c8aD98523631AE4a59f267346ea31F984);

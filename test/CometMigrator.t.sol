@@ -888,60 +888,60 @@ contract CometMigratorTest is Positor {
     }
 
     // XXX For some reason, USDT is reverting right after approve()...need to investigate
-    // function testMigrateUniPosition_flashSwapUsdt() public {
-    //     // Posit
-    //     Position[] memory positions = new Position[](1);
-    //     positions[0] = Position({
-    //         collateral: cUNI,
-    //         amount: 300e18 // ~ $5 * 300 = ~$1500 75% collateral factor = $1,000
-    //     });
-    //     BorrowPosition[] memory borrowPositions = new BorrowPosition[](1);
-    //     borrowPositions[0] = BorrowPosition({
-    //         borrowCToken: cUSDT,
-    //         amount: 350e6
-    //     });
-    //     posit2(Posit2({
-    //         borrower: borrower,
-    //         positions: positions,
-    //         borrows: borrowPositions
-    //     }));
+    function testMigrateUniPosition_flashSwapAllUsdt() public {
+        // Posit
+        Position[] memory positions = new Position[](1);
+        positions[0] = Position({
+            collateral: cUNI,
+            amount: 300e18 // ~ $5 * 300 = ~$1500 75% collateral factor = $1,000
+        });
+        BorrowPosition[] memory borrowPositions = new BorrowPosition[](1);
+        borrowPositions[0] = BorrowPosition({
+            borrowCToken: cUSDT,
+            amount: 350e6
+        });
+        posit2(Posit2({
+            borrower: borrower,
+            positions: positions,
+            borrows: borrowPositions
+        }));
 
-    //     uint256 cUNIPre = cUNI.balanceOf(borrower);
-    //     preflightChecks();
+        uint256 cUNIPre = cUNI.balanceOf(borrower);
+        preflightChecks();
 
-    //     // Migrate
-    //     Comet_V2_Migrator.Collateral[] memory collateral = new Comet_V2_Migrator.Collateral[](1);
-    //     uint256 migrateAmount = amountToTokens(199e18, cUNI);
-    //     collateral[0] = Comet_V2_Migrator.Collateral({
-    //         cToken: cUNI,
-    //         amount: migrateAmount
-    //     });
+        // Migrate
+        Comet_V2_Migrator.Collateral[] memory collateral = new Comet_V2_Migrator.Collateral[](1);
+        uint256 migrateAmount = amountToTokens(199e18, cUNI);
+        collateral[0] = Comet_V2_Migrator.Collateral({
+            cToken: cUNI,
+            amount: migrateAmount
+        });
 
-    //     vm.startPrank(borrower);
-    //     cUNI.approve(address(migrator), type(uint256).max);
-    //     comet.allow(address(migrator), true);
+        vm.startPrank(borrower);
+        cUNI.approve(address(migrator), type(uint256).max);
+        comet.allow(address(migrator), true);
 
-    //     // Check event
-    //     // vm.expectEmit(true, false, false, true);
-    //     // emit Migrated(borrower, collateral, 350e6, 350e18 * 1.0001);
+        // Check event
+        // vm.expectEmit(true, false, false, true);
+        // emit Migrated(borrower, collateral, 350e6, 350e18 * 1.0001);
 
-    //     Comet_V2_Migrator.BorrowData[] memory borrowData = new Comet_V2_Migrator.BorrowData[](1);
-    //     borrowData[0] = Comet_V2_Migrator.BorrowData({
-    //         borrowCToken: cUSDT,
-    //         borrowAmount: 350e6,
-    //         pool: pool_USDT_USDC,
-    //         isFlashLoan: false
-    //     });
-    //     migrator.migrate(collateral, borrowData, address(usdc));
+        Comet_V2_Migrator.BorrowData[] memory borrowData = new Comet_V2_Migrator.BorrowData[](1);
+        borrowData[0] = Comet_V2_Migrator.BorrowData({
+            borrowCToken: cUSDT,
+            borrowAmount: 350e6,
+            pool: pool_USDT_USDC,
+            isFlashLoan: false
+        });
+        migrator.migrate(collateral, borrowData, address(usdc));
 
-    //     // Check v2 balances
-    //     assertEq(cUNI.balanceOf(borrower), cUNIPre - migrateAmount, "Amount of cUNI should have been migrated");
-    //     assertEq(cUSDT.borrowBalanceCurrent(borrower), 0e6, "Remainder of tokens");
+        // Check v2 balances
+        assertEq(cUNI.balanceOf(borrower), cUNIPre - migrateAmount, "Amount of cUNI should have been migrated");
+        assertEq(cUSDT.borrowBalanceCurrent(borrower), 0e6, "Remainder of tokens");
 
-    //     // Check v3 balances
-    //     assertApproxEqRel(comet.collateralBalanceOf(borrower, address(uni)), 199e18, 0.01e18, "v3 collateral balance");
-    //     assertApproxEqRel(comet.borrowBalanceOf(borrower), 350e6 * 1.0001, 0.01e18, "v3 borrow balance");
-    // }
+        // Check v3 balances
+        assertApproxEqRel(comet.collateralBalanceOf(borrower, address(uni)), 199e18, 0.01e18, "v3 collateral balance");
+        assertApproxEqRel(comet.borrowBalanceOf(borrower), 350e6 * 1.0001, 0.01e18, "v3 borrow balance");
+    }
 
     function testMigrateUniPosition_WithTwoBorrows_LoanFirstSwapSecond() public {
         // Posit
@@ -1073,6 +1073,83 @@ contract CometMigratorTest is Positor {
         // Check v3 balances
         assertApproxEqRel(comet.collateralBalanceOf(borrower, address(uni)), 199e18, 0.01e18, "v3 collateral balance");
         assertApproxEqRel(comet.borrowBalanceOf(borrower), 700e6 * 1.0001, 0.01e18, "v3 borrow balance");
+    }
+
+    function testMigrateUniPosition_WithThreeBorrows() public {
+        // Posit
+        Position[] memory positions = new Position[](1);
+        positions[0] = Position({
+            collateral: cUNI,
+            amount: 300e18 // ~ $5 * 300 = ~$1500 75% collateral factor = $1,000
+        });
+        BorrowPosition[] memory borrowPositions = new BorrowPosition[](3);
+        borrowPositions[0] = BorrowPosition({
+            borrowCToken: cUSDC,
+            amount: 200e6
+        });
+        borrowPositions[1] = BorrowPosition({
+            borrowCToken: cDAI,
+            amount: 200e18
+        });
+        borrowPositions[2] = BorrowPosition({
+            borrowCToken: cUSDT,
+            amount: 200e6
+        });
+        posit2(Posit2({
+            borrower: borrower,
+            positions: positions,
+            borrows: borrowPositions
+        }));
+
+        uint256 cUNIPre = cUNI.balanceOf(borrower);
+        preflightChecks();
+
+        // Migrate
+        Comet_V2_Migrator.Collateral[] memory collateral = new Comet_V2_Migrator.Collateral[](1);
+        uint256 migrateAmount = amountToTokens(199e18, cUNI);
+        collateral[0] = Comet_V2_Migrator.Collateral({
+            cToken: cUNI,
+            amount: migrateAmount
+        });
+
+        vm.startPrank(borrower);
+        cUNI.approve(address(migrator), type(uint256).max);
+        comet.allow(address(migrator), true);
+
+        // Check event
+        // vm.expectEmit(true, false, false, true);
+        // emit Migrated(borrower, collateral, 350e6, 350e18 * 1.0001);
+
+        Comet_V2_Migrator.BorrowData[] memory borrowData = new Comet_V2_Migrator.BorrowData[](3);
+        borrowData[0] = Comet_V2_Migrator.BorrowData({
+            borrowCToken: cDAI,
+            borrowAmount: 200e18,
+            pool: pool_DAI_USDC,
+            isFlashLoan: false
+        });
+        borrowData[1] = Comet_V2_Migrator.BorrowData({
+            borrowCToken: cUSDC,
+            borrowAmount: 200e6,
+            pool: pool_DAI_USDC_high_fee,
+            isFlashLoan: true
+        });
+        borrowData[2] = Comet_V2_Migrator.BorrowData({
+            borrowCToken: cUSDT,
+            borrowAmount: 200e16,
+            pool: pool_USDT_USDC,
+            isFlashLoan: false
+        });
+        migrator.migrate(collateral, borrowData, address(usdc));
+
+        // Check v2 balances
+        assertEq(cUNI.balanceOf(borrower), cUNIPre - migrateAmount, "Amount of cUNI should have been migrated");
+        assertEq(cUSDC.borrowBalanceCurrent(borrower), 0e6, "Remainder of tokens");
+        assertEq(cDAI.borrowBalanceCurrent(borrower), 0e18, "Remainder of tokens");
+        assertEq(cUSDT.borrowBalanceCurrent(borrower), 0e6, "Remainder of tokens");
+
+        // Check v3 balances
+        assertApproxEqRel(comet.collateralBalanceOf(borrower, address(uni)), 199e18, 0.01e18, "v3 collateral balance");
+        assertApproxEqRel(comet.borrowBalanceOf(borrower), 600e6 * 1.0001, 0.01e18, "v3 borrow balance");
     }
 
     // XXX test partial repay with flash swaps
