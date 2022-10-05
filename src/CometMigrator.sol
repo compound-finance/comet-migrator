@@ -5,8 +5,8 @@ import "./vendor/@uniswap/v3-core/contracts/interfaces/callback/IUniswapV3FlashC
 import "./vendor/@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
 import "./vendor/@uniswap/v3-periphery/contracts/libraries/PoolAddress.sol";
 import "./vendor/@uniswap/v3-periphery/contracts/libraries/CallbackValidation.sol";
-import "./vendor/@uniswap/v3-periphery/contracts/interfaces/external/IWETH9.sol";
 import "./vendor/@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "./interfaces/IWETH9.sol";
 import "./interfaces/CTokenInterface.sol";
 import "./interfaces/CometInterface.sol";
 import "forge-std/console.sol";
@@ -183,7 +183,7 @@ contract CometMigrator is IUniswapV3FlashCallback {
   function flashLoanOrSwap(BorrowData[] memory borrowData, uint256 step, bytes memory callbackData) internal {
     // XXX assert that borrowData[step] is within range
     BorrowData memory initialBorrowData = borrowData[step];
-    IERC20 borrowToken = initialBorrowData.borrowCToken.underlying();
+    IERC20NonStandard borrowToken = initialBorrowData.borrowCToken.underlying();
     UniswapPoolInfo memory poolInfo = initialBorrowData.poolInfo;
     IUniswapV3Pool pool = getPool(poolInfo.token0, poolInfo.token1, poolInfo.fee);
     bool isPoolToken0 = pool.token0() == address(borrowToken);
@@ -248,7 +248,9 @@ contract CometMigrator is IUniswapV3FlashCallback {
     IUniswapV3Pool pool = getPool(poolInfo.token0, poolInfo.token1, poolInfo.fee);
     require(msg.sender == address(pool), "must be called from uniswapLiquidityPool");
 
-    IERC20 borrowToken = currentBorrowData.borrowCToken.underlying(); // XXX gassy, should just pass in as calldata from migrate()
+    // We use NonStandard here for tokens like USDT which do not return a boolean on approve
+    // XXX Properly handle non standard ERC20 tokens
+    IERC20NonStandard borrowToken = currentBorrowData.borrowCToken.underlying(); // XXX gassy, should just pass in as calldata from migrate()
 
     // **BIND** `MigrationCallbackData{user, repayAmountActual, borrowAmountTotal, collateral} = abi.decode(data, (MigrationCallbackData))`
     // MigrationCallbackData memory migrationData = abi.decode(data, (MigrationCallbackData));
@@ -332,7 +334,7 @@ contract CometMigrator is IUniswapV3FlashCallback {
         revert CompoundV2Error(1 + i, err);
       }
 
-      IERC20 underlying;
+      IERC20NonStandard underlying;
 
       // **WHEN** `cToken == cETH`:
       if (collateral.cToken == cETH) {
@@ -356,8 +358,6 @@ contract CometMigrator is IUniswapV3FlashCallback {
         underlying.balanceOf(address(this))
       );
     }
-
-    // IERC20 borrowToken = migrationData.borrowData[migrationData.step].borrowCToken.underlying(); // XXX gassy, should just pass in as calldata from migrate()
 
     // **CALL** `comet.withdrawFrom(user, address(this), borrowToken, borrowAmountWithFee)`
     comet.withdrawFrom(migrationData.user, address(this), migrationData.baseToken, borrowAmountWithFee);

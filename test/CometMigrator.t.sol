@@ -23,10 +23,15 @@ contract CometMigratorTest is Positor {
             collateral: cUNI,
             amount: 300e18 // ~ $5 * 300 = ~$1500 75% collateral factor = $1,000
         });
+        BorrowPosition[] memory borrowPositions = new BorrowPosition[](1);
+        borrowPositions[0] = BorrowPosition({
+            borrowCToken: cUSDC,
+            amount: 700e6
+        });
         posit(Posit({
             borrower: borrower,
             positions: positions,
-            borrow: 700e6
+            borrows: borrowPositions
         }));
 
         uint256 cUNIPre = cUNI.balanceOf(borrower);
@@ -852,7 +857,7 @@ contract CometMigratorTest is Positor {
             borrowCToken: cDAI,
             amount: 350e18
         });
-        posit2(Posit2({
+        posit(Posit({
             borrower: borrower,
             positions: positions,
             borrows: borrowPositions
@@ -919,7 +924,7 @@ contract CometMigratorTest is Positor {
             borrowCToken: cUSDT,
             amount: 350e6
         });
-        posit2(Posit2({
+        posit(Posit({
             borrower: borrower,
             positions: positions,
             borrows: borrowPositions
@@ -988,7 +993,7 @@ contract CometMigratorTest is Positor {
             borrowCToken: cDAI,
             amount: 350e18
         });
-        posit2(Posit2({
+        posit(Posit({
             borrower: borrower,
             positions: positions,
             borrows: borrowPositions
@@ -1072,7 +1077,7 @@ contract CometMigratorTest is Positor {
             borrowCToken: cDAI,
             amount: 350e18
         });
-        posit2(Posit2({
+        posit(Posit({
             borrower: borrower,
             positions: positions,
             borrows: borrowPositions
@@ -1160,7 +1165,7 @@ contract CometMigratorTest is Positor {
             borrowCToken: cUSDT,
             amount: 200e6
         });
-        posit2(Posit2({
+        posit(Posit({
             borrower: borrower,
             positions: positions,
             borrows: borrowPositions

@@ -10,10 +10,10 @@ interface Comptroller {
 
 contract MainnetConstants {
     Comet public constant comet = Comet(0xc3d688B66703497DAA19211EEdff47f25384cdc3);
-    IERC20 public constant usdc = IERC20(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
-    IERC20 public constant usdt = IERC20(0xdAC17F958D2ee523a2206206994597C13D831ec7);
-    IERC20 public constant dai = IERC20(0x6B175474E89094C44Da98b954EedeAC495271d0F);
-    IERC20 public constant uni = IERC20(0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984);
+    IERC20NonStandard public constant usdc = IERC20NonStandard(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
+    IERC20NonStandard public constant usdt = IERC20NonStandard(0xdAC17F958D2ee523a2206206994597C13D831ec7);
+    IERC20NonStandard public constant dai = IERC20NonStandard(0x6B175474E89094C44Da98b954EedeAC495271d0F);
+    IERC20NonStandard public constant uni = IERC20NonStandard(0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984);
     CErc20 public constant cUSDC = CErc20(0x39AA39c021dfbaE8faC545936693aC917d5E7563);
     CErc20 public constant cUSDT = CErc20(0xf650C3d88D12dB855b8bf7D11Be6C55A4e07dCC9);
     CErc20 public constant cDAI = CErc20(0x5d3a536E4D6DbD6114cc1Ead35777bAB948E3643);

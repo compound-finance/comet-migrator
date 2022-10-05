@@ -61,7 +61,7 @@ contract Playground is Script, Test, MainnetConstants {
         );
     }
 
-    function swap(IERC20 token0, IERC20 token1, uint24 poolFee, address recipient, uint256 amountIn) internal returns (uint256) {
+    function swap(IERC20NonStandard token0, IERC20NonStandard token1, uint24 poolFee, address recipient, uint256 amountIn) internal returns (uint256) {
         // Approve the router to spend token0
         token0.approve(address(swapRouter), type(uint256).max);
 
