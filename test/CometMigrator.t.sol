@@ -911,7 +911,6 @@ contract CometMigratorTest is Positor {
         assertApproxEqRel(comet.borrowBalanceOf(borrower), 350e6 * 1.0001, 0.01e18, "v3 borrow balance");
     }
 
-    // XXX For some reason, USDT is reverting right after approve()...need to investigate
     function testMigrateUniPosition_flashSwapAllUsdt() public {
         // Posit
         Position[] memory positions = new Position[](1);
@@ -1249,6 +1248,9 @@ contract CometMigratorTest is Positor {
     }
 
     // XXX test partial repay with flash swaps
+    // XXX test invalid pools
+    //        -flash loan from pool that isn't borrowing USDC
+    //        -flash swap from pool that isn't paired with USDC
 
     function preflightChecks() internal {
         require(comet.collateralBalanceOf(borrower, address(uni)) == 0, "no starting uni collateral balance");
