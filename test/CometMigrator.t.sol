@@ -11,7 +11,7 @@ contract CometMigratorTest is Positor {
     event Migrated(
         address indexed user,
         CometMigrator.Collateral[] collateral,
-        uint256 repayAmount,
+        CometMigrator.TokenRepaid[] tokensRepaid,
         uint256 borrowAmountWithFee);
 
     address public constant borrower = address(0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266);
@@ -45,8 +45,13 @@ contract CometMigratorTest is Positor {
         comet.allow(address(migrator), true);
 
         // Check event
-        // vm.expectEmit(true, false, false, true);
-        // emit Migrated(borrower, collateral, 600e6, 600e6 * 1.0001);
+        vm.expectEmit(true, false, false, true);
+        Comet_V2_Migrator.TokenRepaid[] memory tokensRepaid = new Comet_V2_Migrator.TokenRepaid[](1);
+        tokensRepaid[0] = Comet_V2_Migrator.TokenRepaid({
+            borrowToken: address(usdc),
+            repayAmount: 600e6
+        });
+        emit Migrated(borrower, collateral, tokensRepaid, 600e6 * 1.0001);
 
         Comet_V2_Migrator.BorrowData[] memory borrowData = new Comet_V2_Migrator.BorrowData[](1);
         borrowData[0] = Comet_V2_Migrator.BorrowData({
@@ -869,8 +874,14 @@ contract CometMigratorTest is Positor {
         comet.allow(address(migrator), true);
 
         // Check event
+        // XXX borrowAmountWithFee is not exact due to Uniswap slippage
         // vm.expectEmit(true, false, false, true);
-        // emit Migrated(borrower, collateral, 350e6, 350e18 * 1.0001);
+        // Comet_V2_Migrator.TokenRepaid[] memory tokensRepaid = new Comet_V2_Migrator.TokenRepaid[](1);
+        // tokensRepaid[0] = Comet_V2_Migrator.TokenRepaid({
+        //     borrowToken: address(dai),
+        //     repayAmount: 350e18
+        // });
+        // emit Migrated(borrower, collateral, tokensRepaid, 350e6 * 1.0001);
 
         Comet_V2_Migrator.BorrowData[] memory borrowData = new Comet_V2_Migrator.BorrowData[](1);
         borrowData[0] = Comet_V2_Migrator.BorrowData({
@@ -930,8 +941,14 @@ contract CometMigratorTest is Positor {
         comet.allow(address(migrator), true);
 
         // Check event
+        // XXX borrowAmountWithFee is not exact due to Uniswap slippage
         // vm.expectEmit(true, false, false, true);
-        // emit Migrated(borrower, collateral, 350e6, 350e18 * 1.0001);
+        // Comet_V2_Migrator.TokenRepaid[] memory tokensRepaid = new Comet_V2_Migrator.TokenRepaid[](1);
+        // tokensRepaid[0] = Comet_V2_Migrator.TokenRepaid({
+        //     borrowToken: address(usdt),
+        //     repayAmount: 350e6
+        // });
+        // emit Migrated(borrower, collateral, tokensRepaid, 350e6 * 1.0001);
 
         Comet_V2_Migrator.BorrowData[] memory borrowData = new Comet_V2_Migrator.BorrowData[](1);
         borrowData[0] = Comet_V2_Migrator.BorrowData({
@@ -993,8 +1010,18 @@ contract CometMigratorTest is Positor {
         comet.allow(address(migrator), true);
 
         // Check event
+        // XXX borrowAmountWithFee is not exact due to Uniswap slippage
         // vm.expectEmit(true, false, false, true);
-        // emit Migrated(borrower, collateral, 350e6, 350e18 * 1.0001);
+        // Comet_V2_Migrator.TokenRepaid[] memory tokensRepaid = new Comet_V2_Migrator.TokenRepaid[](2);
+        // tokensRepaid[0] = Comet_V2_Migrator.TokenRepaid({
+        //     borrowToken: address(usdc),
+        //     repayAmount: 350e6
+        // });
+        // tokensRepaid[1] = Comet_V2_Migrator.TokenRepaid({
+        //     borrowToken: address(dai),
+        //     repayAmount: 350e18
+        // });
+        // emit Migrated(borrower, collateral, tokensRepaid, 700e6 * 1.0001);
 
         Comet_V2_Migrator.BorrowData[] memory borrowData = new Comet_V2_Migrator.BorrowData[](2);
         borrowData[0] = Comet_V2_Migrator.BorrowData({
@@ -1067,8 +1094,18 @@ contract CometMigratorTest is Positor {
         comet.allow(address(migrator), true);
 
         // Check event
+        // XXX borrowAmountWithFee is not exact due to Uniswap slippage
         // vm.expectEmit(true, false, false, true);
-        // emit Migrated(borrower, collateral, 350e6, 350e18 * 1.0001);
+        // Comet_V2_Migrator.TokenRepaid[] memory tokensRepaid = new Comet_V2_Migrator.TokenRepaid[](2);
+        // tokensRepaid[0] = Comet_V2_Migrator.TokenRepaid({
+        //     borrowToken: address(dai),
+        //     repayAmount: 350e18
+        // });
+        // tokensRepaid[1] = Comet_V2_Migrator.TokenRepaid({
+        //     borrowToken: address(usdc),
+        //     repayAmount: 350e6
+        // });
+        // emit Migrated(borrower, collateral, tokensRepaid, 700e6 * 1.0001);
 
         Comet_V2_Migrator.BorrowData[] memory borrowData = new Comet_V2_Migrator.BorrowData[](2);
         borrowData[0] = Comet_V2_Migrator.BorrowData({
@@ -1145,8 +1182,22 @@ contract CometMigratorTest is Positor {
         comet.allow(address(migrator), true);
 
         // Check event
+        // XXX borrowAmountWithFee is not exact due to Uniswap slippage
         // vm.expectEmit(true, false, false, true);
-        // emit Migrated(borrower, collateral, 350e6, 350e18 * 1.0001);
+        // Comet_V2_Migrator.TokenRepaid[] memory tokensRepaid = new Comet_V2_Migrator.TokenRepaid[](3);
+        // tokensRepaid[0] = Comet_V2_Migrator.TokenRepaid({
+        //     borrowToken: address(dai),
+        //     repayAmount: 200e18
+        // });
+        // tokensRepaid[1] = Comet_V2_Migrator.TokenRepaid({
+        //     borrowToken: address(usdc),
+        //     repayAmount: 200e6
+        // });
+        // tokensRepaid[2] = Comet_V2_Migrator.TokenRepaid({
+        //     borrowToken: address(usdt),
+        //     repayAmount: 200e6
+        // });
+        // emit Migrated(borrower, collateral, tokensRepaid, 600e6 * 1.0001);
 
         Comet_V2_Migrator.BorrowData[] memory borrowData = new Comet_V2_Migrator.BorrowData[](3);
         borrowData[0] = Comet_V2_Migrator.BorrowData({
@@ -1171,7 +1222,7 @@ contract CometMigratorTest is Positor {
         });
         borrowData[2] = Comet_V2_Migrator.BorrowData({
             borrowCToken: cUSDT,
-            borrowAmount: 200e16,
+            borrowAmount: 200e6,
             poolInfo: Comet_V2_Migrator.UniswapPoolInfo({
                 token0: address(usdt),
                 token1: address(usdc),

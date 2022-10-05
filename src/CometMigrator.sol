@@ -26,7 +26,7 @@ contract CometMigrator is IUniswapV3FlashCallback {
   event Migrated(
     address indexed user,
     Collateral[] collateral,
-    uint256 repayAmount,
+    TokenRepaid[] tokensRepaid,
     uint256 borrowAmountWithFee);
 
   /// @notice Represents a given amount of collateral to migrate.
@@ -50,11 +50,17 @@ contract CometMigrator is IUniswapV3FlashCallback {
     bool isFlashLoan; // as opposed to flash swap
   }
 
+  struct TokenRepaid {
+    address borrowToken; // underlying token that is borrowed
+    uint256 repayAmount; // amount repaid
+  }
+
   /// @notice Represents all data required to continue operation after a flash loan is initiated.
   struct MigrationCallbackData {
     address user;
     BorrowData[] borrowData;
     Collateral[] collateral;
+    TokenRepaid[] tokensRepaid; // solely used for generating the `Migrated` event
     address baseToken;
     uint256 totalBaseToBorrow;
     uint256 step;
@@ -155,23 +161,17 @@ contract CometMigrator is IUniswapV3FlashCallback {
     }
 
     // **BIND** `data = abi.encode(MigrationCallbackData{user, repayAmount, collateral})`
-    // XXX can check if remaingBorrowData is empty. if so, then remove all collateral and repay
     uint256 step = 0;
+    TokenRepaid[] memory tokensRepaid = new TokenRepaid[](borrowData.length);
     bytes memory callbackData = abi.encode(MigrationCallbackData({
       user: user,
       borrowData: borrowData,
       collateral: collateral,
+      tokensRepaid: tokensRepaid,
       baseToken: baseToken,
       totalBaseToBorrow: 0,
-      step: step // used to access data in borrowData
+      step: step
     }));
-
-    /**
-      Example
-
-      User collat: 500 WETH, 50 WBTC, Borrow: 1000 DAI, 1000 USDC
-      Input is: 500 WETH, 50 WBTC, [{ cDAI, 1000, USDC-DAI }, { cDAI, 1000, USDC-DAI XXX ugh...might need to use a flash loan }]
-     */
 
     flashLoanOrSwap(borrowData, step, callbackData);
 
@@ -276,6 +276,11 @@ contract CometMigrator is IUniswapV3FlashCallback {
     if (err != 0) {
       revert CompoundV2Error(0, err);
     }
+    // Update `tokensRepaid`
+    migrationCallbackData.tokensRepaid[migrationCallbackData.step] = TokenRepaid({
+      borrowToken: address(borrowToken),
+      repayAmount: repayAmount
+    });
 
     // If not the last step, trigger another flash swap/loan to repay more borrows
     // Otherwise, redeem collateral and borrow from v3 to repay loans
@@ -288,6 +293,7 @@ contract CometMigrator is IUniswapV3FlashCallback {
         user: migrationCallbackData.user,
         borrowData: migrationCallbackData.borrowData,
         collateral: migrationCallbackData.collateral,
+        tokensRepaid: migrationCallbackData.tokensRepaid,
         baseToken: migrationCallbackData.baseToken,
         totalBaseToBorrow: totalBorrowAmount,
         step: nextStep
@@ -357,8 +363,7 @@ contract CometMigrator is IUniswapV3FlashCallback {
     comet.withdrawFrom(migrationData.user, address(this), migrationData.baseToken, borrowAmountWithFee);
 
     // **EMIT** `Migrated(user, collateral, repayAmount, borrowAmountWithFee)`
-    // XXX fix event...repayAmount is not only in one asset now
-    emit Migrated(migrationData.user, migrationData.collateral, 0, borrowAmountWithFee);
+    emit Migrated(migrationData.user, migrationData.collateral, migrationData.tokensRepaid, borrowAmountWithFee);
   }
 
   /**
