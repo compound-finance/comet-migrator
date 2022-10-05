@@ -21,6 +21,7 @@ contract CometMigrator is IUniswapV3FlashCallback {
   error CTokenTransferFailure();
   error InvalidBorrowData();
   error InvalidInt256();
+  error InvalidCallbackCaller();
 
   /** Events **/
   event Migrated(
@@ -41,7 +42,7 @@ contract CometMigrator is IUniswapV3FlashCallback {
     uint24 fee;
   }
 
-  // XXX to support other protocols (e.g. Aave, CDPs), we can have a list of borrows as a parameter, where `Borrow` is:
+  // XXX To support other protocols (e.g. Aave, CDPs), we can have a list of `Borrow` as a parameter, where `Borrow` is:
   // Borrow {
   //   address borrowSource; // cToken address for v2, aToken address for Aave, CDP address for CDPs
   //   uint256 borrowAmount;
@@ -126,11 +127,12 @@ contract CometMigrator is IUniswapV3FlashCallback {
     sweepee = sweepee_;
   }
 
-  // XXX to protect the user against high slippages/fees, we can have a maxBorrow parameter that reverts if the borrow goes over that amount
+  // XXX To protect the user against high slippages/fees, we can have a maxBorrow parameter that reverts if the borrow goes over that amount
   /**
    * @notice This is the core function of this contract, migrating a position from Compound II to Compound III. We use a flash loan from Uniswap to provide liquidity to move the position.
    * @param collateral Array of collateral to transfer into Compound III. See notes below.
-   * @param borrowData Amount of borrow to migrate (i.e. close in Compound II, and borrow from Compound III). See notes below.
+   * @param borrowData Data of the borrows to migrate and which pool to source liquidity from.
+   * @param baseToken The base asset to borrow from Compound III
    * @dev **N.B.** Collateral requirements may be different in Compound II and Compound III. This may lead to a migration failing or being less collateralized after the migration. There are fees associated with the flash loan, which may affect position or cause migration to fail.
    * @dev Note: each `collateral` market must be supported in Compound III.
    * @dev Note: `collateral` amounts of 0 are strictly ignored. Collateral amounts of max uint256 are set to the user's current balance.
@@ -183,20 +185,22 @@ contract CometMigrator is IUniswapV3FlashCallback {
     inMigration -= 1;
   }
 
+  /// @dev Helper function to trigger a flash loan or flash swap
   function flashLoanOrSwap(uint256 step, bytes memory callbackData) internal {
     MigrationCallbackData memory migrationCallbackData = abi.decode(callbackData, (MigrationCallbackData));
     BorrowData memory initialBorrowData = migrationCallbackData.borrowData[step];
-    IERC20NonStandard borrowToken = initialBorrowData.borrowCToken.underlying();
     UniswapPoolInfo memory poolInfo = initialBorrowData.poolInfo;
     IUniswapV3Pool pool = getPool(poolInfo.token0, poolInfo.token1, poolInfo.fee);
-    bool isPoolToken0 = pool.token0() == address(borrowToken);
+    address borrowToken = address(initialBorrowData.borrowCToken.underlying());
+    bool isPoolToken0 = pool.token0() == borrowToken;
     uint repayAmount = initialBorrowData.borrowAmount;
+
     if (initialBorrowData.isFlashLoan) {
       // **CALL** `uniswapLiquidityPool.flash(address(this), uniswapLiquidityPoolToken0 ? repayAmount : 0, uniswapLiquidityPoolToken0 ? 0 : repayAmount, data)`
       pool.flash(address(this), isPoolToken0 ? repayAmount : 0, isPoolToken0 ? 0 : repayAmount, callbackData);
     } else {
       bool zeroForOne = !isPoolToken0;
-      // Note: This allows for max slippage
+      // Note: This allows for unlimited slippage
       uint160 sqrtPriceLimitX96 = zeroForOne ? MIN_SQRT_RATIO + 1 : MAX_SQRT_RATIO - 1;
       pool.swap(
           address(this),
@@ -208,7 +212,7 @@ contract CometMigrator is IUniswapV3FlashCallback {
     }
   }
 
-  /// @dev Returns the pool for the given token pair and fee. The pool contract may or may not exist.
+  /// @dev Returns the pool for the given token pair and fee. The pool contract may or may not exist
   function getPool(
       address tokenA,
       address tokenB,
@@ -218,7 +222,7 @@ contract CometMigrator is IUniswapV3FlashCallback {
   }
 
   /**
-   * @notice This function handles a callback from the Uniswap Liquidity Pool after it has sent this contract the requested tokens. We are responsible for repaying those tokens, with a fee, before we return from this function call.
+   * @notice This function handles a flash callback from the Uniswap Liquidity Pool after it has sent this contract the requested tokens. We are responsible for repaying those tokens, with a fee, before we return from this function call.
    * @param fee0 The fee for borrowing token0 from pool.
    * @param fee1 The fee for borrowing token1 from pool.
    * @param data The data encoded above, which is the ABI-encoding of MigrationCallbackData.
@@ -227,14 +231,20 @@ contract CometMigrator is IUniswapV3FlashCallback {
     handleUniswapCallback(data, true, fee0, fee1);
   }
 
-  function uniswapV3SwapCallback(
-    int256 amount0Delta,
-    int256 amount1Delta,
-    bytes calldata data
-  ) external {
+  /**
+   * @notice This function handles a swap callback from the Uniswap Liquidity Pool after it has sent this contract the requested tokens. We are responsible for repaying those tokens, with a fee, before we return from this function call.
+   * @param amount0Delta The amount of token0 that was sent (negative) or must be received (positive) by the pool by the end of the swap. If positive, the callback must send that amount of token0 to the pool.
+   * @param amount1Delta The amount of token1 that was sent (negative) or must be received (positive) by the pool by the end of the swap. If positive, the callback must send that amount of token1 to the pool.
+   * @param data The data encoded above, which is the ABI-encoding of MigrationCallbackData.
+   **/
+  function uniswapV3SwapCallback(int256 amount0Delta, int256 amount1Delta, bytes calldata data) external {
     handleUniswapCallback(data, false, uint256(amount0Delta), uint256(amount1Delta));
   }
 
+  /// @dev Helper function that can handle both flash and swap callbacks
+  /// This function will recursively borrow from Uniswap to close all targetted borrows. At the very last step, after all
+  /// borrows have been paid off, this contract will then migrate over the user's collaterals and borrow from Compound III
+  /// to repay each flash loan/swap.
   function handleUniswapCallback(bytes calldata data, bool isFlashCallback, uint256 amount0, uint256 amount1) internal {
     // **REQUIRE** `inMigration == 1`
     if (inMigration != 1) {
@@ -247,7 +257,7 @@ contract CometMigrator is IUniswapV3FlashCallback {
 
     // **REQUIRE** `msg.sender == uniswapLiquidityPool`
     IUniswapV3Pool pool = getPool(poolInfo.token0, poolInfo.token1, poolInfo.fee);
-    require(msg.sender == address(pool), "must be called from uniswapLiquidityPool");
+    if (msg.sender != address(pool)) revert InvalidCallbackCaller();
 
     // We use IERC20NonStandard here for tokens like USDT that may not return a boolean on approve/transfer
     IERC20NonStandard borrowToken = currentBorrowData.borrowCToken.underlying();
@@ -280,13 +290,13 @@ contract CometMigrator is IUniswapV3FlashCallback {
       repayAmount: repayAmount
     });
 
-    // If not the last step, trigger another flash swap/loan to repay more borrows
-    // Otherwise, redeem collateral and borrow from v3 to repay loans
+    // If this the last step, migrate collateral to Compound III and borrow from Compound III to repay loans
+    // Otherwise, trigger another flash swap/loan to repay remaining set of borrows
     bool isLastStep = migrationCallbackData.step >= migrationCallbackData.borrowData.length - 1;
     if (isLastStep) {
       migrateCollateralAndBorrow(migrationCallbackData, totalBorrowAmount);
     } else {
-      uint256 nextStep = migrationCallbackData.step + 1;
+      uint nextStep = migrationCallbackData.step + 1;
       bytes memory callbackData = abi.encode(MigrationCallbackData({
         user: migrationCallbackData.user,
         borrowData: migrationCallbackData.borrowData,
@@ -311,6 +321,7 @@ contract CometMigrator is IUniswapV3FlashCallback {
     }
   }
 
+  /// @dev Helper function that migrates collateral and borrows from Compound III
   function migrateCollateralAndBorrow(MigrationCallbackData memory migrationData, uint256 borrowAmountWithFee) internal {
     // **FOREACH** `(cToken, amount)` in `collateral`
     for (uint8 i = 0; i < migrationData.collateral.length; i++) {
