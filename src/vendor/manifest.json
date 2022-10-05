@@ -120,6 +120,53 @@
         }
       ]
     },
+    "@uniswap/v3-periphery/contracts/libraries/PoolAddress.sol": {
+      "source": {
+        "git": {
+          "repo": "git@github.com:Uniswap/v3-periphery.git",
+          "commit": "22a7ead071fff53f00d9ddc13434f285f4ed5c7d",
+          "path": "contracts/libraries/PoolAddress.sol"
+        }
+      },
+      "patches": [
+        {
+          "oldStart": 32,
+          "oldLines": 19,
+          "newStart": 32,
+          "newLines": 17,
+          "lines": [
+            "     /// @return pool The contract address of the V3 pool",
+            "     function computeAddress(address factory, PoolKey memory key) internal pure returns (address pool) {",
+            "         require(key.token0 < key.token1);",
+            "         pool = address(",
+            "-            uint160(",
+            "-                uint256(",
+            "-                    keccak256(",
+            "-                        abi.encodePacked(",
+            "-                            hex'ff',",
+            "-                            factory,",
+            "-                            keccak256(abi.encode(key.token0, key.token1, key.fee)),",
+            "-                            POOL_INIT_CODE_HASH",
+            "-                        )",
+            "+            uint256(",
+            "+                keccak256(",
+            "+                    abi.encodePacked(",
+            "+                        hex'ff',",
+            "+                        factory,",
+            "+                        keccak256(abi.encode(key.token0, key.token1, key.fee)),",
+            "\\ No newline at end of file",
+            "+                        POOL_INIT_CODE_HASH",
+            "                     )",
+            "                 )",
+            "             )",
+            "         );",
+            "     }",
+            "-}",
+            "+}"
+          ]
+        }
+      ]
+    },
     "@uniswap/v3-periphery/contracts/interfaces/external/IWETH9.sol": {
       "source": {
         "git": {
