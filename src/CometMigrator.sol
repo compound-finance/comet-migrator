@@ -4,7 +4,6 @@ pragma solidity 0.8.16;
 import "./vendor/@uniswap/v3-core/contracts/interfaces/callback/IUniswapV3FlashCallback.sol";
 import "./vendor/@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
 import "./vendor/@uniswap/v3-periphery/contracts/libraries/PoolAddress.sol";
-import "./vendor/@uniswap/v3-periphery/contracts/libraries/CallbackValidation.sol";
 import "./vendor/@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./interfaces/IWETH9.sol";
 import "./interfaces/CTokenInterface.sol";
