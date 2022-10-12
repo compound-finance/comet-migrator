@@ -288,7 +288,7 @@ contract CometMigratorTest is Positor {
         });
 
         vm.startPrank(borrower);
-        cETH.approve(address(migrator), type(uint256).max); // TODO: Test without approval
+        cETH.approve(address(migrator), type(uint256).max);
         cUNI.approve(address(migrator), type(uint256).max);
         comet.allow(address(migrator), true);
         migrator.migrate(collateral, 1200e6);
@@ -753,8 +753,8 @@ contract CometMigratorTest is Positor {
         assertEq(cUSDC.borrowBalanceCurrent(borrower), 750e6, "Remainder of tokens");
 
         // Check v3 balances
-        assertApproxEqRel(comet.collateralBalanceOf(borrower, address(uni)), 100e18, 0.01e18, "v3 collateral balance TODO");
-        assertApproxEqRel(comet.collateralBalanceOf(borrower, address(weth)), 0.3e18, 0.01e18, "v3 collateral balance TODO");
+        assertApproxEqRel(comet.collateralBalanceOf(borrower, address(uni)), 100e18, 0.01e18, "v3 collateral balance");
+        assertApproxEqRel(comet.collateralBalanceOf(borrower, address(weth)), 0.3e18, 0.01e18, "v3 collateral balance");
         assertEq(comet.borrowBalanceOf(borrower), 650e6 * 1.0001, "v3 borrow balance");
 
         // Migration 1
@@ -822,8 +822,8 @@ contract CometMigratorTest is Positor {
         assertEq(cUSDC.borrowBalanceCurrent(borrower), 200e6, "Remainder of tokens");
 
         // Check v3 balances
-        assertApproxEqRel(comet.collateralBalanceOf(borrower, address(uni)), 199e18, 0.01e18, "v3 collateral balance TODO");
-        assertApproxEqRel(comet.collateralBalanceOf(borrower, address(weth)), 0.6e18, 0.01e18, "v3 collateral balance TODO");
+        assertApproxEqRel(comet.collateralBalanceOf(borrower, address(uni)), 199e18, 0.01e18, "v3 collateral balance");
+        assertApproxEqRel(comet.collateralBalanceOf(borrower, address(weth)), 0.6e18, 0.01e18, "v3 collateral balance");
         assertEq(comet.borrowBalanceOf(borrower), 1200e6 * 1.0001, "v3 borrow balance");
 
         // Migration 1 [No collateral moved, but still okay]
@@ -906,6 +906,20 @@ contract CometMigratorTest is Positor {
         migrator.sweep(IERC20(0x0000000000000000000000000000000000000000));
         assertEq(address(migrator).balance, 0 ether, "post-sweep eth for migrator");
         assertEq(sweepee.balance - sweepeeEthPre, 1 ether, "post-sweep eth for sweepee");
+    }
+
+    function testInvalidTokenForUni() public {
+        IUniswapV3Pool pool_ETH_USDT = IUniswapV3Pool(0x4e68Ccd3E89f51C3074ca5072bbAC773960dFa36);
+
+        vm.expectRevert(abi.encodeWithSelector(CometMigrator.InvalidConfiguration.selector, 0));
+        new CometMigrator(
+            comet,
+            cUSDC,
+            cETH,
+            weth,
+            pool_ETH_USDT,
+            sweepee
+        );
     }
 
     function preflightChecks() internal {
