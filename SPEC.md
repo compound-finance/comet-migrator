@@ -157,7 +157,7 @@ Represents all data required to continue operation after a flash loan is initiat
 ```c
 struct MigrationCallbackData {
   address user,
-  uint256 repayAmount,
+  uint256 flashAmount,
   CompoundV2Position compoundV2Position,
   AvveV2Position avveV2Position,
   CDPPosition[] cdpPositions 
@@ -169,8 +169,10 @@ struct MigrationCallbackData {
 ```c
 event Migrated(
   address indexed user,
-  Collateral[] collateral,
-  uint256 repayAmount,
+  CompoundV2Position compoundV2Position,
+  AaveV2Position aaveV2Position,
+  CDPPosition[] cdpPositions,
+  uint256 flashAmount,
   uint256 flashAmountWithFee)
 ```
 
@@ -301,10 +303,9 @@ This function may only be called during a migration command. We check that the c
   - **EXEC** `migrateCompoundV2Position(user, compoundV2Position)`
   - **EXEC** `migrateAvveV2Position(user, avveV2Position)`
   - **EXEC** `migrateCdpPositions(user, cdpPositions)`
-  - **CALL** `comet.withdrawFrom(user, address(this), borrowToken, flashAmountWithFee)`
+  - **CALL** `comet.withdrawFrom(user, address(this), borrowToken, flashAmountWithFee - borrowToken.balanceOf(address(this)))`
   - **CALL** `borrowToken.transfer(address(uniswapLiquidityPool), flashAmountWithFee)`
-  // XXX event needs to be fixed
-  - **EMIT** `Migrated(user, collateral, repayAmount, flashAmountWithFee)`
+  - **EMIT** `Migrated(user, compoundV2Position, aaveV2Position, cdpPositions, flashAmount, flashAmountWithFee)`
 
 ### Migrate Compound V2 Position Function
 
