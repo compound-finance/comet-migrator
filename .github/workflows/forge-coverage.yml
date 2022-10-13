@@ -1,0 +1,43 @@
+name: Forge Coverage
+on: push
+
+env:
+  FOUNDRY_PROFILE: ci
+
+jobs:
+  check:
+    strategy:
+      fail-fast: true
+
+    name: Cover Forge Contracts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
+
+      - name: Install lcov
+        run: sudo apt-get install lcov
+
+      - name: Run Forge build
+        run: |
+          forge --version
+          forge build --sizes
+
+      - name: Run Forge coverage
+        run: |
+          script/test.sh --coverage --report lcov
+          lcov --remove lcov.info 'test/*' 'script/*' > lcov-src.info
+        env:
+          ETHEREUM_REMOTE_NODE_MAINNET: "${{ secrets.ETH_MAINNET_URL }}"
+
+      - name: Upload the coverage reports to Coveralls
+        uses: coverallsapp/github-action@master
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path-to-lcov: ./lcov-src.info
