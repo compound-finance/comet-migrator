@@ -1,5 +1,6 @@
 
 # Comet Migrator
+[![Build Status](https://github.com/compound-finance/comet-migrator/workflows/Forge%20Test/badge.svg)](https://github.com/compound-finance/comet-migrator/actions?query=workflow%3A%22Forge+Test%22) [![Coverage Status](https://coveralls.io/repos/github/compound-finance/comet-migrator/badge.svg?t=TH4hUm)](https://coveralls.io/github/compound-finance/comet-migrator)
 
 The Comet Migrator is a Compound v3 Operator and Extension for migrating a position from Compound v2 and other DeFi protocols to Compound v3. The "Operator" is a smart contract which interacts with the Compound v3 Protocol on behalf of a user who approves the migrator. The "Extension" is a front-end integration into the Compound v3 interface. The Operator code is built on [Foundry](https://book.getfoundry.sh/), and the Extension code is built on [React](https://reactjs.org/) using [Vite](https://vitejs.dev/).
 
@@ -20,6 +21,20 @@ yarn web:build
 ```
 
 For the development experience, we recommend using the [Playground](#The-Playground) as described below.
+
+### Testing
+
+To test your contracts, run:
+
+```sh
+yarn forge:test
+```
+
+You can also run coverage via:
+
+```sh
+yarn forge:test --coverage
+```
 
 ### The Playground
 

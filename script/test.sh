@@ -5,4 +5,20 @@ set_constants
 
 set -exo pipefail
 
-forge test --fork-url "$fork_url" --fork-block-number "$fork_block" --etherscan-api-key "$ETHERSCAN_API_KEY" $@
+cmd="test"
+rest=()
+
+while test $# -gt 0
+do
+  case "$1" in
+    --coverage) echo "coverage"
+      cmd="coverage"
+      ;;
+    *) echo "argument $1"
+      rest+=("$1")
+      ;;
+  esac
+  shift
+done
+
+forge "$cmd" ${args[*]} --fork-url "$fork_url" --fork-block-number "$fork_block" ${rest[*]}
