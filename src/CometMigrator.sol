@@ -18,6 +18,8 @@ contract CometMigrator is IUniswapV3FlashCallback {
   error CompoundV2Error(uint256 loc, uint256 code);
   error SweepFailure(uint256 loc);
   error CTokenTransferFailure();
+  error InvalidConfiguration(uint256 loc);
+  error InvalidCallback(uint256 loc);
 
   /** Events **/
   event Migrated(
@@ -46,13 +48,7 @@ contract CometMigrator is IUniswapV3FlashCallback {
   IUniswapV3Pool public immutable uniswapLiquidityPool;
 
   /// @notice True if borrow token is token 0 in the Uniswap liquidity pool, otherwise false if token 1.
-  bool public immutable uniswapLiquidityPoolToken0;
-
-  /// @notice Fee for a flash loan from the liquidity pool as a fixed decimal (e.g. `0.001e18 = 0.1%`)
-  uint256 public immutable uniswapLiquidityPoolFee;
-
-  /// @notice A list of valid collateral tokens
-  IERC20[] public collateralTokens;
+  bool public immutable isUniswapLiquidityPoolToken0;
 
   /// @notice The Compound II market for the borrowed token (e.g. `cUSDC`).
   CErc20 public immutable borrowCToken;
@@ -69,8 +65,8 @@ contract CometMigrator is IUniswapV3FlashCallback {
   /// @notice Address to send swept tokens to, if for any reason they remain locked in this contract.
   address payable public immutable sweepee;
 
-  /// @notice A rëentrancy guard.
-  uint public inMigration;
+  /// @notice A reentrancy guard.
+  uint256 public inMigration;
 
   /**
    * @notice Construct a new Compound_Migrate_V2_USDC_to_V3_USDC
@@ -88,7 +84,7 @@ contract CometMigrator is IUniswapV3FlashCallback {
     IWETH9 weth_,
     IUniswapV3Pool uniswapLiquidityPool_,
     address payable sweepee_
-  ) payable {
+  ) {
     // **WRITE IMMUTABLE** `comet = comet_`
     comet = comet_;
 
@@ -107,11 +103,13 @@ contract CometMigrator is IUniswapV3FlashCallback {
     // **WRITE IMMUTABLE** `uniswapLiquidityPool = uniswapLiquidityPool_`
     uniswapLiquidityPool = uniswapLiquidityPool_;
 
-    // **WRITE IMMUTABLE** `uniswapLiquidityPoolFee = uniswapLiquidityPool.fee()`
-    uniswapLiquidityPoolFee = uniswapLiquidityPool.fee();
+    // **WRITE IMMUTABLE** `isUniswapLiquidityPoolToken0 = uniswapLiquidityPool.token0() == borrowToken`
+    isUniswapLiquidityPoolToken0 = uniswapLiquidityPool.token0() == address(borrowToken);
 
-    // **WRITE IMMUTABLE** `uniswapLiquidityPoolToken0 = uniswapLiquidityPool.token0() == borrowToken`
-    uniswapLiquidityPoolToken0 = uniswapLiquidityPool.token0() == address(borrowToken);
+    // **REQUIRE** `isUniswapLiquidityPoolToken0 || uniswapLiquidityPool.token1() == borrowToken`
+    if (!isUniswapLiquidityPoolToken0 && uniswapLiquidityPool.token1() != address(borrowToken)) {
+      revert InvalidConfiguration(0);
+    }
 
     // **WRITE IMMUTABLE** `sweepee = sweepee_`
     sweepee = sweepee_;
@@ -125,7 +123,6 @@ contract CometMigrator is IUniswapV3FlashCallback {
    * @param collateral Array of collateral to transfer into Compound III. See notes below.
    * @param borrowAmount Amount of borrow to migrate (i.e. close in Compound II, and borrow from Compound III). See notes below.
    * @dev **N.B.** Collateral requirements may be different in Compound II and Compound III. This may lead to a migration failing or being less collateralized after the migration. There are fees associated with the flash loan, which may affect position or cause migration to fail.
-   * @dev Note: each `collateral` market must exist in `collateralTokens` array, defined on contract creation.
    * @dev Note: each `collateral` market must be supported in Compound III.
    * @dev Note: `collateral` amounts of 0 are strictly ignored. Collateral amounts of max uint256 are set to the user's current balance.
    * @dev Note: `borrowAmount` may be set to max uint256 to migrate the entire current borrow balance.
@@ -159,8 +156,8 @@ contract CometMigrator is IUniswapV3FlashCallback {
       collateral: collateral
     }));
 
-    // **CALL** `uniswapLiquidityPool.flash(address(this), uniswapLiquidityPoolToken0 ? repayAmount : 0, uniswapLiquidityPoolToken0 ? 0 : repayAmount, data)`
-    uniswapLiquidityPool.flash(address(this), uniswapLiquidityPoolToken0 ? repayAmount : 0, uniswapLiquidityPoolToken0 ? 0 : repayAmount, data);
+    // **CALL** `uniswapLiquidityPool.flash(address(this), isUniswapLiquidityPoolToken0 ? repayAmount : 0, isUniswapLiquidityPoolToken0 ? 0 : repayAmount, data)`
+    uniswapLiquidityPool.flash(address(this), isUniswapLiquidityPoolToken0 ? repayAmount : 0, isUniswapLiquidityPoolToken0 ? 0 : repayAmount, data);
 
     // **STORE** `inMigration -= 1`
     inMigration -= 1;
@@ -179,13 +176,15 @@ contract CometMigrator is IUniswapV3FlashCallback {
     }
 
     // **REQUIRE** `msg.sender == uniswapLiquidityPool`
-    require(msg.sender == address(uniswapLiquidityPool), "must be called from uniswapLiquidityPool");
+    if (msg.sender != address(uniswapLiquidityPool)) {
+      revert InvalidCallback(0);
+    }
 
     // **BIND** `MigrationCallbackData{user, repayAmountActual, borrowAmountTotal, collateral} = abi.decode(data, (MigrationCallbackData))`
     MigrationCallbackData memory migrationData = abi.decode(data, (MigrationCallbackData));
 
-    // **BIND** `borrowAmountWithFee = repayAmount + uniswapLiquidityPoolToken0 ? fee0 : fee1`
-    uint256 borrowAmountWithFee = migrationData.repayAmount + ( uniswapLiquidityPoolToken0 ? fee0 : fee1 );
+    // **BIND** `borrowAmountWithFee = repayAmount + isUniswapLiquidityPoolToken0 ? fee0 : fee1`
+    uint256 borrowAmountWithFee = migrationData.repayAmount + ( isUniswapLiquidityPoolToken0 ? fee0 : fee1 );
 
     // **CALL** `borrowCToken.repayBorrowBehalf(user, repayAmountActual)`
     uint256 err = borrowCToken.repayBorrowBehalf(migrationData.user, migrationData.repayAmount);

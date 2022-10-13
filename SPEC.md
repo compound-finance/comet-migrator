@@ -17,14 +17,13 @@ Users can specify the following parameters, generally:
 
  * `comet: Comet` **immutable**: The Comet Ethereum mainnet USDC contract.
  * `uniswapLiquidityPool: IUniswapV3Pool` **immutable**: The Uniswap pool used by this contract to source liquidity (i.e. flash loans).
- * `uniswapLiquidityPoolToken0: boolean` **immutable**: True if borrow token is token 0 in the Uniswap liquidity pool, otherwise false if token 1.
- * `uniswapLiquidityPoolFee: uint256` **immutable**: Fee for a flash loan from the liquidity pool as a fixed decimal (e.g. `0.001e18 = 0.1%`)
+ * `isUniswapLiquidityPoolToken0: boolean` **immutable**: True if borrow token is token 0 in the Uniswap liquidity pool, otherwise false if token 1.
  * `borrowCToken: CToken` **immutable**: The Compound II market for the borrowed token (e.g. `cUSDC`).
  * `borrowToken: IERC20` **immutable**: The underlying borrow token (e.g. `USDC`).
  * `cETH: CToken` **immutable**: The address of the `cETH` token.
  * `weth: WETH9` **immutable**: The address of the `weth` token.
  * `sweepee: address` **immutable**: Sweep excess tokens to this address.
- * `inMigration: uint256`: A rëentrancy guard.
+ * `inMigration: uint256`: A reentrancy guard.
 
 ## Structs
 
@@ -86,8 +85,8 @@ This function describes the initialization process for this contract. We set the
  * **WRITE IMMUTABLE** `cETH = cETH_`
  * **WRITE IMMUTABLE** `weth = weth_`
  * **WRITE IMMUTABLE** `uniswapLiquidityPool = uniswapLiquidityPool_`
- * **WRITE IMMUTABLE** `uniswapLiquidityPoolFee = uniswapLiquidityPool.fee()`
- * **WRITE IMMUTABLE** `uniswapLiquidityPoolToken0 = uniswapLiquidityPool.token0() == borrowToken`
+ * **WRITE IMMUTABLE** `isUniswapLiquidityPoolToken0 = uniswapLiquidityPool.token0() == borrowToken`
+ * **REQUIRE** `isUniswapLiquidityPoolToken0 || uniswapLiquidityPool.token1() == borrowToken`
  * **WRITE IMMUTABLE** `sweepee = sweepee_`
  * **CALL** `borrowToken.approve(address(borrowCToken), type(uint256).max)`
 
@@ -137,7 +136,7 @@ Notes:
 - **ELSE**
   - **BIND** `repayAmount = borrowAmount`
 - **BIND** `data = abi.encode(MigrationCallbackData{user, repayAmount, collateral})`
-- **CALL** `uniswapLiquidityPool.flash(address(this), uniswapLiquidityPoolToken0 ? repayAmount : 0, uniswapLiquidityPoolToken0 ? 0 : repayAmount, data)`
+- **CALL** `uniswapLiquidityPool.flash(address(this), isUniswapLiquidityPoolToken0 ? repayAmount : 0, isUniswapLiquidityPoolToken0 ? 0 : repayAmount, data)`
 - **STORE** `inMigration -= 1`
 
 Note: for fee calculation see [UniswapV3Pool](https://github.com/Uniswap/v3-core/blob/main/contracts/UniswapV3Pool.sol#L800).
@@ -152,8 +151,8 @@ This function may only be called during a migration command. We ensure this by m
 
 #### Inputs
 
- - `uint fee0`: The fee for borrowing token0 from pool.
- - `uint fee1`: The fee for borrowing token1 from pool.
+ - `uint256 fee0`: The fee for borrowing token0 from pool.
+ - `uint256 fee1`: The fee for borrowing token1 from pool.
  - `calldata data`: The data encoded above, which is the ABI-encoding of `MigrationCallbackData`.
 
 #### Bindings
@@ -171,7 +170,7 @@ This function may only be called during a migration command. We ensure this by m
   - **REQUIRE** `inMigration == 1`
   - **REQUIRE** `msg.sender == uniswapLiquidityPool`
   - **BIND** `MigrationCallbackData{user, repayAmount, collateral} = abi.decode(data, (MigrationCallbackData))`
-  - **BIND** `borrowAmountWithFee = repayAmount + uniswapLiquidityPoolToken0 ? fee0 : fee1`
+  - **BIND** `borrowAmountWithFee = repayAmount + isUniswapLiquidityPoolToken0 ? fee0 : fee1`
   - **CALL** `borrowCToken.repayBorrowBehalf(user, repayAmountActual)`
   - **FOREACH** `(cToken, amount)` in `collateral`:
     - **CALL** `cToken.transferFrom(user, address(this), amount == type(uint256).max ? cToken.balanceOf(user) : amount)`
