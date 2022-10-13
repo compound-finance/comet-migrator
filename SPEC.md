@@ -19,6 +19,7 @@ Users can specify the following parameters, generally:
 
  * `comet: Comet` **immutable**: The Comet Ethereum mainnet USDC contract.
  * `uniswapLiquidityPool: IUniswapV3Pool` **immutable**: The Uniswap pool used by this contract to source liquidity (i.e. flash loans).
+ * `borrowCToken: CToken` **immutable**: The Compound II market for the borrowed token (e.g. `cUSDC`).
  * `swapRouter: ISwapRouter` **immutable**: The Uniswap router for facilitating token swaps.
  * `isUniswapLiquidityPoolToken0: boolean` **immutable**: True if borrow token is token 0 in the Uniswap liquidity pool, otherwise false if token 1.
 
@@ -148,6 +149,7 @@ This function describes the initialization process for this contract. We set the
 #### Inputs
 
  * `comet_: Comet`: The Comet Ethereum mainnet USDC contract.
+ * `borrowCToken_: CToken`: The Compound II market for the borrowed token (e.g. `cUSDC`).
  * `cETH_: CToken`: The address of the `cETH` token.
  * `weth_: IWETH9`: The address of the `WETH9` token.
  * `aaveV2LendingPool: ILendingPool`: The address of the Aave v2 LendingPool contract. This is the contract that all `withdraw` and `repay` transactions go through.
@@ -159,9 +161,10 @@ This function describes the initialization process for this contract. We set the
 
 #### Function Spec
 
-`function CometMigrator(Comet comet_, CToken cETH_, WETH9 weth, ILendingPool aaveV2LendingPool_, CDPManagerLike cdpManager_, DaiJoin daiJoin_, UniswapV3Pool uniswapLiquidityPool_, ISwapRouter swapRouter_, address sweepee_) external`
+`function CometMigrator(Comet comet_, CToken borrowCToken_, CToken cETH_, WETH9 weth, ILendingPool aaveV2LendingPool_, CDPManagerLike cdpManager_, DaiJoin daiJoin_, UniswapV3Pool uniswapLiquidityPool_, ISwapRouter swapRouter_, address sweepee_) external`
 
  * **WRITE IMMUTABLE** `comet = comet_`
+ * **WRITE IMMUTABLE** `borrowCToken = borrowCToken_`
  * **WRITE IMMUTABLE** `borrowToken = borrowCToken_.underlying()`
  * **WRITE IMMUTABLE** `cETH = cETH_`
  * **WRITE IMMUTABLE** `weth = weth_`
@@ -356,8 +359,9 @@ This internal helper function repays the user’s borrow positions on Maker (exe
 
 #### Bindings
 
- * `user: address`: Alias for `msg.sender`
+ * `user: address`: Alias for `msg.sender`.
  * `withdrawAmount: uint256`: The amount of collateral to withdraw.
+ * `withdrawAmount18: uint256`: The amount of collateral to withdraw, scaled up to 18 decimals.
  * `repayAmount: uint256`: The amount to repay for each borrow position.
  * `underlyingDebt: IERC20` - The underlying asset of an Aave debt token.
  * `underlyingCollateral: IERC20` - The underlying asset of an Aave aToken. No special handling needed for ETH because Aave v2 uses WETH.
@@ -365,26 +369,27 @@ This internal helper function repays the user’s borrow positions on Maker (exe
 #### Function Spec
 
 `function migrateCDPPositions(address user, CDPPosition[] positions) internal`
-
   - **FOREACH** `(cdpId, borrowAmount, collateralAmount, path, gemJoin): CDPPosition` in `positions`:
     - **WHEN** `borrowAmount == type(uint256).max) || collateralAmount == type(uint256).max`:
-      // XXX amounts might need to be scaled properly
-      - **BIND READ** `(withdrawAmount, repayAmount) = cdpManager.vat().urns(cdpManager.ilks(cdpId), cdpManager.urns(cdpId))`
+      - **BIND READ** `(withdrawAmount18, repayAmount) = cdpManager.vat().urns(cdpManager.ilks(cdpId), cdpManager.urns(cdpId))`
+      - **BIND** `withdrawAmount = withdrawAmount18 / (10 ** (18 - gemJoin.dec()))`
     - **WHEN** `borrowAmount != type(uint256).max`
       - **BIND** `repayAmount = borrowAmount`
     - **WHEN** `collateralAmount != type(uint256).max`
       - **BIND** `withdrawAmount = collateralAmount`
+      - **BIND** `withdrawAmount18 = collateralAmount * (10 ** (18 - gemJoin.dec()))`
     - **WHEN** `path.length > 0`:
       - **CALL** `ISwapRouter.exactOutput(ExactOutputParams({path: path, recipient: address(this), amountOut: repayAmount, amountInMaximum: type(uint256).max})`
     - **CALL** `dai.approve(daiJoin, repayAmount)`
-    - **CALL** `daiJoin.join(cdpManager.urns(cdpId), repayAmount)` // Deposit DAI using the adapter
-    - **CALL** `cdpManager.frob(cdpId, 0, repayAmount)` // Decrease vault debt
-    - **CALL** `cdpManager.frob(cdpId, -withdrawAmount, 0)` // Free the collateral in the vault
-    - **CALL** `cdpManager.flux(cdpId, address(this), withdrawAmount)` // Move collateral to this contract
-    - **CALL** `gemJoin.exit(address(this), withdrawAmount)` // Actually withdraw the collateral using the adapter
+    - **CALL** `daiJoin.join(cdpManager.urns(cdpId), repayAmount)`
+    - **CALL** `cdpManager.frob(cdpId, 0, -repayAmount)`
+    - **CALL** `cdpManager.frob(cdpId, -withdrawAmount18, 0)`
+    - **CALL** `cdpManager.flux(cdpId, address(this), withdrawAmount18)`
+    - **CALL** `gemJoin.exit(address(this), withdrawAmount)`
     - **BIND READ** `underlyingCollateral = gemJoin.gem()`
     - **CALL** `underlyingCollateral.approve(address(comet), type(uint256).max)`
     - **CALL** `comet.supplyTo(user, underlying, underlying.balanceOf(address(this)))`
+
     
 ### Sweep Function
 
