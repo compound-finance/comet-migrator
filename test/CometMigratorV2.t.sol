@@ -47,27 +47,20 @@ contract CometMigratorV2Test is PositorV2 {
         });
         bytes[] memory paths = new bytes[](1);
         paths[0] = "";
-
-        vm.startPrank(borrower);
-        cUNI.approve(address(migrator), type(uint256).max);
-        comet.allow(address(migrator), true);
-
-        // XXX
-        // Check event
-        // vm.expectEmit(true, false, false, true);
-        // CometMigratorV2.TokenRepaid[] memory tokensRepaid = new CometMigratorV2.TokenRepaid[](1);
-        // tokensRepaid[0] = CometMigratorV2.TokenRepaid({
-        //     borrowToken: address(dai),
-        //     repayAmount: 350e18
-        // });
-        // emit Migrated(borrower, collateral, tokensRepaid, 350e6 * 1.0001);
-
         CometMigratorV2.CompoundV2Position memory compoundV2Position = CometMigratorV2.CompoundV2Position({
             collateral: collateralToMigrate,
             borrows: initialBorrows,
             paths: paths
         });
         uint256 flashEstimate = 360e6;
+        vm.startPrank(borrower);
+        cUNI.approve(address(migrator), type(uint256).max);
+        comet.allow(address(migrator), true);
+
+        // Check event
+        vm.expectEmit(true, false, false, true);
+        emit Migrated(borrower, compoundV2Position, flashEstimate, 360e6 * 1.0001);
+
         migrator.migrate(compoundV2Position, flashEstimate);
 
         // Check v2 balances
@@ -115,27 +108,20 @@ contract CometMigratorV2Test is PositorV2 {
             address(dai), poolFee, address(usdc)
         );
         paths[0] = swapPath;
-
-        vm.startPrank(borrower);
-        cUNI.approve(address(migrator), type(uint256).max);
-        comet.allow(address(migrator), true);
-
-        // XXX
-        // Check event
-        // vm.expectEmit(true, false, false, true);
-        // CometMigratorV2.TokenRepaid[] memory tokensRepaid = new CometMigratorV2.TokenRepaid[](1);
-        // tokensRepaid[0] = CometMigratorV2.TokenRepaid({
-        //     borrowToken: address(dai),
-        //     repayAmount: 350e18
-        // });
-        // emit Migrated(borrower, collateral, tokensRepaid, 350e6 * 1.0001);
-
         CometMigratorV2.CompoundV2Position memory compoundV2Position = CometMigratorV2.CompoundV2Position({
             collateral: collateralToMigrate,
             borrows: initialBorrows,
             paths: paths
         });
         uint256 flashEstimate = 400e6;
+        vm.startPrank(borrower);
+        cUNI.approve(address(migrator), type(uint256).max);
+        comet.allow(address(migrator), true);
+
+        // Check event
+        vm.expectEmit(true, false, false, true);
+        emit Migrated(borrower, compoundV2Position, flashEstimate, 400e6 * 1.0001);
+
         migrator.migrate(compoundV2Position, flashEstimate);
 
         // Check v2 balances
@@ -147,6 +133,16 @@ contract CometMigratorV2Test is PositorV2 {
         // Approximate assertion because of slippage from DAI to USDC
         assertApproxEqRel(comet.borrowBalanceOf(borrower), 350e6 * 1.0001, 0.01e18, "v3 borrow balance");
     }
+
+    // XXX test cETH collateral
+    // XXX test multi-collateral
+    // XXX test multi-borrow position
+    // XXX test USDT
+    // XXX test multipath
+
+    // XXX error cases
+    // XXX borrow and path length mismatch
+    // XXX invalid path
 
     function preflightChecks() internal {
         require(comet.collateralBalanceOf(borrower, address(uni)) == 0, "no starting uni collateral balance");
