@@ -19,11 +19,9 @@ Users can specify the following parameters, generally:
 
  * `comet: Comet` **immutable**: The Comet Ethereum mainnet USDC contract.
  * `uniswapLiquidityPool: IUniswapV3Pool` **immutable**: The Uniswap pool used by this contract to source liquidity (i.e. flash loans).
- * `borrowCToken: CToken` **immutable**: The Compound II market for the borrowed token (e.g. `cUSDC`).
  * `swapRouter: ISwapRouter` **immutable**: The Uniswap router for facilitating token swaps.
  * `isUniswapLiquidityPoolToken0: boolean` **immutable**: True if borrow token is token 0 in the Uniswap liquidity pool, otherwise false if token 1.
-
- * `borrowToken: IERC20` **immutable**: The underlying borrow token (e.g. `USDC`).
+ * `baseToken: IERC20` **immutable**: The base token of the Compound III market (e.g. `cUSDC`).
  * `cETH: CToken` **immutable**: The address of the `cETH` token.
  * `weth: WETH9` **immutable**: The address of the `weth` token.
  * `aaveV2LendingPool: ILendingPool` **immutable**: The address of the Aave v2 LendingPool contract. This is the contract that all `withdraw` and `repay` transactions through.
@@ -151,7 +149,7 @@ This function describes the initialization process for this contract. We set the
 #### Inputs
 
  * `comet_: Comet`: The Comet Ethereum mainnet USDC contract.
- * `borrowCToken_: CToken`: The Compound II market for the borrowed token (e.g. `cUSDC`).
+ * `baseToken_: IERC20`: The base token of the Compound III market (e.g. `USDC`).
  * `cETH_: CToken`: The address of the `cETH` token.
  * `weth_: IWETH9`: The address of the `WETH9` token.
  * `aaveV2LendingPool: ILendingPool`: The address of the Aave v2 LendingPool contract. This is the contract that all `withdraw` and `repay` transactions go through.
@@ -163,11 +161,10 @@ This function describes the initialization process for this contract. We set the
 
 #### Function Spec
 
-`function CometMigrator(Comet comet_, CToken borrowCToken_, CToken cETH_, WETH9 weth, ILendingPool aaveV2LendingPool_, CDPManagerLike cdpManager_, DaiJoin daiJoin_, UniswapV3Pool uniswapLiquidityPool_, ISwapRouter swapRouter_, address sweepee_) external`
+`function CometMigrator(Comet comet_, IERC20 baseToken_, CToken cETH_, WETH9 weth, ILendingPool aaveV2LendingPool_, CDPManagerLike cdpManager_, DaiJoin daiJoin_, UniswapV3Pool uniswapLiquidityPool_, ISwapRouter swapRouter_, address sweepee_) external`
 
  * **WRITE IMMUTABLE** `comet = comet_`
- * **WRITE IMMUTABLE** `borrowCToken = borrowCToken_`
- * **WRITE IMMUTABLE** `borrowToken = borrowCToken_.underlying()`
+ * **WRITE IMMUTABLE** `baseToken = baseToken_`
  * **WRITE IMMUTABLE** `cETH = cETH_`
  * **WRITE IMMUTABLE** `weth = weth_`
  * **WRITE IMMUTABLE** `aaveV2LendingPool = aaveV2LendingPool_`
@@ -175,12 +172,11 @@ This function describes the initialization process for this contract. We set the
  * **WRITE IMMUTABLE** `daiJoin = daiJoin_`
  * **WRITE IMMUTABLE** `dai = daiJoin_.gem()`
  * **WRITE IMMUTABLE** `uniswapLiquidityPool = uniswapLiquidityPool_`
- * **WRITE IMMUTABLE** `isUniswapLiquidityPoolToken0 = uniswapLiquidityPool.token0() == borrowToken`
- * **REQUIRE** `isUniswapLiquidityPoolToken0 || uniswapLiquidityPool.token1() == borrowToken`
+ * **WRITE IMMUTABLE** `isUniswapLiquidityPoolToken0 = uniswapLiquidityPool.token0() == baseToken`
+ * **REQUIRE** `isUniswapLiquidityPoolToken0 || uniswapLiquidityPool.token1() == baseToken`
  * **WRITE IMMUTABLE** `swapRouter = swapRouter_`
  * **WRITE IMMUTABLE** `sweepee = sweepee_`
- * **CALL** `borrowToken.approve(address(borrowCToken), type(uint256).max)`
- * **CALL** `borrowToken.approve(address(swapRouter), type(uint256).max)`
+ * **CALL** `baseToken.approve(address(swapRouter), type(uint256).max)`
 
 ### Migrate Function
 
@@ -270,8 +266,8 @@ This function may only be called during a migration command. We ensure this by m
   - **EXEC** `migrateCompoundV2Position(user, compoundV2Position)`
   - **EXEC** `migrateAvveV2Position(user, avveV2Position)`
   - **EXEC** `migrateCdpPositions(user, cdpPositions)`
-  - **CALL** `comet.withdrawFrom(user, address(this), borrowToken, flashAmountWithFee - borrowToken.balanceOf(address(this)))`
-  - **CALL** `borrowToken.transfer(address(uniswapLiquidityPool), flashAmountWithFee)`
+  - **CALL** `comet.withdrawFrom(user, address(this), baseToken, flashAmountWithFee - baseToken.balanceOf(address(this)))`
+  - **CALL** `baseToken.transfer(address(uniswapLiquidityPool), flashAmountWithFee)`
   - **EMIT** `Migrated(user, compoundV2Position, aaveV2Position, cdpPositions, flashAmount, flashAmountWithFee)`
 
 ### Migrate Compound V2 Position Function
