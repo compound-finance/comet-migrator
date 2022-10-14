@@ -1009,7 +1009,7 @@ contract CometMigratorV2Test is Positor {
 
         // Migration 0
         CometMigratorV2.CompoundV2Collateral[] memory collateralToMigrate0 = new CometMigratorV2.CompoundV2Collateral[](2);
-        uint256[2] memory uniAndethMigrateAmount0 = [amountToTokens(100e18, cUNI), amountToTokens(0.3e18, cETH)]; // too avoid stack too deep...
+        uint256[2] memory uniAndethMigrateAmount0 = [amountToTokens(100e18, cUNI), amountToTokens(0.3e18, cETH)]; // to avoid stack too deep...
         collateralToMigrate0[0] = CometMigratorV2.CompoundV2Collateral({
             cToken: cUNI,
             amount: uniAndethMigrateAmount0[0]
