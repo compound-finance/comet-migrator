@@ -108,9 +108,9 @@ export function getNetworkById(chainId: number): Network | null {
 
 function getMigratorAddress(network: Network): string {
   if (network === 'mainnet') {
-    return '0xC9c445CAAC98B23D1b7439cD75938e753307b2e6';
+    return '0x1dD398C2c7fAee61eBB522c434e9f83cf3A9196b';
   } else if (network === 'goerli') {
-    return '0xC25c7fF6290A1139ADF5c454083Bb3ebF07BeedD';
+    return '0x6d1f37f5c2c6cf70871a93e439bf921c195c427f';
   }
 
   return null as never;
