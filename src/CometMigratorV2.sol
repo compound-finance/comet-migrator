@@ -10,8 +10,8 @@ import "./interfaces/CTokenInterface.sol";
 import "./interfaces/CometInterface.sol";
 
 /**
- * @title Compound III Migrator v2
- * @notice A contract to help migrate a Compound II position into a similar Compound III position.
+ * @title Compound V3 Migrator v2
+ * @notice A contract to help migrate a Compound v2 position or other DeFi position into a similar Compound v3 position.
  * @author Compound
  */
 contract CometMigratorV2 is IUniswapV3FlashCallback {
@@ -30,20 +30,20 @@ contract CometMigratorV2 is IUniswapV3FlashCallback {
     uint256 flashAmount,
     uint256 flashAmountWithFee);
 
-  /// @notice Represents an entire Compound II position (collateral + borrows) to migrate.
+  /// @notice Represents an entire Compound V2 position (collateral + borrows) to migrate.
   struct CompoundV2Position {
     CompoundV2Collateral[] collateral;
     CompoundV2Borrow[] borrows;
     bytes[] paths; // empty path if no swap is required (e.g. repaying USDC borrow)
   }
 
-  /// @notice Represents a given amount of Compound II collateral to migrate.
+  /// @notice Represents a given amount of Compound V2 collateral to migrate.
   struct CompoundV2Collateral {
     CTokenLike cToken;
     uint256 amount;
   }
 
-  /// @notice Represents a given amount of Compound II borrow to migrate.
+  /// @notice Represents a given amount of Compound V2 borrow to migrate.
   struct CompoundV2Borrow {
     CErc20 cToken;
     uint256 amount;
@@ -84,7 +84,7 @@ contract CometMigratorV2 is IUniswapV3FlashCallback {
   uint256 public inMigration;
 
   /**
-   * @notice Construct a new CometMigratorV2
+   * @notice Construct a new Compound_Migrate_V2_USDC_to_V3_USDC
    * @param comet_ The Comet Ethereum mainnet USDC contract.
    * @param baseToken_ The base token of the Compound III market (e.g. `USDC`).
    * @param cETH_ The address of the `cETH` token.
@@ -137,7 +137,7 @@ contract CometMigratorV2 is IUniswapV3FlashCallback {
 
   /**
    * @notice This is the core function of this contract, migrating a position from Compound II to Compound III. We use a flash loan from Uniswap to provide liquidity to move the position.
-   * @param compoundV2Position Structure containing the user’s Compound II collateral and borrow positions to migrate to Compound III. See notes below.
+   * @param compoundV2Position Structure containing the user’s Compound V2 collateral and borrow positions to migrate to Compound III. See notes below.
    * @param flashAmount Amount of base asset to borrow from the Uniswap flash loan to facilitate the migration. See notes below.
    * @dev **N.B.** Collateral requirements may be different in Compound II and Compound III. This may lead to a migration failing or being less collateralized after the migration. There are fees associated with the flash loan, which may affect position or cause migration to fail.
    * @dev Note: each `collateral` market must be supported in Compound III.
@@ -179,7 +179,7 @@ contract CometMigratorV2 is IUniswapV3FlashCallback {
    * @notice This function handles a callback from the Uniswap Liquidity Pool after it has sent this contract the requested tokens. We are responsible for repaying those tokens, with a fee, before we return from this function call.
    * @param fee0 The fee for borrowing token0 from pool.
    * @param fee1 The fee for borrowing token1 from pool.
-   * @param data The data encoded above, which is the ABI-encoding of `MigrationCallbackData`.
+   * @param data The data encoded above, which is the ABI-encoding of XXX.
    **/
   function uniswapV3FlashCallback(uint256 fee0, uint256 fee1, bytes calldata data) external {
     // **REQUIRE** `inMigration == 1`
@@ -212,9 +212,9 @@ contract CometMigratorV2 is IUniswapV3FlashCallback {
   }
 
   /**
-   * @notice This internal helper function repays the user’s borrow positions on Compound II (executing swaps first if necessary) before migrating their collateral over to Compound III.
+   * @notice This internal helper function repays the user’s borrow positions on Compound V2 (executing swaps first if necessary) before migrating their collateral over to Compound III.
    * @param user Alias for the `msg.sender` of the original `migrate` call.
-   * @param position Structure containing the user’s Compound II collateral and borrow positions to migrate to Compound III.
+   * @param position Structure containing the user’s Compound V2 collateral and borrow positions to migrate to Compound III.
    **/
   function migrateCompoundV2Position(address user, CompoundV2Position memory position) internal {
     // **FOREACH** `(cToken, borrowAmount): CompoundV2Borrow, path: bytes` in `position`:
@@ -242,6 +242,7 @@ contract CometMigratorV2 is IUniswapV3FlashCallback {
               deadline: block.timestamp
           })
         );
+        // XXX keep a running counter of how much borrowed asset is left? (subtract `amountIn` from `flashAmount`)
       }
 
       // **CALL** `cToken.underlying().approve(address(cToken), repayAmount)`
