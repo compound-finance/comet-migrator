@@ -1009,15 +1009,14 @@ contract CometMigratorV2Test is Positor {
 
         // Migration 0
         CometMigratorV2.CompoundV2Collateral[] memory collateralToMigrate0 = new CometMigratorV2.CompoundV2Collateral[](2);
-        uint256 uniMigrateAmount0 = amountToTokens(100e18, cUNI);
+        uint256[2] memory uniAndethMigrateAmount0 = [amountToTokens(100e18, cUNI), amountToTokens(0.3e18, cETH)]; // too avoid stack too deep...
         collateralToMigrate0[0] = CometMigratorV2.CompoundV2Collateral({
             cToken: cUNI,
-            amount: uniMigrateAmount0
+            amount: uniAndethMigrateAmount0[0]
         });
-        uint256 ethMigrateAmount0 = amountToTokens(0.3e18, cETH);
         collateralToMigrate0[1] = CometMigratorV2.CompoundV2Collateral({
             cToken: cETH,
-            amount: ethMigrateAmount0
+            amount: uniAndethMigrateAmount0[1]
         });
         CometMigratorV2.CompoundV2Borrow[] memory borrowsToMigrate0 = new CometMigratorV2.CompoundV2Borrow[](1);
         borrowsToMigrate0[0] = CometMigratorV2.CompoundV2Borrow({
@@ -1034,15 +1033,14 @@ contract CometMigratorV2Test is Positor {
 
         // Migration 1
         CometMigratorV2.CompoundV2Collateral[] memory collateralToMigrate1 = new CometMigratorV2.CompoundV2Collateral[](2);
-        uint256 uniMigrateAmount1 = amountToTokens(99e18, cUNI);
+        uint256[2] memory uniAndethMigrateAmount1 = [amountToTokens(99e18, cUNI), amountToTokens(0.3e18, cETH)];
         collateralToMigrate1[0] = CometMigratorV2.CompoundV2Collateral({
             cToken: cUNI,
-            amount: uniMigrateAmount1
+            amount: uniAndethMigrateAmount1[0]
         });
-        uint256 ethMigrateAmount1 = amountToTokens(0.3e18, cETH);
         collateralToMigrate1[1] = CometMigratorV2.CompoundV2Collateral({
             cToken: cETH,
-            amount: ethMigrateAmount1
+            amount: uniAndethMigrateAmount1[1]
         });
         CometMigratorV2.CompoundV2Borrow[] memory borrowsToMigrate1 = new CometMigratorV2.CompoundV2Borrow[](1);
         borrowsToMigrate1[0] = CometMigratorV2.CompoundV2Borrow({
@@ -1074,8 +1072,8 @@ contract CometMigratorV2Test is Positor {
         migrator.migrate(compoundV2Position0, 650e6);
 
         // Check v2 balances
-        assertEq(cUNI.balanceOf(borrower), cUNIPre - uniMigrateAmount0, "Amount of cUNI should have been migrated first");
-        assertEq(cETH.balanceOf(borrower), cETHPre - ethMigrateAmount0, "Amount of cETH should have been migrated first");
+        assertEq(cUNI.balanceOf(borrower), cUNIPre - uniAndethMigrateAmount0[0], "Amount of cUNI should have been migrated first");
+        assertEq(cETH.balanceOf(borrower), cETHPre - uniAndethMigrateAmount0[1], "Amount of cETH should have been migrated first");
         assertEq(cUSDC.borrowBalanceCurrent(borrower), 750e6, "Remainder of tokens");
 
         // Check v3 balances
@@ -1087,8 +1085,8 @@ contract CometMigratorV2Test is Positor {
         migrator.migrate(compoundV2Position1, 550e6);
 
         // Check v2 balances
-        assertEq(cUNI.balanceOf(borrower), cUNIPre - uniMigrateAmount0 - uniMigrateAmount1, "Amount of cUNI should have been migrated both");
-        assertEq(cETH.balanceOf(borrower), cETHPre - ethMigrateAmount0 - ethMigrateAmount1, "Amount of cETH should have been migrated both");
+        assertEq(cUNI.balanceOf(borrower), cUNIPre - uniAndethMigrateAmount0[0] - uniAndethMigrateAmount1[0], "Amount of cUNI should have been migrated both");
+        assertEq(cETH.balanceOf(borrower), cETHPre - uniAndethMigrateAmount0[1] - uniAndethMigrateAmount1[1], "Amount of cETH should have been migrated both");
         assertEq(cUSDC.borrowBalanceCurrent(borrower), 200e6, "Remainder of tokens");
 
         // Check v3 balances
