@@ -3,5 +3,6 @@ src = 'src'
 out = 'out'
 libs = ['lib']
 fs_permissions = [{ access = "write", path = "./"}]
+via_ir = true
 
 # See more config options https://github.com/foundry-rs/foundry/tree/master/config
