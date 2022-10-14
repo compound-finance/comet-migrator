@@ -1149,7 +1149,6 @@ contract CometMigratorV2Test is Positor {
         });
 
         // Migration 1
-        CometMigratorV2.CompoundV2Collateral[] memory collateralToMigrate1 = new CometMigratorV2.CompoundV2Collateral[](2);
         CometMigratorV2.CompoundV2Borrow[] memory borrowsToMigrate1 = new CometMigratorV2.CompoundV2Borrow[](1);
         borrowsToMigrate1[0] = CometMigratorV2.CompoundV2Borrow({
             cToken: cUSDC,
