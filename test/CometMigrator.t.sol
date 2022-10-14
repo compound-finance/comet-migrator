@@ -6,6 +6,7 @@ import "../src/CometMigrator.sol";
 import "forge-std/Test.sol";
 import "./MainnetConstants.t.sol";
 import "./Positor.t.sol";
+import "./Tokens.t.sol";
 
 contract CometMigratorTest is Positor {
     event Migrated(
@@ -840,7 +841,7 @@ contract CometMigratorTest is Positor {
         assertEq(comet.borrowBalanceOf(borrower), 1400e6 * 1.0001, "v3 borrow balance");
     }
 
-    function testCallingCallbackDirectly() public {
+    function testReentrancyOne_CallingCallbackDirectly() public {
         // Posit
         Position[] memory positions = new Position[](1);
         positions[0] = Position({
@@ -920,6 +921,76 @@ contract CometMigratorTest is Positor {
             pool_ETH_USDT,
             sweepee
         );
+    }
+
+    function testMigrateReentrancyZero() public {
+        CTokenLike reentrantToken = new ReentrantToken(migrator);
+
+        CometMigrator.Collateral[] memory collateral = new CometMigrator.Collateral[](1);
+        collateral[0] = CometMigrator.Collateral({
+            cToken: reentrantToken,
+            amount: 1
+        });
+        vm.expectRevert(abi.encodeWithSelector(CometMigrator.Reentrancy.selector, 0));
+        migrator.migrate(collateral, 0e6);
+    }
+
+    function testInvalidCallbackZero() public {
+        CTokenLike reentrantCallbackToken = new ReentrantCallbackToken(migrator);
+
+        CometMigrator.Collateral[] memory collateral = new CometMigrator.Collateral[](1);
+        collateral[0] = CometMigrator.Collateral({
+            cToken: reentrantCallbackToken,
+            amount: 1
+        });
+        vm.expectRevert(abi.encodeWithSelector(CometMigrator.InvalidCallback.selector, 0));
+        migrator.migrate(collateral, 0e6);
+    }
+
+    function testReentrancyTwo_SweepToken() public {
+        CTokenLike reentrantSweepToken = new ReentrantSweepToken(migrator);
+
+        CometMigrator.Collateral[] memory collateral = new CometMigrator.Collateral[](1);
+        collateral[0] = CometMigrator.Collateral({
+            cToken: reentrantSweepToken,
+            amount: 1
+        });
+        vm.expectRevert(abi.encodeWithSelector(CometMigrator.Reentrancy.selector, 2));
+        migrator.migrate(collateral, 0e6);
+    }
+
+    function testSweepFailure_Zero() public {
+        CTokenLike lazyToken = new LazyToken();
+        CometMigrator migrator0 = new CometMigrator(
+            comet,
+            cUSDC,
+            cETH,
+            weth,
+            pool_DAI_USDC,
+            payable(address(lazyToken))
+        );
+
+        vm.expectRevert(abi.encodeWithSelector(CometMigrator.SweepFailure.selector, 0));
+        migrator0.sweep(IERC20(0x0000000000000000000000000000000000000000));
+    }
+
+    function testSweepFailure_One() public {
+        CTokenLike lazyToken = new LazyToken();
+
+        vm.expectRevert(abi.encodeWithSelector(CometMigrator.SweepFailure.selector, 1));
+        migrator.sweep(IERC20(address(lazyToken)));
+    }
+
+    function testCompoundV2Error() public {
+        CTokenLike noRedeemToken = new NoRedeemToken();
+
+        CometMigrator.Collateral[] memory collateral = new CometMigrator.Collateral[](1);
+        collateral[0] = CometMigrator.Collateral({
+            cToken: noRedeemToken,
+            amount: 1
+        });
+        vm.expectRevert(abi.encodeWithSelector(CometMigrator.CompoundV2Error.selector, 1, 10));
+        migrator.migrate(collateral, 0e6);
     }
 
     function preflightChecks() internal {

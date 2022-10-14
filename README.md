@@ -36,6 +36,12 @@ You can also run coverage via:
 yarn forge:test --coverage
 ```
 
+Note: the test cases use a fork of Ethereum mainnet. You will need access to an archive node to run tests. You may use `MAINNET_RPC_URL=https://mainnet-eth.compound.finance` for this purpose, but you will be rate-limited. You can set this permanently by running:
+
+```
+echo "MAINNET_RPC_URL=https://mainnet-eth.compound.finance" >> .env.local
+```
+
 ### The Playground
 
 For development, we will use a fork of mainnet, as opposed to developing on a test-net. You can deploy the Migrator to a fork of mainnet, run that in a stand-alone development experience, and attach MetaMask to that fork to interact with the extension. This requires a small amount of set-up, but it makes it significantly easier to test interactions with third-party protocols like using Uniswap swaps, flash loans, Compound v2 and Compound v3, all in one experience without needing the protocols to exist for the same assets on the same oft deprecated test-nets.
