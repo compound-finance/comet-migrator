@@ -6,7 +6,11 @@ import "../src/CometMigratorV2.sol";
 import "forge-std/Test.sol";
 import "./MainnetConstants.t.sol";
 
+<<<<<<< HEAD
 contract Positor is Test, MainnetConstants {
+=======
+contract PositorV2 is Test, MainnetConstants {
+>>>>>>> d836d22 (Implement Migrator V2 from Compound V2 and split out v2 into its own contract/tests)
     struct Posit {
         address borrower;
         CometMigratorV2.CompoundV2Collateral[] collateral;
