@@ -179,7 +179,7 @@ contract CometMigratorV2 is IUniswapV3FlashCallback {
    * @notice This function handles a callback from the Uniswap Liquidity Pool after it has sent this contract the requested tokens. We are responsible for repaying those tokens, with a fee, before we return from this function call.
    * @param fee0 The fee for borrowing token0 from pool.
    * @param fee1 The fee for borrowing token1 from pool.
-   * @param data The data encoded above, which is the ABI-encoding of XXX.
+   * @param data The data encoded above, which is the ABI-encoding of `MigrationCallbackData`.
    **/
   function uniswapV3FlashCallback(uint256 fee0, uint256 fee1, bytes calldata data) external {
     // **REQUIRE** `inMigration == 1`
@@ -242,7 +242,7 @@ contract CometMigratorV2 is IUniswapV3FlashCallback {
               deadline: block.timestamp
           })
         );
-        // XXX keep a running counter of how much borrowed asset is left? (subtract `amountIn` from `flashAmount`)
+        // XXX Should we keep a running counter of how much borrowed asset is left? (subtract `amountIn` from `flashAmount`)
       }
 
       // **CALL** `cToken.underlying().approve(address(cToken), repayAmount)`
