@@ -180,6 +180,7 @@ This function describes the initialization process for this contract. We set the
  * **WRITE IMMUTABLE** `swapRouter = swapRouter_`
  * **WRITE IMMUTABLE** `sweepee = sweepee_`
  * **CALL** `borrowToken.approve(address(borrowCToken), type(uint256).max)`
+ * **CALL** `borrowToken.approve(address(swapRouter), type(uint256).max)`
 
 ### Migrate Function
 
@@ -299,6 +300,7 @@ This internal helper function repays the user’s borrow positions on Compound V
       - **BIND** `repayAmount = borrowAmount`
     - **WHEN** `path.length > 0`:
       - **CALL** `ISwapRouter.exactOutput(ExactOutputParams({path: path, recipient: address(this), amountOut: repayAmount, amountInMaximum: type(uint256).max})`
+    - **CALL** `cToken.underlying().approve(address(cToken), repayAmount)`
     - **CALL** `cToken.repayBorrowBehalf(user, repayAmount)`
   - **FOREACH** `(cToken, amount): CompoundV2Collateral` in `position.collateral`:
     - **CALL** `cToken.transferFrom(user, address(this), amount == type(uint256).max ? cToken.balanceOf(user) : amount)`
