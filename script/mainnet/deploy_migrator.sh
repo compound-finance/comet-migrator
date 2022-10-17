@@ -14,6 +14,12 @@ else
   rpc_args=""
 fi
 
+if [ -n "$ETHERSCAN_API_KEY" ]; then
+  etherscan_args="--verify --etherscan-api-key $ETHERSCAN_API_KEY"
+else
+  etherscan_args=""
+fi
+
 # Constructor Variables
 #
 # CometMigrator::constructor(
