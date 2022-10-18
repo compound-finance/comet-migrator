@@ -142,26 +142,29 @@ export function App<N extends Network>({rpc, web3, account, networkConfig}: AppP
   let { cTokenNames } = networkConfig;
   let [cometState, setCometState] = useState<CometState>(['loading', null]);
 
-  if (rpc) {
-    rpc.on({
-      setTheme: ({theme}) => {
-        console.log('theme', theme);
-        getDocument((document) => {
-          console.log("document", document);
-          document.body.classList.add('theme');
-          document.body.classList.remove(`theme--dark`);
-          document.body.classList.remove(`theme--light`);
-          document.body.classList.add(`theme--${theme.toLowerCase()}`);
-        });   
-      },
-      setCometState: ({cometState: cometStateNew}) => {
-        console.log("Setting comet state", cometStateNew);
-        setCometState(cometStateNew);
-      }
-    });
-  }
+  useEffect(() => {
+    if (rpc) {
+      console.log("setting RPC");
+      rpc.on({
+        setTheme: ({theme}) => {
+          console.log('theme', theme);
+          getDocument((document) => {
+            console.log("document", document);
+            document.body.classList.add('theme');
+            document.body.classList.remove(`theme--dark`);
+            document.body.classList.remove(`theme--light`);
+            document.body.classList.add(`theme--${theme.toLowerCase()}`);
+          });
+        },
+        setCometState: ({cometState: cometStateNew}) => {
+          console.log("Setting comet state", cometStateNew);
+          setCometState(cometStateNew);
+        }
+      });
+    }
+  }, [rpc]);
 
-  let timer = usePoll(1000099999);
+  let timer = usePoll(10000);
 
   const signer = useMemo(() => {
     return web3.getSigner().connectUnchecked();
@@ -223,45 +226,45 @@ export function App<N extends Network>({rpc, web3, account, networkConfig}: AppP
     console.log("disabling migrator");
   }
 
-  // useAsyncEffect(async () => {
-  //   let migratorEnabled = (await comet.allowance(account, migrator.address))?.toBigInt() > 0n;
-  //   let tokenStates = new Map(await Promise.all(Array.from(accountState.cTokens.entries()).map<Promise<[CTokenSym<Network>, CTokenState]>>(async ([sym, state]) => {
-  //     let cTokenCtx = cTokenCtxs.get(sym);
+  useAsyncEffect(async () => {
+    let migratorEnabled = (await comet.allowance(account, migrator.address))?.toBigInt() > 0n;
+    let tokenStates = new Map(await Promise.all(Array.from(accountState.cTokens.entries()).map<Promise<[CTokenSym<Network>, CTokenState]>>(async ([sym, state]) => {
+      let cTokenCtx = cTokenCtxs.get(sym);
 
-  //     if (cTokenCtx) {
-  //       let underlyingDecimals: bigint = state.underlyingDecimals ?? ( 'underlying' in cTokenCtx ? BigInt(await (new Contract(await cTokenCtx.underlying(), ERC20, web3)).decimals()) : 18n );
-  //       let balance: bigint = (await cTokenCtx.balanceOf(account)).toBigInt();
-  //       let exchangeRate: bigint = (await cTokenCtx.callStatic.exchangeRateCurrent()).toBigInt();
-  //       let balanceUnderlying = weiToAmount(balance * exchangeRate / 1000000000000000000n, underlyingDecimals);
+      if (cTokenCtx) {
+        let underlyingDecimals: bigint = state.underlyingDecimals ?? ( 'underlying' in cTokenCtx ? BigInt(await (new Contract(await cTokenCtx.underlying(), ERC20, web3)).decimals()) : 18n );
+        let balance: bigint = (await cTokenCtx.balanceOf(account)).toBigInt();
+        let exchangeRate: bigint = (await cTokenCtx.callStatic.exchangeRateCurrent()).toBigInt();
+        let balanceUnderlying = weiToAmount(balance * exchangeRate / 1000000000000000000n, underlyingDecimals);
 
-  //       return [sym, {
-  //         ...state,
-  //         address: await cTokenCtx.address,
-  //         balance,
-  //         balanceUnderlying,
-  //         allowance: (await cTokenCtx.allowance(account, migrator.address)).toBigInt(),
-  //         exchangeRate,
-  //         decimals: state.decimals ?? BigInt(await cTokenCtx.decimals()),
-  //         underlyingDecimals,
-  //       }];
-  //     } else {
-  //       return [sym, state];
-  //     }
-  //   })));
-  //   console.log("tokenStates", tokenStates);
+        return [sym, {
+          ...state,
+          address: await cTokenCtx.address,
+          balance,
+          balanceUnderlying,
+          allowance: (await cTokenCtx.allowance(account, migrator.address)).toBigInt(),
+          exchangeRate,
+          decimals: state.decimals ?? BigInt(await cTokenCtx.decimals()),
+          underlyingDecimals,
+        }];
+      } else {
+        return [sym, state];
+      }
+    })));
+    console.log("tokenStates", tokenStates);
 
-  //   let cUSDC = cTokenCtxs.get('cUSDC' as  CTokenSym<Network>);
-  //   let usdcBorrowsV2 = await cUSDC?.callStatic.borrowBalanceCurrent(account);
-  //   let usdcDecimals = cUSDC ? BigInt(await (new Contract(await cUSDC.underlying(), ERC20, web3)).decimals()) : 0n;
+    let cUSDC = cTokenCtxs.get('cUSDC' as  CTokenSym<Network>);
+    let usdcBorrowsV2 = await cUSDC?.callStatic.borrowBalanceCurrent(account);
+    let usdcDecimals = cUSDC ? BigInt(await (new Contract(await cUSDC.underlying(), ERC20, web3)).decimals()) : 0n;
 
-  //   setAccountState({
-  //     ...accountState,
-  //     migratorEnabled,
-  //     borrowBalanceV2: usdcBorrowsV2.toString(),
-  //     usdcDecimals: BigInt(usdcDecimals),
-  //     cTokens: tokenStates
-  //   });
-  // }, [timer, account, networkConfig.network, cTokenCtxs]);
+    setAccountState({
+      ...accountState,
+      migratorEnabled,
+      borrowBalanceV2: usdcBorrowsV2.toString(),
+      usdcDecimals: BigInt(usdcDecimals),
+      cTokens: tokenStates
+    });
+  }, [timer, account, networkConfig.network, cTokenCtxs]);
 
   function validateForm(): { borrowAmount: bigint, collateral: Collateral[] } | string {
     let borrowAmount = accountState.borrowBalanceV2;
