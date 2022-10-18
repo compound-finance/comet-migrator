@@ -218,25 +218,29 @@ export function App<N extends Network>({ rpc, web3, account, networkConfig }: Ap
   const [state, dispatch] = useReducer(reducer, initialState);
   const [cometState, setCometState] = useState<CometState>([StateType.Loading, undefined]);
 
-  if (rpc) {
-    rpc.on({
-      setTheme: ({ theme }) => {
-        getDocument(document => {
-          console.log("document", document);
-          document.body.classList.add('theme');
-          document.body.classList.remove(`theme--dark`);
-          document.body.classList.remove(`theme--light`);
-          document.body.classList.add(`theme--${theme.toLowerCase()}`);
-        });   
-      },
-      setCometState: ({cometState: cometStateNew}) => {
-        console.log("Setting comet state", cometStateNew);
-        setCometState(cometStateNew);
-      }
-    });
-  }
+  useEffect(() => {
+    if (rpc) {
+      console.log("setting RPC");
+      rpc.on({
+        setTheme: ({theme}) => {
+          console.log('theme', theme);
+          getDocument((document) => {
+            console.log("document", document);
+            document.body.classList.add('theme');
+            document.body.classList.remove(`theme--dark`);
+            document.body.classList.remove(`theme--light`);
+            document.body.classList.add(`theme--${theme.toLowerCase()}`);
+          });
+        },
+        setCometState: ({cometState: cometStateNew}) => {
+          console.log("Setting comet state", cometStateNew);
+          setCometState(cometStateNew);
+        }
+      });
+    }
+  }, [rpc]);
 
-  let timer = usePoll(1000099999);
+  let timer = usePoll(10000);
 
   const signer = useMemo(() => {
     return web3.getSigner().connectUnchecked();
