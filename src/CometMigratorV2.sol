@@ -20,6 +20,7 @@ contract CometMigratorV2 is IUniswapV3FlashCallback {
   error CompoundV2Error(uint256 loc, uint256 code);
   error SweepFailure(uint256 loc);
   error CTokenTransferFailure();
+  error ATokenTransferFailure();
   error InvalidConfiguration(uint256 loc);
   error InvalidCallback(uint256 loc);
   error InvalidInputs(uint256 loc);
