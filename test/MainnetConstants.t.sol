@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-import "../src/CometMigrator.sol";
+import "../src/CometMigratorV2.sol";
 import "../src/vendor/@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol";
 
 interface Comptroller {
@@ -28,4 +28,5 @@ contract MainnetConstants {
     address public constant cHolderEth = address(0xe84A061897afc2e7fF5FB7e3686717C528617487);
     Comptroller public constant comptroller = Comptroller(0x3d9819210A31b4961b30EF54bE2aeD79B9c9Cd3B);
     ISwapRouter public constant swapRouter = ISwapRouter(0xE592427A0AEce92De3Edee1F18E0157C05861564);
+    ILendingPool public constant aaveV2LendingPool = ILendingPool(0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9);
 }

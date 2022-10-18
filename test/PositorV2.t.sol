@@ -69,6 +69,7 @@ contract Positor is Test, MainnetConstants {
             usdc,
             cETH,
             weth,
+            aaveV2LendingPool,
             pool_DAI_USDC,
             swapRouter,
             sweepee

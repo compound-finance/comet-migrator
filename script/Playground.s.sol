@@ -64,6 +64,7 @@ contract Playground is Script, Test, MainnetConstants {
             usdc,
             cETH,
             weth,
+            aaveV2LendingPool,
             pool_DAI_USDC,
             swapRouter,
             sweepee

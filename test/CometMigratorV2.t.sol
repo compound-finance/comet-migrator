@@ -12,10 +12,23 @@ contract CometMigratorV2Test is Positor {
     event Migrated(
         address indexed user,
         CometMigratorV2.CompoundV2Position compoundV2Position,
+        CometMigratorV2.AaveV2Position aaveV2Position,
         uint256 flashAmount,
         uint256 flashAmountWithFee);
 
     address public constant borrower = address(0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266);
+
+    CometMigratorV2.CompoundV2Position EMPTY_COMPOUND_V2_POSITION = CometMigratorV2.CompoundV2Position({
+        collateral: new CometMigratorV2.CompoundV2Collateral[](0),
+        borrows: new CometMigratorV2.CompoundV2Borrow[](0),
+        paths: new bytes[](0)
+    });
+
+    CometMigratorV2.AaveV2Position EMPTY_AAVE_V2_POSITION = CometMigratorV2.AaveV2Position({
+        collateral: new CometMigratorV2.AaveV2Collateral[](0),
+        borrows: new CometMigratorV2.AaveV2Borrow[](0),
+        paths: new bytes[](0)
+    });
 
     /* ===== Migrator V1 Tests ===== */
 
@@ -62,12 +75,12 @@ contract CometMigratorV2Test is Positor {
 
         // Check event
         vm.expectEmit(true, false, false, true);
-        emit Migrated(borrower, compoundV2Position, 600e6, 600e6 * 1.0001);
+        emit Migrated(borrower, compoundV2Position, EMPTY_AAVE_V2_POSITION, 600e6, 600e6 * 1.0001);
 
         vm.startPrank(borrower);
         cUNI.approve(address(migrator), type(uint256).max);
         comet.allow(address(migrator), true);
-        migrator.migrate(compoundV2Position, 600e6);
+        migrator.migrate(compoundV2Position, EMPTY_AAVE_V2_POSITION, 600e6);
 
         // Check v2 balances
         assertEq(cUNI.balanceOf(borrower), cUNIPre - migrateAmount, "Amount of cUNI should have been migrated");
@@ -121,12 +134,12 @@ contract CometMigratorV2Test is Positor {
 
         // Check event
         vm.expectEmit(true, false, false, true);
-        emit Migrated(borrower, compoundV2Position, 600e6, 600e6 * 1.0001);
+        emit Migrated(borrower, compoundV2Position, EMPTY_AAVE_V2_POSITION, 600e6, 600e6 * 1.0001);
 
         vm.startPrank(borrower);
         cETH.approve(address(migrator), type(uint256).max);
         comet.allow(address(migrator), true);
-        migrator.migrate(compoundV2Position, 600e6);
+        migrator.migrate(compoundV2Position, EMPTY_AAVE_V2_POSITION, 600e6);
 
         // Check v2 balances
         assertEq(cETH.balanceOf(borrower), cETHPre - migrateAmount, "Amount of cETH should have been migrated");
@@ -184,12 +197,12 @@ contract CometMigratorV2Test is Positor {
 
         // Check event
         vm.expectEmit(true, false, false, true);
-        emit Migrated(borrower, compoundV2Position, 600e6, 600e6 * 1.0001);
+        emit Migrated(borrower, compoundV2Position, EMPTY_AAVE_V2_POSITION, 600e6, 600e6 * 1.0001);
 
         vm.startPrank(borrower);
         cUNI.approve(address(migrator), type(uint256).max);
         comet.allow(address(migrator), true);
-        migrator.migrate(compoundV2Position, 600e6);
+        migrator.migrate(compoundV2Position, EMPTY_AAVE_V2_POSITION, 600e6);
 
         // Check v2 balances
         assertEq(cUNI.balanceOf(borrower), cUNIPre - migrateAmount, "Amount of cUNI should have been migrated");
@@ -241,12 +254,12 @@ contract CometMigratorV2Test is Positor {
 
         // Check event
         vm.expectEmit(true, false, false, true);
-        emit Migrated(borrower, compoundV2Position, 700e6, 700e6 * 1.0001);
+        emit Migrated(borrower, compoundV2Position, EMPTY_AAVE_V2_POSITION, 700e6, 700e6 * 1.0001);
 
         vm.startPrank(borrower);
         cUNI.approve(address(migrator), type(uint256).max);
         comet.allow(address(migrator), true);
-        migrator.migrate(compoundV2Position, 700e6);
+        migrator.migrate(compoundV2Position, EMPTY_AAVE_V2_POSITION, 700e6);
 
         // Check v2 balances
         assertEq(cUNI.balanceOf(borrower), 0, "Amount of cUNI should have been migrated");
@@ -298,12 +311,12 @@ contract CometMigratorV2Test is Positor {
 
         // Check event
         vm.expectEmit(true, false, false, true);
-        emit Migrated(borrower, compoundV2Position, 700e6, 700e6 * 1.0001);
+        emit Migrated(borrower, compoundV2Position, EMPTY_AAVE_V2_POSITION, 700e6, 700e6 * 1.0001);
 
         vm.startPrank(borrower);
         cUNI.approve(address(migrator), type(uint256).max);
         comet.allow(address(migrator), true);
-        migrator.migrate(compoundV2Position, 700e6);
+        migrator.migrate(compoundV2Position, EMPTY_AAVE_V2_POSITION, 700e6);
 
         // Check v2 balances
         assertEq(cUNI.balanceOf(borrower), 0, "Amount of cUNI should have been migrated");
@@ -361,12 +374,12 @@ contract CometMigratorV2Test is Positor {
 
         // Check event
         vm.expectEmit(true, false, false, true);
-        emit Migrated(borrower, compoundV2Position, 600e6, 600e6 * 1.0001);
+        emit Migrated(borrower, compoundV2Position, EMPTY_AAVE_V2_POSITION, 600e6, 600e6 * 1.0001);
 
         vm.startPrank(borrower);
         cUNI.approve(address(migrator), type(uint256).max);
         comet.allow(address(migrator), true);
-        migrator.migrate(compoundV2Position, 600e6);
+        migrator.migrate(compoundV2Position, EMPTY_AAVE_V2_POSITION, 600e6);
 
         // Check v2 balances
         assertEq(cUNI.balanceOf(borrower), cUNIPre - migrateAmount, "Amount of cUNI should have been migrated");
@@ -430,13 +443,13 @@ contract CometMigratorV2Test is Positor {
 
         // Check event
         vm.expectEmit(true, false, false, true);
-        emit Migrated(borrower, compoundV2Position, 1200e6, 1200e6 * 1.0001);
+        emit Migrated(borrower, compoundV2Position, EMPTY_AAVE_V2_POSITION, 1200e6, 1200e6 * 1.0001);
 
         vm.startPrank(borrower);
         cUNI.approve(address(migrator), type(uint256).max);
         cETH.approve(address(migrator), type(uint256).max);
         comet.allow(address(migrator), true);
-        migrator.migrate(compoundV2Position, 1200e6);
+        migrator.migrate(compoundV2Position, EMPTY_AAVE_V2_POSITION, 1200e6);
 
         // Check v2 balances
         assertEq(cUNI.balanceOf(borrower), cUNIPre - uniMigrateAmount, "Amount of cUNI should have been migrated");
@@ -493,7 +506,7 @@ contract CometMigratorV2Test is Positor {
         cUNI.approve(address(migrator), 0);
         comet.allow(address(migrator), true);
         vm.expectRevert(stdError.arithmeticError);
-        migrator.migrate(compoundV2Position, 600e6);
+        migrator.migrate(compoundV2Position, EMPTY_AAVE_V2_POSITION, 600e6);
 
         // Check v2 balances
         assertEq(cUNI.balanceOf(borrower), cUNIPre, "Amount of cUNI should have been migrated");
@@ -548,7 +561,7 @@ contract CometMigratorV2Test is Positor {
         cETH.approve(address(migrator), 0);
         comet.allow(address(migrator), true);
         vm.expectRevert(CometMigratorV2.CTokenTransferFailure.selector);
-        migrator.migrate(compoundV2Position, 600e6);
+        migrator.migrate(compoundV2Position, EMPTY_AAVE_V2_POSITION, 600e6);
 
         // Check v2 balances
         assertEq(cETH.balanceOf(borrower), cETHPre, "Amount of cETH should have been migrated");
@@ -603,7 +616,7 @@ contract CometMigratorV2Test is Positor {
         cUNI.approve(address(migrator), type(uint256).max);
         comet.allow(address(migrator), true);
         vm.expectRevert(abi.encodeWithSelector(CTokenLike.TransferComptrollerRejection.selector, 4));
-        migrator.migrate(compoundV2Position, 600e6);
+        migrator.migrate(compoundV2Position, EMPTY_AAVE_V2_POSITION, 600e6);
 
         // Check v2 balances
         assertEq(cUNI.balanceOf(borrower), cUNIPre, "Amount of cUNI should have been migrated");
@@ -658,7 +671,7 @@ contract CometMigratorV2Test is Positor {
         cETH.approve(address(migrator), type(uint256).max);
         comet.allow(address(migrator), true);
         vm.expectRevert(CometMigratorV2.CTokenTransferFailure.selector);
-        migrator.migrate(compoundV2Position, 600e6);
+        migrator.migrate(compoundV2Position, EMPTY_AAVE_V2_POSITION, 600e6);
 
         // Check v2 balances
         assertEq(cETH.balanceOf(borrower), cETHPre, "Amount of cETH should have been migrated");
@@ -711,7 +724,7 @@ contract CometMigratorV2Test is Positor {
         vm.startPrank(borrower);
         cUNI.approve(address(migrator), type(uint256).max);
         vm.expectRevert(Comet.Unauthorized.selector);
-        migrator.migrate(compoundV2Position, 600e6);
+        migrator.migrate(compoundV2Position, EMPTY_AAVE_V2_POSITION, 600e6);
 
         // Check v2 balances
         assertEq(cUNI.balanceOf(borrower), cUNIPre, "Amount of cUNI should have been migrated");
@@ -766,7 +779,7 @@ contract CometMigratorV2Test is Positor {
         cUNI.approve(address(migrator), type(uint256).max);
         comet.allow(address(migrator), true);
         vm.expectRevert(abi.encodeWithSelector(CTokenLike.TransferComptrollerRejection.selector, 4));
-        migrator.migrate(compoundV2Position, 0e6);
+        migrator.migrate(compoundV2Position, EMPTY_AAVE_V2_POSITION, 0e6);
 
         // Check v2 balances
         assertEq(cUNI.balanceOf(borrower), cUNIPre, "Amount of cUNI should have been migrated");
@@ -821,7 +834,7 @@ contract CometMigratorV2Test is Positor {
         cUNI.approve(address(migrator), type(uint256).max);
         comet.allow(address(migrator), true);
         vm.expectRevert(abi.encodeWithSelector(CometMigratorV2.CompoundV2Error.selector, 0, 9));
-        migrator.migrate(compoundV2Position, 800e6);
+        migrator.migrate(compoundV2Position, EMPTY_AAVE_V2_POSITION, 800e6);
 
         // Check v2 balances
         assertEq(cUNI.balanceOf(borrower), cUNIPre, "Amount of cUNI should have been migrated");
@@ -875,7 +888,7 @@ contract CometMigratorV2Test is Positor {
         cUNI.approve(address(migrator), type(uint256).max);
         comet.allow(address(migrator), true);
         vm.expectRevert(abi.encodeWithSelector(CometMigratorV2.CompoundV2Error.selector, 0, 9));
-        migrator.migrate(compoundV2Position, 800e6);
+        migrator.migrate(compoundV2Position, EMPTY_AAVE_V2_POSITION, 800e6);
 
         // Check v2 balances
         assertEq(cUNI.balanceOf(borrower), cUNIPre, "Amount of cUNI should have been migrated");
@@ -929,7 +942,7 @@ contract CometMigratorV2Test is Positor {
         cUNI.approve(address(migrator), type(uint256).max);
         comet.allow(address(migrator), true);
         vm.expectRevert(abi.encodeWithSelector(CometMigratorV2.CompoundV2Error.selector, 0, 9));
-        migrator.migrate(compoundV2Position, 800e6);
+        migrator.migrate(compoundV2Position, EMPTY_AAVE_V2_POSITION, 800e6);
 
         // Check v2 balances
         assertEq(cUNI.balanceOf(borrower), cUNIPre, "Amount of cUNI should have been migrated");
@@ -970,7 +983,7 @@ contract CometMigratorV2Test is Positor {
         vm.startPrank(borrower);
         cUNI.approve(address(migrator), type(uint256).max);
         comet.allow(address(migrator), true);
-        migrator.migrate(compoundV2Position, 0e6);
+        migrator.migrate(compoundV2Position, EMPTY_AAVE_V2_POSITION, 0e6);
 
         // Check v2 balances
         assertEq(cUNI.balanceOf(borrower), cUNIPre, "Amount of cUNI should have been migrated");
@@ -1086,14 +1099,14 @@ contract CometMigratorV2Test is Positor {
 
         // Check event 0
         vm.expectEmit(true, false, false, true);
-        emit Migrated(borrower, compoundV2Position0, 650e6, 650e6 * 1.0001);
+        emit Migrated(borrower, compoundV2Position0, EMPTY_AAVE_V2_POSITION, 650e6, 650e6 * 1.0001);
 
         // Check event 1
         vm.expectEmit(true, false, false, true);
-        emit Migrated(borrower, compoundV2Position1, 550e6, 550e6 * 1.0001);
+        emit Migrated(borrower, compoundV2Position1, EMPTY_AAVE_V2_POSITION, 550e6, 550e6 * 1.0001);
 
         // Migration 0
-        migrator.migrate(compoundV2Position0, 650e6);
+        migrator.migrate(compoundV2Position0, EMPTY_AAVE_V2_POSITION, 650e6);
 
         // Check v2 balances
         assertEq(cUNI.balanceOf(borrower), cUNIPre - uniAndethMigrateAmount0[0], "Amount of cUNI should have been migrated first");
@@ -1106,7 +1119,7 @@ contract CometMigratorV2Test is Positor {
         assertEq(comet.borrowBalanceOf(borrower), 650e6 * 1.0001, "v3 borrow balance");
 
         // Migration 1
-        migrator.migrate(compoundV2Position1, 550e6);
+        migrator.migrate(compoundV2Position1, EMPTY_AAVE_V2_POSITION, 550e6);
 
         // Check v2 balances
         assertEq(cUNI.balanceOf(borrower), cUNIPre - uniAndethMigrateAmount0[0] - uniAndethMigrateAmount1[0], "Amount of cUNI should have been migrated both");
@@ -1191,14 +1204,14 @@ contract CometMigratorV2Test is Positor {
 
         // Check event 0
         vm.expectEmit(true, false, false, true);
-        emit Migrated(borrower, compoundV2Position0, 1200e6, 1200e6 * 1.0001);
+        emit Migrated(borrower, compoundV2Position0, EMPTY_AAVE_V2_POSITION, 1200e6, 1200e6 * 1.0001);
 
         // Check event 1
         vm.expectEmit(true, false, false, true);
-        emit Migrated(borrower, compoundV2Position1, 200e6, 200e6 * 1.0001);
+        emit Migrated(borrower, compoundV2Position1, EMPTY_AAVE_V2_POSITION, 200e6, 200e6 * 1.0001);
 
         // Migration 0
-        migrator.migrate(compoundV2Position0, 1200e6);
+        migrator.migrate(compoundV2Position0, EMPTY_AAVE_V2_POSITION, 1200e6);
 
         // Check v2 balances
         assertEq(cUNI.balanceOf(borrower), cUNIPre - uniMigrateAmount0, "Amount of cUNI should have been migrated first");
@@ -1211,7 +1224,7 @@ contract CometMigratorV2Test is Positor {
         assertEq(comet.borrowBalanceOf(borrower), 1200e6 * 1.0001, "v3 borrow balance");
 
         // Migration 1 [No collateral moved, but still okay]
-        migrator.migrate(compoundV2Position1, 200e6);
+        migrator.migrate(compoundV2Position1, EMPTY_AAVE_V2_POSITION, 200e6);
 
         // Check v2 balances
         assertEq(cUNI.balanceOf(borrower), cUNIPre - uniMigrateAmount0, "Amount of cUNI should have been migrated both");
@@ -1245,7 +1258,7 @@ contract CometMigratorV2Test is Positor {
         uint256 cETHPre = cETH.balanceOf(borrower);
         preflightChecks();
 
-        vm.expectRevert(abi.encodeWithSelector(CometMigrator.Reentrancy.selector, 1));
+        vm.expectRevert(abi.encodeWithSelector(CometMigratorV2.Reentrancy.selector, 1));
         migrator.uniswapV3FlashCallback(0, 0, "");
 
         // Check v2 balances
@@ -1310,6 +1323,7 @@ contract CometMigratorV2Test is Positor {
             usdc,
             cETH,
             weth,
+            aaveV2LendingPool,
             pool_ETH_USDT,
             swapRouter,
             sweepee
@@ -1330,7 +1344,7 @@ contract CometMigratorV2Test is Positor {
             paths: new bytes[](0)
         });
         vm.expectRevert(abi.encodeWithSelector(CometMigratorV2.Reentrancy.selector, 0));
-        migrator.migrate(compoundV2Position, 0e6);
+        migrator.migrate(compoundV2Position, EMPTY_AAVE_V2_POSITION, 0e6);
     }
 
     function testInvalidCallbackZero() public {
@@ -1347,7 +1361,7 @@ contract CometMigratorV2Test is Positor {
             paths: new bytes[](0)
         });
         vm.expectRevert(abi.encodeWithSelector(CometMigratorV2.InvalidCallback.selector, 0));
-        migrator.migrate(compoundV2Position, 0e6);
+        migrator.migrate(compoundV2Position, EMPTY_AAVE_V2_POSITION, 0e6);
     }
 
     function testReentrancyTwo_SweepToken() public {
@@ -1364,7 +1378,7 @@ contract CometMigratorV2Test is Positor {
             paths: new bytes[](0)
         });
         vm.expectRevert(abi.encodeWithSelector(CometMigratorV2.Reentrancy.selector, 2));
-        migrator.migrate(compoundV2Position, 0e6);
+        migrator.migrate(compoundV2Position, EMPTY_AAVE_V2_POSITION, 0e6);
     }
 
     function testSweepFailure_Zero() public {
@@ -1374,6 +1388,7 @@ contract CometMigratorV2Test is Positor {
             usdc,
             cETH,
             weth,
+            aaveV2LendingPool,
             pool_DAI_USDC,
             swapRouter,
             payable(address(lazyToken))
@@ -1404,7 +1419,7 @@ contract CometMigratorV2Test is Positor {
             paths: new bytes[](0)
         });
         vm.expectRevert(abi.encodeWithSelector(CometMigratorV2.CompoundV2Error.selector, 1, 10));
-        migrator.migrate(compoundV2Position, 0e6);
+        migrator.migrate(compoundV2Position, EMPTY_AAVE_V2_POSITION, 0e6);
     }
 
     /* ===== Migrator V2 Specific Tests ===== */
@@ -1451,9 +1466,9 @@ contract CometMigratorV2Test is Positor {
 
         // Check event
         vm.expectEmit(true, false, false, true);
-        emit Migrated(borrower, compoundV2Position, flashEstimate, 360e6 * 1.0001);
+        emit Migrated(borrower, compoundV2Position, EMPTY_AAVE_V2_POSITION, flashEstimate, 360e6 * 1.0001);
 
-        migrator.migrate(compoundV2Position, flashEstimate);
+        migrator.migrate(compoundV2Position, EMPTY_AAVE_V2_POSITION, flashEstimate);
 
         // Check v2 balances
         assertEq(cUNI.balanceOf(borrower), cUNIPre - migrateAmount, "Amount of cUNI should have been migrated");
@@ -1511,9 +1526,9 @@ contract CometMigratorV2Test is Positor {
 
         // Check event
         vm.expectEmit(true, false, false, true);
-        emit Migrated(borrower, compoundV2Position, flashEstimate, 360e6 * 1.0001);
+        emit Migrated(borrower, compoundV2Position, EMPTY_AAVE_V2_POSITION, flashEstimate, 360e6 * 1.0001);
 
-        migrator.migrate(compoundV2Position, flashEstimate);
+        migrator.migrate(compoundV2Position, EMPTY_AAVE_V2_POSITION, flashEstimate);
 
         // Check v2 balances
         assertEq(cUNI.balanceOf(borrower), cUNIPre - migrateAmount, "Amount of cUNI should have been migrated");
@@ -1572,9 +1587,9 @@ contract CometMigratorV2Test is Positor {
 
         // Check event
         vm.expectEmit(true, false, false, true);
-        emit Migrated(borrower, compoundV2Position, flashEstimate, 360e6 * 1.0001);
+        emit Migrated(borrower, compoundV2Position, EMPTY_AAVE_V2_POSITION, flashEstimate, 360e6 * 1.0001);
 
-        migrator.migrate(compoundV2Position, flashEstimate);
+        migrator.migrate(compoundV2Position, EMPTY_AAVE_V2_POSITION, flashEstimate);
 
         // Check v2 balances
         assertEq(cUNI.balanceOf(borrower), cUNIPre - migrateAmount, "Amount of cUNI should have been migrated");
@@ -1638,9 +1653,9 @@ contract CometMigratorV2Test is Positor {
 
         // Check event
         vm.expectEmit(true, false, false, true);
-        emit Migrated(borrower, compoundV2Position, flashEstimate, 710e6 * 1.0001);
+        emit Migrated(borrower, compoundV2Position, EMPTY_AAVE_V2_POSITION, flashEstimate, 710e6 * 1.0001);
 
-        migrator.migrate(compoundV2Position, flashEstimate);
+        migrator.migrate(compoundV2Position, EMPTY_AAVE_V2_POSITION, flashEstimate);
 
         // Check v2 balances
         assertEq(cUNI.balanceOf(borrower), cUNIPre - migrateAmount, "Amount of cUNI should have been migrated");
@@ -1699,7 +1714,7 @@ contract CometMigratorV2Test is Positor {
         comet.allow(address(migrator), true);
 
         vm.expectRevert(bytes("STF")); // Uniswap SafeTransferFrom revert due to lack of USDC to complete swap
-        migrator.migrate(compoundV2Position, flashEstimate);
+        migrator.migrate(compoundV2Position, EMPTY_AAVE_V2_POSITION, flashEstimate);
 
         // Check v2 balances
         assertEq(cUNI.balanceOf(borrower), cUNIPre, "Amount of cUNI should have been migrated");
@@ -1761,7 +1776,7 @@ contract CometMigratorV2Test is Positor {
         comet.allow(address(migrator), true);
 
         vm.expectRevert(bytes("STF")); // Uniswap SafeTransferFrom revert due to lack of USDC to complete swap
-        migrator.migrate(compoundV2Position, flashEstimate);
+        migrator.migrate(compoundV2Position, EMPTY_AAVE_V2_POSITION, flashEstimate);
 
         // Check v2 balances
         assertEq(cUNI.balanceOf(borrower), cUNIPre, "Amount of cUNI should have been migrated");
@@ -1815,9 +1830,9 @@ contract CometMigratorV2Test is Positor {
 
         // Check event
         vm.expectEmit(true, false, false, true);
-        emit Migrated(borrower, compoundV2Position, flashEstimate, 35000e6 * 1.0001);
+        emit Migrated(borrower, compoundV2Position, EMPTY_AAVE_V2_POSITION, flashEstimate, 35000e6 * 1.0001);
 
-        migrator.migrate(compoundV2Position, flashEstimate);
+        migrator.migrate(compoundV2Position, EMPTY_AAVE_V2_POSITION, flashEstimate);
 
         // Check v2 balances
         assertEq(cUNI.balanceOf(borrower), cUNIPre - migrateAmount, "Amount of cUNI should have been migrated");
@@ -1868,7 +1883,7 @@ contract CometMigratorV2Test is Positor {
         comet.allow(address(migrator), true);
 
         vm.expectRevert(abi.encodeWithSelector(CometMigratorV2.InvalidInputs.selector, 0));
-        migrator.migrate(compoundV2Position, flashEstimate);
+        migrator.migrate(compoundV2Position, EMPTY_AAVE_V2_POSITION, flashEstimate);
 
         // Check v2 balances
         assertEq(cUNI.balanceOf(borrower), cUNIPre, "Amount of cUNI should have been migrated");
@@ -1923,7 +1938,7 @@ contract CometMigratorV2Test is Positor {
         comet.allow(address(migrator), true);
 
         vm.expectRevert(); // XXX no revert message
-        migrator.migrate(compoundV2Position, flashEstimate);
+        migrator.migrate(compoundV2Position, EMPTY_AAVE_V2_POSITION, flashEstimate);
 
         // Check v2 balances
         assertEq(cUNI.balanceOf(borrower), cUNIPre, "Amount of cUNI should have been migrated");
@@ -1980,7 +1995,7 @@ contract CometMigratorV2Test is Positor {
         comet.allow(address(migrator), true);
 
         vm.expectRevert(bytes("STF")); // slippage is too high so `flashEstimate` is not enough to cover the swap
-        migrator.migrate(compoundV2Position, flashEstimate);
+        migrator.migrate(compoundV2Position, EMPTY_AAVE_V2_POSITION, flashEstimate);
 
         // Check v2 balances
         assertEq(cUNI.balanceOf(borrower), cUNIPre, "Amount of cUNI should have been migrated");
@@ -2038,9 +2053,9 @@ contract CometMigratorV2Test is Positor {
 
         // Check event
         vm.expectEmit(true, false, false, true);
-        emit Migrated(borrower, compoundV2Position, flashEstimate, 500e6 * 1.0001);
+        emit Migrated(borrower, compoundV2Position, EMPTY_AAVE_V2_POSITION, flashEstimate, 500e6 * 1.0001);
 
-        migrator.migrate(compoundV2Position, flashEstimate);
+        migrator.migrate(compoundV2Position, EMPTY_AAVE_V2_POSITION, flashEstimate);
 
         // Check v2 balances
         assertEq(cUNI.balanceOf(borrower), cUNIPre - migrateAmount, "Amount of cUNI should have been migrated");
@@ -2108,9 +2123,9 @@ contract CometMigratorV2Test is Positor {
 
     //     // Check event
     //     vm.expectEmit(true, false, false, true);
-    //     emit Migrated(borrower, compoundV2Position, flashEstimate, 360e6 * 1.0001);
+    //     emit Migrated(borrower, compoundV2Position, EMPTY_AAVE_V2_POSITION, flashEstimate, 360e6 * 1.0001);
 
-    //     migrator.migrate(compoundV2Position, flashEstimate);
+    //     migrator.migrate(compoundV2Position, EMPTY_AAVE_V2_POSITION, flashEstimate);
 
     //     // Check v2 balances
     //     assertEq(cUNI.balanceOf(borrower), cUNIPre - migrateAmount, "Amount of cUNI should have been migrated");
@@ -2169,9 +2184,9 @@ contract CometMigratorV2Test is Positor {
 
     //     // Check event
     //     vm.expectEmit(true, false, false, true);
-    //     emit Migrated(borrower, compoundV2Position, flashEstimate, 360e6 * 1.0001);
+    //     emit Migrated(borrower, compoundV2Position, EMPTY_AAVE_V2_POSITION, flashEstimate, 360e6 * 1.0001);
 
-    //     migrator.migrate(compoundV2Position, flashEstimate);
+    //     migrator.migrate(compoundV2Position, EMPTY_AAVE_V2_POSITION, flashEstimate);
 
     //     // Check v2 balances
     //     assertEq(cUNI.balanceOf(borrower), cUNIPre - migrateAmount, "Amount of cUNI should have been migrated");
