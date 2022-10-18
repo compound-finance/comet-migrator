@@ -1,6 +1,6 @@
 import '../styles/main.scss';
 
-import { RPC } from '@compound-finance/comet-extension';
+import { CometState, RPC } from '@compound-finance/comet-extension';
 import { Contract } from '@ethersproject/contracts';
 import { JsonRpcProvider } from '@ethersproject/providers';
 import { useEffect, useMemo, useReducer, useState } from 'react';
@@ -216,20 +216,27 @@ const initialState: MigratorState = { type: StateType.Loading, data: { error: nu
 export function App<N extends Network>({ rpc, web3, account, networkConfig }: AppPropsExt<N>) {
   const { cTokenNames } = networkConfig;
   const [state, dispatch] = useReducer(reducer, initialState);
+  const [cometState, setCometState] = useState<CometState>([StateType.Loading, undefined]);
+
   if (rpc) {
     rpc.on({
       setTheme: ({ theme }) => {
         getDocument(document => {
+          console.log("document", document);
           document.body.classList.add('theme');
           document.body.classList.remove(`theme--dark`);
           document.body.classList.remove(`theme--light`);
           document.body.classList.add(`theme--${theme.toLowerCase()}`);
-        });
+        });   
+      },
+      setCometState: ({cometState: cometStateNew}) => {
+        console.log("Setting comet state", cometStateNew);
+        setCometState(cometStateNew);
       }
     });
   }
 
-  let timer = usePoll(10000);
+  let timer = usePoll(1000099999);
 
   const signer = useMemo(() => {
     return web3.getSigner().connectUnchecked();
