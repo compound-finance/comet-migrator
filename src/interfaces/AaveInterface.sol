@@ -11,6 +11,7 @@ interface ATokenLike is IERC20 {
 }
 
 interface ADebtTokenLike is IERC20 {
+    function approveDelegation(address delegatee, uint256 amount) external;
     function DEBT_TOKEN_REVISION() external view returns (uint);
     function UNDERLYING_ASSET_ADDRESS() external view returns (address);
 }
@@ -32,6 +33,29 @@ interface ILendingPool {
     uint256 amount,
     address to
   ) external returns (uint256);
+
+  /**
+   * @dev Allows users to borrow a specific `amount` of the reserve underlying asset, provided that the borrower
+   * already deposited enough collateral, or he was given enough allowance by a credit delegator on the
+   * corresponding debt token (StableDebtToken or VariableDebtToken)
+   * - E.g. User borrows 100 USDC passing as `onBehalfOf` his own address, receiving the 100 USDC in his wallet
+   *   and 100 stable/variable debt tokens, depending on the `interestRateMode`
+   * @param asset The address of the underlying asset to borrow
+   * @param amount The amount to be borrowed
+   * @param interestRateMode The interest rate mode at which the user wants to borrow: 1 for Stable, 2 for Variable
+   * @param referralCode Code used to register the integrator originating the operation, for potential rewards.
+   *   0 if the action is executed directly by the user, without any middle-man
+   * @param onBehalfOf Address of the user who will receive the debt. Should be the address of the borrower itself
+   * calling the function if he wants to borrow against his own collateral, or the address of the credit delegator
+   * if he has been given credit delegation allowance
+   **/
+  function borrow(
+    address asset,
+    uint256 amount,
+    uint256 interestRateMode,
+    uint16 referralCode,
+    address onBehalfOf
+  ) external;
 
   /**
    * @notice Repays a borrowed `amount` on a specific reserve, burning the equivalent debt tokens owned

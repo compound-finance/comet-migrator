@@ -7,18 +7,28 @@ import "forge-std/Test.sol";
 import "./MainnetConstants.t.sol";
 
 contract Positor is Test, MainnetConstants {
+    // XXX change name to `PositCompoundV2`
     struct Posit {
         address borrower;
         CometMigratorV2.CompoundV2Collateral[] collateral;
         CometMigratorV2.CompoundV2Borrow[] borrows;
     }
 
-    mapping (CTokenLike => address) holders;
+    struct PositAaveV2 {
+        address borrower;
+        CometMigratorV2.AaveV2Collateral[] collateral;
+        CometMigratorV2.AaveV2Borrow[] borrows;
+    }
+
+    mapping (CTokenLike => address) cTokenHolders;
+    mapping (ATokenLike => address) aTokenHolders;
     CometMigratorV2 public immutable migrator;
 
     constructor() {
-        holders[cUNI] = cHolderUni;
-        holders[cETH] = cHolderEth;
+        cTokenHolders[cUNI] = cHolderUni;
+        cTokenHolders[cETH] = cHolderEth;
+        aTokenHolders[aUNI] = aHolderUni;
+        aTokenHolders[aWETH] = aHolderWeth;
 
         console.log("Deploying Comet Migrator");
         migrator = deployCometMigrator();
@@ -29,9 +39,13 @@ contract Positor is Test, MainnetConstants {
         setupMigratorBorrow(posit_.borrower, posit_.collateral, posit_.borrows);
     }
 
+    function positAaveV2(PositAaveV2 memory posit_) public {
+        setupMigratorBorrow(posit_.borrower, posit_.collateral, posit_.borrows);
+    }
+
     function setupMigratorBorrow(address borrower, CometMigratorV2.CompoundV2Collateral[] memory collateral, CometMigratorV2.CompoundV2Borrow[] memory borrows) internal returns (CometMigratorV2) {
         for (uint8 i = 0; i < collateral.length; i++) {
-            setupV2Borrows(borrower, collateral[i].cToken, collateral[i].amount);
+            setupCompoundV2Collateral(borrower, collateral[i].cToken, collateral[i].amount);
         }
 
         for (uint8 i = 0; i < borrows.length; i++) {
@@ -47,11 +61,11 @@ contract Positor is Test, MainnetConstants {
         return migrator;
     }
 
-    function setupV2Borrows(address borrower, CTokenLike cToken, uint256 amount) internal {
+    function setupCompoundV2Collateral(address borrower, CTokenLike cToken, uint256 amount) internal {
         // Next, let's transfer in some of the cToken to ourselves
         uint256 tokens = amountToTokens(amount, cToken);
         console.log(address(cToken), tokens);
-        vm.prank(holders[cToken]);
+        vm.prank(cTokenHolders[cToken]);
         cToken.transfer(borrower, tokens);
 
         require(cToken.balanceOf(borrower) == tokens, "invalid cToken balance");
@@ -61,6 +75,36 @@ contract Positor is Test, MainnetConstants {
         address[] memory markets = new address[](1);
         markets[0] = address(cToken);
         comptroller.enterMarkets(markets);
+    }
+
+    function setupMigratorBorrow(address borrower, CometMigratorV2.AaveV2Collateral[] memory collateral, CometMigratorV2.AaveV2Borrow[] memory borrows) internal returns (CometMigratorV2) {
+        for (uint8 i = 0; i < collateral.length; i++) {
+            setupAaveV2Collateral(borrower, collateral[i].aToken, collateral[i].amount);
+        }
+
+        for (uint8 i = 0; i < borrows.length; i++) {
+            ADebtTokenLike aDebtToken = borrows[i].aDebtToken;
+            IERC20 underlying = IERC20(aDebtToken.UNDERLYING_ASSET_ADDRESS()); // XXX doesn't work for cETH
+            uint256 borrowAmount = borrows[i].amount;
+            vm.prank(borrower);
+            aDebtToken.approveDelegation(address(this), type(uint256).max);
+            vm.prank(borrower); // XXX prank not using the correct msg.sender for borrow, so we approveDelegation above first
+            aaveV2LendingPool.borrow(address(underlying), borrowAmount, aDebtToken.DEBT_TOKEN_REVISION(), 0, borrower);
+            underlying.transfer(borrower, borrowAmount);
+            require(underlying.balanceOf(borrower) == borrowAmount, "incorrect borrow");
+            require(aDebtToken.balanceOf(borrower) >= borrowAmount, "incorrect borrow");
+        }
+
+        return migrator;
+    }
+
+    function setupAaveV2Collateral(address borrower, ATokenLike aToken, uint256 amount) internal {
+        // Next, let's transfer in some of the aToken to ourselves
+        console.log(address(aToken), amount);
+        vm.prank(aTokenHolders[aToken]);
+        aToken.transfer(borrower, amount);
+
+        require(aToken.balanceOf(borrower) == amount, "invalid aToken balance");
     }
 
     function deployCometMigrator() internal returns (CometMigratorV2) {

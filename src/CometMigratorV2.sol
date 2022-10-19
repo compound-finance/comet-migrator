@@ -373,13 +373,14 @@ contract CometMigratorV2 is IUniswapV3FlashCallback {
         // XXX Should we keep a running counter of how much borrowed asset is left? (subtract `amountIn` from `flashAmount`)
       }
 
-      // XXX approve underlying token to pay back debt?
-
       // **BIND READ** `underlyingDebt = aDebtToken.UNDERLYING_ASSET_ADDRESS()`
-      address underlyingDebt = borrow.aDebtToken.UNDERLYING_ASSET_ADDRESS();
+      IERC20 underlyingDebt = IERC20(borrow.aDebtToken.UNDERLYING_ASSET_ADDRESS());
 
       // **BIND READ** `rateMode = aDebtToken.DEBT_TOKEN_REVISION()`
       uint256 rateMode = borrow.aDebtToken.DEBT_TOKEN_REVISION();
+
+      // **CALL** `underlyingDebt.approve(address(aaveV2LendingPool), repayAmount)`
+      underlyingDebt.approve(address(aaveV2LendingPool), repayAmount);
 
       // **CALL** `aaveV2LendingPool.repay(underlyingDebt, repayAmount, rateMode, user)`
       // XXX check success like so:
@@ -387,7 +388,7 @@ contract CometMigratorV2 is IUniswapV3FlashCallback {
       // if (err != 0) {
       //   revert CompoundV2Error(0, err);
       // }
-      aaveV2LendingPool.repay(underlyingDebt, repayAmount, rateMode, user);
+      aaveV2LendingPool.repay(address(underlyingDebt), repayAmount, rateMode, user);
     }
 
     // **FOREACH** `(aToken, amount): AaveV2Collateral` in `position.collateral`:
