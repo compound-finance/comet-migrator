@@ -383,11 +383,6 @@ contract CometMigratorV2 is IUniswapV3FlashCallback {
       underlyingDebt.approve(address(aaveV2LendingPool), repayAmount);
 
       // **CALL** `aaveV2LendingPool.repay(underlyingDebt, repayAmount, rateMode, user)`
-      // XXX check success like so:
-      // uint256 err = borrow.cToken.repayBorrowBehalf(user, repayAmount);
-      // if (err != 0) {
-      //   revert CompoundV2Error(0, err);
-      // }
       aaveV2LendingPool.repay(address(underlyingDebt), repayAmount, rateMode, user);
     }
 

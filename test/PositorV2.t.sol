@@ -7,7 +7,7 @@ import "forge-std/Test.sol";
 import "./MainnetConstants.t.sol";
 
 contract Positor is Test, MainnetConstants {
-    // XXX change name to `PositCompoundV2`
+    // XXX change name to `PositCompoundV2`?
     struct Posit {
         address borrower;
         CometMigratorV2.CompoundV2Collateral[] collateral;
@@ -36,14 +36,14 @@ contract Positor is Test, MainnetConstants {
     }
 
     function posit(Posit memory posit_) public {
-        setupMigratorBorrow(posit_.borrower, posit_.collateral, posit_.borrows);
+        setupCompoundV2MigratorBorrow(posit_.borrower, posit_.collateral, posit_.borrows);
     }
 
     function positAaveV2(PositAaveV2 memory posit_) public {
-        setupMigratorBorrow(posit_.borrower, posit_.collateral, posit_.borrows);
+        setupAaveV2MigratorBorrow(posit_.borrower, posit_.collateral, posit_.borrows);
     }
 
-    function setupMigratorBorrow(address borrower, CometMigratorV2.CompoundV2Collateral[] memory collateral, CometMigratorV2.CompoundV2Borrow[] memory borrows) internal returns (CometMigratorV2) {
+    function setupCompoundV2MigratorBorrow(address borrower, CometMigratorV2.CompoundV2Collateral[] memory collateral, CometMigratorV2.CompoundV2Borrow[] memory borrows) internal returns (CometMigratorV2) {
         for (uint8 i = 0; i < collateral.length; i++) {
             setupCompoundV2Collateral(borrower, collateral[i].cToken, collateral[i].amount);
         }
@@ -51,10 +51,11 @@ contract Positor is Test, MainnetConstants {
         for (uint8 i = 0; i < borrows.length; i++) {
             CErc20 cToken = borrows[i].cToken;
             IERC20 underlying = cToken.underlying(); // XXX doesn't work for cETH
+            uint256 preUnderlyingAmount = underlying.balanceOf(borrower);
             uint256 borrowAmount = borrows[i].amount;
             vm.prank(borrower);
             require(cToken.borrow(borrowAmount) == 0, "failed to borrow"); // 100 USDC
-            require(underlying.balanceOf(borrower) == borrowAmount, "incorrect borrow");
+            require(underlying.balanceOf(borrower) - preUnderlyingAmount == borrowAmount, "incorrect borrow");
             require(cToken.borrowBalanceCurrent(borrower) >= borrowAmount, "incorrect borrow");
         }
 
@@ -77,21 +78,22 @@ contract Positor is Test, MainnetConstants {
         comptroller.enterMarkets(markets);
     }
 
-    function setupMigratorBorrow(address borrower, CometMigratorV2.AaveV2Collateral[] memory collateral, CometMigratorV2.AaveV2Borrow[] memory borrows) internal returns (CometMigratorV2) {
+    function setupAaveV2MigratorBorrow(address borrower, CometMigratorV2.AaveV2Collateral[] memory collateral, CometMigratorV2.AaveV2Borrow[] memory borrows) internal returns (CometMigratorV2) {
         for (uint8 i = 0; i < collateral.length; i++) {
             setupAaveV2Collateral(borrower, collateral[i].aToken, collateral[i].amount);
         }
 
         for (uint8 i = 0; i < borrows.length; i++) {
             ADebtTokenLike aDebtToken = borrows[i].aDebtToken;
-            IERC20 underlying = IERC20(aDebtToken.UNDERLYING_ASSET_ADDRESS()); // XXX doesn't work for cETH
+            IERC20 underlying = IERC20(aDebtToken.UNDERLYING_ASSET_ADDRESS());
+            uint256 preUnderlyingAmount = underlying.balanceOf(borrower);
             uint256 borrowAmount = borrows[i].amount;
             vm.prank(borrower);
             aDebtToken.approveDelegation(address(this), type(uint256).max);
             vm.prank(borrower); // XXX prank not using the correct msg.sender for borrow, so we approveDelegation above first
             aaveV2LendingPool.borrow(address(underlying), borrowAmount, aDebtToken.DEBT_TOKEN_REVISION(), 0, borrower);
             underlying.transfer(borrower, borrowAmount);
-            require(underlying.balanceOf(borrower) == borrowAmount, "incorrect borrow");
+            require(underlying.balanceOf(borrower) - preUnderlyingAmount == borrowAmount, "incorrect borrow");
             require(aDebtToken.balanceOf(borrower) >= borrowAmount, "incorrect borrow");
         }
 
