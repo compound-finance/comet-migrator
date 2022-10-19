@@ -1,5 +1,5 @@
 import cometMigratorAbi from '../abis/CometMigrator';
-import { Contract, ContractInterface } from '@ethersproject/contracts';
+import { ContractInterface } from '@ethersproject/contracts';
 
 import mainnetV3Roots from '../node_modules/comet/deployments/mainnet/usdc/roots.json';
 import { Contracts as mainnetV2Roots } from '../node_modules/compound-config/networks/mainnet.json';
@@ -24,7 +24,7 @@ const mainnetTokens = [
   "cUSDT",
   "cUSDC",
   "cETH",
-  "cSAI",
+  // "cSAI",
   "cREP",
   "cBAT",
   "cCOMP",
@@ -59,6 +59,7 @@ export type RootsV3<Network> =
 
 export interface NetworkConfig<Network> {
   network: Network,
+  comptrollerAddress: string;
   migratorAddress: string;
   migratorAbi: typeof cometMigratorAbi;
   cTokenNames: readonly CTokenSym<Network>[];
@@ -116,8 +117,19 @@ function getMigratorAddress(network: Network): string {
   return null as never;
 }
 
+function getComptrollerAddress(network: Network): string {
+  if (network === 'mainnet') {
+    return '0x3d9819210A31b4961b30EF54bE2aeD79B9c9Cd3B';
+  } else if (network === 'goerli') {
+    return '0x3cBe63aAcF6A064D32072a630A3eab7545C54d78';
+  }
+
+  return null as never;
+}
+
 export function mainnetConfig<N extends 'mainnet'>(network: N): NetworkConfig<'mainnet'> {
   const migratorAddress: string = getMigratorAddress(network);
+  const comptrollerAddress: string = getComptrollerAddress(network);
 
   let cTokenNames: readonly CTokenSym<'mainnet'>[] = mainnetTokens;
 
@@ -144,6 +156,7 @@ export function mainnetConfig<N extends 'mainnet'>(network: N): NetworkConfig<'m
 
   return {
     network,
+    comptrollerAddress,
     migratorAddress,
     migratorAbi,
     cTokenAbi,
@@ -155,6 +168,7 @@ export function mainnetConfig<N extends 'mainnet'>(network: N): NetworkConfig<'m
 
 export function goerliConfig<N extends 'goerli'>(network: N): NetworkConfig<'goerli'> {
   const migratorAddress: string = getMigratorAddress(network);
+  const comptrollerAddress: string = getComptrollerAddress(network);
 
   let cTokenNames: readonly CTokenSym<'goerli'>[] = goerliTokens;
 
@@ -182,6 +196,7 @@ export function goerliConfig<N extends 'goerli'>(network: N): NetworkConfig<'goe
 
   return {
     network,
+    comptrollerAddress,
     migratorAddress,
     migratorAbi,
     cTokenAbi,

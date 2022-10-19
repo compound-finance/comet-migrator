@@ -14,17 +14,10 @@
 
   &__bar {
     border-radius: 8px;
+    background-color: var(--data--neutral--2);
     height: var(--height);
     position: relative;
     width: 100%;
-
-    &--dark {
-      background-color: $neutral--100;
-    }
-
-    &--light {
-      background-color: var(--data--neutral--2);
-    }
   }
 
   &__percentage {
@@ -45,15 +38,15 @@
     transition: width 0.25s ease;
 
     &--low {
-      background-color: $green--30;
+      background-color: var(--data--supply);
     }
 
     &--medium {
-      background-color: $gold--30;
+      background-color: var(--data--warning);
     }
 
     &--high {
-      background-color: $red--50;
+      background-color: var(--data--caution);
     }
   }
 }
