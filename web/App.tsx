@@ -1,6 +1,6 @@
 import '../styles/main.scss';
 
-import { RPC } from '@compound-finance/comet-extension';
+import { CometState, RPC } from '@compound-finance/comet-extension';
 import { Contract } from '@ethersproject/contracts';
 import { JsonRpcProvider } from '@ethersproject/providers';
 import { useEffect, useMemo, useReducer, useState } from 'react';
@@ -18,7 +18,7 @@ import { CTokenSym, Network, NetworkConfig, getNetworkById, getNetworkConfig } f
 
 const MAX_UINT256 = BigInt('115792089237316195423570985008687907853269984665640564039457584007913129639935');
 const FACTOR_PRECISION = 18;
-const PRICE_PRECISION = 6;
+const PRICE_PRECISION = 8;
 
 interface AppProps {
   rpc?: RPC;
@@ -216,18 +216,29 @@ const initialState: MigratorState = { type: StateType.Loading, data: { error: nu
 export function App<N extends Network>({ rpc, web3, account, networkConfig }: AppPropsExt<N>) {
   const { cTokenNames } = networkConfig;
   const [state, dispatch] = useReducer(reducer, initialState);
-  if (rpc) {
-    rpc.on({
-      setTheme: ({ theme }) => {
-        getDocument(document => {
-          document.body.classList.add('theme');
-          document.body.classList.remove(`theme--dark`);
-          document.body.classList.remove(`theme--light`);
-          document.body.classList.add(`theme--${theme.toLowerCase()}`);
-        });
-      }
-    });
-  }
+  const [cometState, setCometState] = useState<CometState>([StateType.Loading, undefined]);
+
+  useEffect(() => {
+    if (rpc) {
+      console.log('setting RPC');
+      rpc.on({
+        setTheme: ({ theme }) => {
+          console.log('theme', theme);
+          getDocument(document => {
+            console.log('document', document);
+            document.body.classList.add('theme');
+            document.body.classList.remove(`theme--dark`);
+            document.body.classList.remove(`theme--light`);
+            document.body.classList.add(`theme--${theme.toLowerCase()}`);
+          });
+        },
+        setCometState: ({ cometState: cometStateNew }) => {
+          console.log('Setting comet state', cometStateNew);
+          setCometState(cometStateNew);
+        }
+      });
+    }
+  }, [rpc]);
 
   let timer = usePoll(10000);
 
@@ -297,7 +308,7 @@ export function App<N extends Network>({ rpc, web3, account, networkConfig }: Ap
           const transfer: string = maybeTokenState?.transfer ?? '0.0000';
           const oracle = await oraclePromise;
           const priceSymbol = sym === 'cWBTC' ? 'BTC' : sym.slice(1);
-          const price: bigint = (await oracle.price(priceSymbol)).toBigInt();
+          const price: bigint = (await oracle.price(priceSymbol)).toBigInt() * 100n; // scale up to 8 decimal precision to match V3 price precision
 
           return [
             sym,
@@ -482,15 +493,27 @@ export function App<N extends Network>({ rpc, web3, account, networkConfig }: Ap
             </p>
           </div>
           <div className="migrator__input-view__right">
-            <button
-              className="button button--small"
-              disabled={sym !== 'cUSDC'}
-              onClick={() =>
-                dispatch({ type: ActionType.SetRepayAmount, payload: { symbol: sym, repayAmount: 'max' } })
-              }
-            >
-              Max
-            </button>
+            {tokenState.repayAmount === 'max' ? (
+              <button
+                className="button button--selected"
+                onClick={() =>
+                  dispatch({ type: ActionType.SetRepayAmount, payload: { symbol: sym, repayAmount: '0.0000' } })
+                }
+              >
+                <Close />
+                <span>Max</span>
+              </button>
+            ) : (
+              <button
+                className="button button--small"
+                disabled={sym !== 'cUSDC'}
+                onClick={() =>
+                  dispatch({ type: ActionType.SetRepayAmount, payload: { symbol: sym, repayAmount: 'max' } })
+                }
+              >
+                Max
+              </button>
+            )}
             <p className="meta text-color--2" style={{ marginTop: '0.75rem' }}>
               <span style={{ fontWeight: '500' }}>V2 balance:</span>{' '}
               {formatTokenBalance(tokenState.underlyingDecimals, tokenState.borrowBalance, false)}
@@ -609,7 +632,7 @@ export function App<N extends Network>({ rpc, web3, account, networkConfig }: Ap
     });
   }
 
-  if (state.type === StateType.Loading) {
+  if (state.type === StateType.Loading || cometState[0] !== StateType.Hydrated) {
     return (
       <div className="page migrator">
         <div className="container">
@@ -656,24 +679,99 @@ export function App<N extends Network>({ rpc, web3, account, networkConfig }: Ap
   const v2AvailableToBorrow = v2BorrowCapacity - v2BorrowValue;
   const displayV2AvailableToBorrow = formatTokenBalance(PRICE_PRECISION, v2AvailableToBorrow, false, true);
 
-  const v3BorrowValue = cTokens.reduce((acc, [, { borrowBalance, underlyingDecimals, price, repayAmount }]) => {
-    const maybeRepayAmount =
-      repayAmount === 'max' ? borrowBalance : maybeBigIntFromString(repayAmount, underlyingDecimals);
-    const repayAmountBigInt =
-      maybeRepayAmount === undefined ? 0n : maybeRepayAmount > borrowBalance ? borrowBalance : maybeRepayAmount;
-    return acc + ((borrowBalance - repayAmountBigInt) * price) / BigInt(10 ** underlyingDecimals);
-  }, BigInt(0));
-  const displayV3BorrowValue = formatTokenBalance(PRICE_PRECISION, v2BorrowValue, false, true);
+  const cometData = cometState[1];
 
-  const hasMigratePosition =
-    cTokens.findIndex(([, { borrowBalance, repayAmount, underlyingDecimals }]) => {
+  const v2ToV3MigrateBorrowValue = cTokens.reduce(
+    (acc, [, { borrowBalance, underlyingDecimals, price, repayAmount }]) => {
       const maybeRepayAmount =
         repayAmount === 'max' ? borrowBalance : maybeBigIntFromString(repayAmount, underlyingDecimals);
-      return maybeRepayAmount !== undefined && maybeRepayAmount > 0n;
-    }) !== -1;
+      const repayAmountBigInt =
+        maybeRepayAmount === undefined ? 0n : maybeRepayAmount > borrowBalance ? borrowBalance : maybeRepayAmount;
+      return acc + (repayAmountBigInt * price) / BigInt(10 ** underlyingDecimals);
+    },
+    BigInt(0)
+  );
+  const v3BorrowValue = cometData.baseAsset.balance + v2ToV3MigrateBorrowValue;
+  const displayV3BorrowValue = formatTokenBalance(PRICE_PRECISION, v3BorrowValue, false, true);
 
-  const [v2RiskLevel, v2RiskPercentage, v2RiskPercentageFill] = getRiskLevelAndPercentage(v2BorrowValue, v2BorrowCapacity);
-  const [v3RiskLevel, v3RiskPercentage, v3RiskPercentageFill] = getRiskLevelAndPercentage(0n, 100n);
+  const v2ToV3MigrateCollateralValue = cTokens.reduce(
+    (acc, [, { balanceUnderlying, underlyingDecimals, price, transfer }]) => {
+      const maybeTransfer =
+        transfer === 'max' ? balanceUnderlying : maybeBigIntFromString(transfer, underlyingDecimals);
+      const transferBigInt =
+        maybeTransfer === undefined ? 0n : maybeTransfer > balanceUnderlying ? balanceUnderlying : maybeTransfer;
+      return acc + (transferBigInt * price) / BigInt(10 ** underlyingDecimals);
+    },
+    BigInt(0)
+  );
+  const v3CollateralValuePreMigrate = cometData.collateralAssets.reduce((acc, { balance, decimals, price }) => {
+    return acc + (balance * price) / BigInt(10 ** decimals);
+  }, BigInt(0));
+
+  const v3CollateralValue = v2ToV3MigrateCollateralValue + v3CollateralValuePreMigrate;
+  const displayV3CollateralValue = formatTokenBalance(PRICE_PRECISION, v3CollateralValue, false, true);
+
+  const v3BorrowCapacityValue = cometData.collateralAssets.reduce(
+    (acc, { balance, collateralFactor, decimals, price, symbol }) => {
+      const maybeCToken = cTokens.find(([sym]) => sym.slice(1) === symbol)?.[1];
+      const maybeTransfer =
+        maybeCToken === undefined
+          ? undefined
+          : maybeCToken.transfer === 'max'
+          ? maybeCToken.balanceUnderlying
+          : maybeBigIntFromString(maybeCToken.transfer, maybeCToken.underlyingDecimals);
+      const transferBigInt =
+        maybeTransfer === undefined
+          ? 0n
+          : maybeCToken !== undefined && maybeTransfer > maybeCToken.balanceUnderlying
+          ? maybeCToken.balanceUnderlying
+          : maybeTransfer;
+      const dollarValue = ((balance + transferBigInt) * price) / BigInt(10 ** decimals);
+      const capacity = (dollarValue * collateralFactor) / BigInt(10 ** FACTOR_PRECISION);
+      return acc + capacity;
+    },
+    BigInt(0)
+  );
+  const displayV3BorrowCapacity = formatTokenBalance(PRICE_PRECISION, v3BorrowCapacityValue, false, true);
+
+  const v3LiquidationCapacityValue = cometData.collateralAssets.reduce(
+    (acc, { balance, liquidationFactor, decimals, price, symbol }) => {
+      const maybeCToken = cTokens.find(([sym]) => sym.slice(1) === symbol)?.[1];
+      const maybeTransfer =
+        maybeCToken === undefined
+          ? undefined
+          : maybeCToken.transfer === 'max'
+          ? maybeCToken.balanceUnderlying
+          : maybeBigIntFromString(maybeCToken.transfer, maybeCToken.underlyingDecimals);
+      const transferBigInt =
+        maybeTransfer === undefined
+          ? 0n
+          : maybeCToken !== undefined && maybeTransfer > maybeCToken.balanceUnderlying
+          ? maybeCToken.balanceUnderlying
+          : maybeTransfer;
+      const dollarValue = ((balance + transferBigInt) * price) / BigInt(10 ** decimals);
+      const capacity = (dollarValue * liquidationFactor) / BigInt(10 ** FACTOR_PRECISION);
+      return acc + capacity;
+    },
+    BigInt(0)
+  );
+
+  const v3AvailableToBorrow = v3BorrowCapacityValue - v3BorrowValue;
+  const displayV3AvailableToBorrow = formatTokenBalance(PRICE_PRECISION, v3AvailableToBorrow, false, true);
+
+  const hasMigratePosition = v2ToV3MigrateBorrowValue > 0n || v2ToV3MigrateCollateralValue > 0n;
+
+  const [v2RiskLevel, v2RiskPercentage, v2RiskPercentageFill] = getRiskLevelAndPercentage(
+    v2BorrowValue,
+    v2BorrowCapacity
+  );
+  const [v3RiskLevel, v3RiskPercentage, v3RiskPercentageFill] = getRiskLevelAndPercentage(
+    v3BorrowValue,
+    v3LiquidationCapacityValue
+  );
+  const v3LiquidationPoint = (v3CollateralValue * BigInt(Math.min(100, v3RiskPercentage))) / 100n;
+  const displayV3LiquidationPoint = formatTokenBalance(PRICE_PRECISION, v3LiquidationPoint, false, true);
+
   return (
     <div className="page migrator">
       <div className="container">
@@ -766,34 +864,38 @@ export function App<N extends Network>({ rpc, web3, account, networkConfig }: Ap
                   </div>
                 </div>
               </div>
-              <div className={`migrator__summary__section${' migrator__summary__section--disabled'}`}>
+              <div
+                className={`migrator__summary__section${
+                  hasMigratePosition ? '' : ' migrator__summary__section--disabled'
+                }`}
+              >
                 <label className="L1 label text-color--2 migrator__summary__section__header">{`V3 Position${
                   hasMigratePosition ? ' • After' : ''
                 }`}</label>
                 <div className="migrator__summary__section__row">
                   <div>
                     <p className="meta text-color--2">Borrowing</p>
-                    <h4 className="heading heading--emphasized">$0.00</h4>
+                    <h4 className="heading heading--emphasized">{displayV3BorrowValue}</h4>
                   </div>
                 </div>
                 <div className="migrator__summary__section__row">
                   <div>
                     <p className="meta text-color--2">Collateral Value</p>
-                    <p className="body body--link">$0.00</p>
+                    <p className="body body--link">{displayV3CollateralValue}</p>
                   </div>
                   <div>
                     <p className="meta text-color--2">Borrow Capacity</p>
-                    <p className="body body--link">$0.00</p>
+                    <p className="body body--link">{displayV3BorrowCapacity}</p>
                   </div>
                 </div>
                 <div className="migrator__summary__section__row">
                   <div>
                     <p className="meta text-color--2">Available to Borrow</p>
-                    <p className="body body--link">$0.00</p>
+                    <p className="body body--link">{displayV3AvailableToBorrow}</p>
                   </div>
                   <div>
                     <p className="meta text-color--2">Liquidation Point</p>
-                    <p className="body body--link">$0.00</p>
+                    <p className="body body--link">{displayV3LiquidationPoint}</p>
                   </div>
                 </div>
                 <div className="migrator__summary__section__row">
