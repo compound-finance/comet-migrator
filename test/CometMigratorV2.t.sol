@@ -18,18 +18,6 @@ contract CometMigratorV2Test is Positor {
 
     address public constant borrower = address(0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266);
 
-    CometMigratorV2.CompoundV2Position private EMPTY_COMPOUND_V2_POSITION = CometMigratorV2.CompoundV2Position({
-        collateral: new CometMigratorV2.CompoundV2Collateral[](0),
-        borrows: new CometMigratorV2.CompoundV2Borrow[](0),
-        paths: new bytes[](0)
-    });
-
-    CometMigratorV2.AaveV2Position private EMPTY_AAVE_V2_POSITION = CometMigratorV2.AaveV2Position({
-        collateral: new CometMigratorV2.AaveV2Collateral[](0),
-        borrows: new CometMigratorV2.AaveV2Borrow[](0),
-        paths: new bytes[](0)
-    });
-
     /* ===== Migrator V1 Tests ===== */
 
     function testMigrateSimpleUniPosition() public {
