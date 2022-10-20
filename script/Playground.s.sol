@@ -4,7 +4,7 @@ pragma solidity ^0.8.13;
 import "forge-std/Script.sol";
 import "../src/CometMigratorV2.sol";
 import "forge-std/Test.sol";
-import "../test/MainnetConstants.t.sol";
+import "../test/MainnetConstantsV2.t.sol";
 import "forge-std/console2.sol";
 
 contract Playground is Script, Test, MainnetConstants {
@@ -71,7 +71,7 @@ contract Playground is Script, Test, MainnetConstants {
         );
     }
 
-    function swap(IERC20 token0, IERC20 token1, uint24 poolFee, address recipient, uint256 amountIn) internal returns (uint256) {
+    function swap(IERC20NonStandard token0, IERC20NonStandard token1, uint24 poolFee, address recipient, uint256 amountIn) internal returns (uint256) {
         // Approve the router to spend token0
         token0.approve(address(swapRouter), type(uint256).max);
 

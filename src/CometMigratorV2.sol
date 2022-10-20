@@ -3,12 +3,12 @@ pragma solidity 0.8.16;
 
 import "./vendor/@uniswap/v3-core/contracts/interfaces/callback/IUniswapV3FlashCallback.sol";
 import "./vendor/@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
-import "./vendor/@uniswap/v3-periphery/contracts/interfaces/external/IWETH9.sol";
 import "./vendor/@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol";
 import "./vendor/@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./interfaces/AaveInterface.sol";
 import "./interfaces/CTokenInterface.sol";
 import "./interfaces/CometInterface.sol";
+import "./interfaces/IWETH9.sol";
 
 /**
  * @title Compound III Migrator v2
@@ -92,7 +92,7 @@ contract CometMigratorV2 is IUniswapV3FlashCallback {
   ISwapRouter public immutable swapRouter;
 
   /// @notice The underlying borrow token (e.g. `USDC`).
-  IERC20 public immutable baseToken;
+  IERC20NonStandard public immutable baseToken;
 
   /// @notice The address of the `cETH` token.
   CTokenLike public immutable cETH;
@@ -122,7 +122,7 @@ contract CometMigratorV2 is IUniswapV3FlashCallback {
    **/
   constructor(
     Comet comet_,
-    IERC20 baseToken_,
+    IERC20NonStandard baseToken_,
     CTokenLike cETH_,
     IWETH9 weth_,
     ILendingPool aaveV2LendingPool_,
@@ -246,6 +246,7 @@ contract CometMigratorV2 is IUniswapV3FlashCallback {
     comet.withdrawFrom(migrationData.user, address(this), address(baseToken), flashAmountWithFee - baseToken.balanceOf(address(this)));
 
     // **CALL** `baseToken.transfer(address(uniswapLiquidityPool), flashAmountWithFee)`
+    // We shouldn't need to handle unsuccessful transfers since Uniswap will just revert
     baseToken.transfer(address(uniswapLiquidityPool), flashAmountWithFee);
 
     // **EMIT** `Migrated(user, compoundV2Position, aaveV2Position, cdpPositions, flashAmount, flashAmountWithFee)`
@@ -286,7 +287,7 @@ contract CometMigratorV2 is IUniswapV3FlashCallback {
       }
 
       // **CALL** `cToken.underlying().approve(address(cToken), repayAmount)`
-      borrow.cToken.underlying().approve(address(borrow.cToken), repayAmount);
+      IERC20NonStandard(borrow.cToken.underlying()).approve(address(borrow.cToken), repayAmount);
 
       // **CALL** `cToken.repayBorrowBehalf(user, repayAmount)`
       uint256 err = borrow.cToken.repayBorrowBehalf(user, repayAmount);
@@ -315,7 +316,7 @@ contract CometMigratorV2 is IUniswapV3FlashCallback {
         revert CompoundV2Error(1 + i, err);
       }
 
-      IERC20 underlying;
+      IERC20NonStandard underlying;
 
       // **WHEN** `cToken == cETH`:
       if (collateral.cToken == cETH) {
@@ -326,7 +327,7 @@ contract CometMigratorV2 is IUniswapV3FlashCallback {
         underlying = weth;
       } else {
         // **BIND** `underlying = cToken.underlying()`
-        underlying = CErc20(address(collateral.cToken)).underlying();
+        underlying = IERC20NonStandard(CErc20(address(collateral.cToken)).underlying());
       }
 
       // **CALL** `underlying.approve(address(comet), type(uint256).max)`
@@ -375,7 +376,7 @@ contract CometMigratorV2 is IUniswapV3FlashCallback {
       }
 
       // **BIND READ** `underlyingDebt = aDebtToken.UNDERLYING_ASSET_ADDRESS()`
-      IERC20 underlyingDebt = IERC20(borrow.aDebtToken.UNDERLYING_ASSET_ADDRESS());
+      IERC20NonStandard underlyingDebt = IERC20NonStandard(borrow.aDebtToken.UNDERLYING_ASSET_ADDRESS());
 
       // **BIND READ** `rateMode = aDebtToken.DEBT_TOKEN_REVISION()`
       uint256 rateMode = borrow.aDebtToken.DEBT_TOKEN_REVISION();
@@ -399,7 +400,7 @@ contract CometMigratorV2 is IUniswapV3FlashCallback {
       );
 
       // **BIND READ** `underlyingCollateral = aToken.UNDERLYING_ASSET_ADDRESS()`
-      IERC20 underlyingCollateral = IERC20(collateral.aToken.UNDERLYING_ASSET_ADDRESS());
+      IERC20NonStandard underlyingCollateral = IERC20NonStandard(collateral.aToken.UNDERLYING_ASSET_ADDRESS());
 
       // **CALL** `aaveV2LendingPool.withdraw(underlyingCollateral, aToken.balanceOf(address(this)), address(this))`
       aaveV2LendingPool.withdraw(address(underlyingCollateral), collateral.aToken.balanceOf(address(this)), address(this));
@@ -420,6 +421,7 @@ contract CometMigratorV2 is IUniswapV3FlashCallback {
    * @notice Sends any tokens in this contract to the sweepee address. This contract should never hold tokens, so this is just to fix any anomalistic situations where tokens end up locked in the contract.
    * @param token The token to sweep
    **/
+   // XXX make into non standard?
   function sweep(IERC20 token) external {
     // **REQUIRE** `inMigration == 0`
     if (inMigration != 0) {
