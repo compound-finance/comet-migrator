@@ -12,7 +12,7 @@ import "./interfaces/CometInterface.sol";
 
 /**
  * @title Compound III Migrator v2
- * @notice A contract to help migrate a Compound II position into a similar Compound III position.
+ * @notice A contract to help migrate a Compound II or Aave v2 position into a similar Compound III position.
  * @author Compound
  */
 contract CometMigratorV2 is IUniswapV3FlashCallback {
@@ -52,20 +52,20 @@ contract CometMigratorV2 is IUniswapV3FlashCallback {
     uint256 amount; // Note: This is the amount of the underlying, not the cToken
   }
 
-  /// @notice Represents an entire Aave V2 position (collateral + borrows) to migrate.
+  /// @notice Represents an entire Aave v2 position (collateral + borrows) to migrate.
   struct AaveV2Position {
     AaveV2Collateral[] collateral;
     AaveV2Borrow[] borrows;
     bytes[] paths; // empty path if no swap is required (e.g. repaying USDC borrow)
   }
 
-  /// @notice Represents a given amount of Aave V2 collateral to migrate.
+  /// @notice Represents a given amount of Aave v2 collateral to migrate.
   struct AaveV2Collateral {
     ATokenLike aToken;
     uint256 amount;
   }
 
-  /// @notice Represents a given amount of Aave V2 borrow to migrate.
+  /// @notice Represents a given amount of Aave v2 borrow to migrate.
   struct AaveV2Borrow {
     ADebtTokenLike aDebtToken; // Note: Aave has two separate debt tokens per asset: stable and variable rate
     uint256 amount;
@@ -341,9 +341,9 @@ contract CometMigratorV2 is IUniswapV3FlashCallback {
   }
 
   /**
-   * @notice This internal helper function repays the user’s borrow positions on Aave V2 (executing swaps first if necessary) before migrating their collateral over to Compound III.
+   * @notice This internal helper function repays the user’s borrow positions on Aave v2 (executing swaps first if necessary) before migrating their collateral over to Compound III.
    * @param user Alias for the `msg.sender` of the original `migrate` call.
-   * @param position Structure containing the user’s Aave V2 collateral and borrow positions to migrate to Compound III.
+   * @param position Structure containing the user’s Aave v2 collateral and borrow positions to migrate to Compound III.
    **/
   function migrateAaveV2Position(address user, AaveV2Position memory position) internal {
     // **FOREACH** `(aDebtToken, borrowAmount): AaveV2Borrow, path: bytes` in `position`:
