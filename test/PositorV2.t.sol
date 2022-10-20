@@ -85,7 +85,7 @@ contract Positor is Test, MainnetConstants {
 
         for (uint8 i = 0; i < borrows.length; i++) {
             ADebtTokenLike aDebtToken = borrows[i].aDebtToken;
-            IERC20 underlying = IERC20(aDebtToken.UNDERLYING_ASSET_ADDRESS());
+            IERC20NonStandard underlying = IERC20NonStandard(aDebtToken.UNDERLYING_ASSET_ADDRESS());
             uint256 preUnderlyingAmount = underlying.balanceOf(borrower);
             uint256 borrowAmount = borrows[i].amount;
             vm.prank(borrower);
