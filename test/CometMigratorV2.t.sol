@@ -1283,7 +1283,7 @@ contract CometMigratorV2Test is Positor {
         cUNI.transfer(address(migrator), 300e8);
 
         assertEq(cUNI.balanceOf(address(migrator)), 300e8, "cUNI given to migrator");
-        migrator.sweep(IERC20(address(cUNI)));
+        migrator.sweep(IERC20NonStandard(address(cUNI)));
         assertEq(cUNI.balanceOf(address(migrator)), 0e8, "cUNI in migrator after sweep");
         assertEq(cUNI.balanceOf(sweepee) - cUNIPre, 300e8, "cUNI swept to sweepee");
     }
@@ -1304,9 +1304,32 @@ contract CometMigratorV2Test is Positor {
 
         payable(address(migrator)).transfer(1 ether);
         assertEq(address(migrator).balance, 1 ether, "original eth for migrator");
-        migrator.sweep(IERC20(0x0000000000000000000000000000000000000000));
+        migrator.sweep(IERC20NonStandard(0x0000000000000000000000000000000000000000));
         assertEq(address(migrator).balance, 0 ether, "post-sweep eth for migrator");
         assertEq(sweepee.balance - sweepeeEthPre, 1 ether, "post-sweep eth for sweepee");
+    }
+
+    function testSweepUsdt_nonStandardERC20() public {
+        // Posit
+        CometMigratorV2.CompoundV2Collateral[] memory initialCollateral = new CometMigratorV2.CompoundV2Collateral[](0);
+        CometMigratorV2.CompoundV2Borrow[] memory initialBorrows = new CometMigratorV2.CompoundV2Borrow[](0);
+        posit(Posit({
+            borrower: borrower,
+            collateral: initialCollateral,
+            borrows: initialBorrows
+        }));
+
+        preflightChecks();
+
+        uint256 usdtPre = usdt.balanceOf(sweepee);
+
+        vm.prank(usdtHolder);
+        usdt.transfer(address(migrator), 300e6);
+
+        assertEq(usdt.balanceOf(address(migrator)), 300e6, "USDT given to migrator");
+        migrator.sweep(IERC20NonStandard(address(usdt)));
+        assertEq(usdt.balanceOf(address(migrator)), 0e6, "USDT in migrator after sweep");
+        assertEq(usdt.balanceOf(sweepee) - usdtPre, 300e6, "USDT swept to sweepee");
     }
 
     function testInvalidTokenForUni() public {
@@ -1390,14 +1413,14 @@ contract CometMigratorV2Test is Positor {
         );
 
         vm.expectRevert(abi.encodeWithSelector(CometMigratorV2.SweepFailure.selector, 0));
-        migrator0.sweep(IERC20(0x0000000000000000000000000000000000000000));
+        migrator0.sweep(IERC20NonStandard(0x0000000000000000000000000000000000000000));
     }
 
     function testSweepFailure_One() public {
         CTokenLike lazyToken = new LazyToken();
 
         vm.expectRevert(abi.encodeWithSelector(CometMigratorV2.SweepFailure.selector, 1));
-        migrator.sweep(IERC20(address(lazyToken)));
+        migrator.sweep(IERC20NonStandard(address(lazyToken)));
     }
 
     function testCompoundV2Error() public {
@@ -3261,7 +3284,7 @@ contract CometMigratorV2Test is Positor {
         require(comet.collateralBalanceOf(borrower, address(uni)) == 0, "no starting uni collateral balance");
         require(comet.collateralBalanceOf(borrower, address(weth)) == 0, "no starting weth collateral balance");
         require(comet.borrowBalanceOf(borrower) == 0, "no starting v3 borrow balance");
-        migrator.sweep(IERC20(0x0000000000000000000000000000000000000000));
+        migrator.sweep(IERC20NonStandard(0x0000000000000000000000000000000000000000));
         require(address(migrator).balance == 0, "no starting v3 eth");
     }
 }

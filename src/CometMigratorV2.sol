@@ -246,8 +246,8 @@ contract CometMigratorV2 is IUniswapV3FlashCallback {
     comet.withdrawFrom(migrationData.user, address(this), address(baseToken), flashAmountWithFee - baseToken.balanceOf(address(this)));
 
     // **CALL** `baseToken.transfer(address(uniswapLiquidityPool), flashAmountWithFee)`
-    // We shouldn't need to handle unsuccessful transfers since Uniswap will just revert
-    baseToken.transfer(address(uniswapLiquidityPool), flashAmountWithFee);
+    // Note: No need to check transfer success here because Uniswap should revert on an unsuccessful transfer
+    doTransferOut(baseToken, address(uniswapLiquidityPool), flashAmountWithFee);
 
     // **EMIT** `Migrated(user, compoundV2Position, aaveV2Position, cdpPositions, flashAmount, flashAmountWithFee)`
     emit Migrated(migrationData.user, migrationData.compoundV2Position, migrationData.aaveV2Position, migrationData.flashAmount, flashAmountWithFee);
@@ -418,25 +418,51 @@ contract CometMigratorV2 is IUniswapV3FlashCallback {
   }
 
   /**
+    * @dev Similar to ERC20 transfer, except it handles a False success from `transfer` and returns an explanatory
+    *      error code rather than reverting.
+    *
+    *      Note: This wrapper safely handles non-standard ERC-20 tokens that do not return a value.
+    *            See here: https://medium.com/coinmonks/missing-return-value-bug-at-least-130-tokens-affected-d67bf08521ca
+    */
+  function doTransferOut(IERC20NonStandard asset, address to, uint amount) internal returns (bool) {
+      asset.transfer(to, amount);
+
+      bool success;
+      assembly {
+          switch returndatasize()
+              case 0 {                      // This is a non-standard ERC-20
+                  success := not(0)          // set success to true
+              }
+              case 32 {                     // This is a compliant ERC-20
+                  returndatacopy(0, 0, 32)
+                  success := mload(0)        // Set `success = returndata` of override external call
+              }
+              default {                     // This is an excessively non-compliant ERC-20, revert.
+                  revert(0, 0)
+              }
+      }
+      return success;
+  }
+
+  /**
    * @notice Sends any tokens in this contract to the sweepee address. This contract should never hold tokens, so this is just to fix any anomalistic situations where tokens end up locked in the contract.
    * @param token The token to sweep
    **/
-   // XXX make into non standard?
-  function sweep(IERC20 token) external {
+  function sweep(IERC20NonStandard token) external {
     // **REQUIRE** `inMigration == 0`
     if (inMigration != 0) {
       revert Reentrancy(2);
     }
 
     // **WHEN** `token == 0x0000000000000000000000000000000000000000`:
-    if (token == IERC20(0x0000000000000000000000000000000000000000)) {
+    if (token == IERC20NonStandard(0x0000000000000000000000000000000000000000)) {
       // **EXEC** `sweepee.send(address(this).balance)`
       if (!sweepee.send(address(this).balance)) {
         revert SweepFailure(0);
       }
     } else {
       // **CALL** `token.transfer(sweepee, token.balanceOf(address(this)))`
-      if (!token.transfer(sweepee, token.balanceOf(address(this)))) {
+      if (!doTransferOut(token, sweepee, token.balanceOf(address(this)))) {
         revert SweepFailure(1);
       }
     }

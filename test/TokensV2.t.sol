@@ -96,7 +96,7 @@ contract ReentrantSweepToken is LazyToken {
   }
 
   function transferFrom(address, address, uint256) external override returns (bool) {
-    migrator.sweep(IERC20(0x0000000000000000000000000000000000000000));
+    migrator.sweep(IERC20NonStandard(0x0000000000000000000000000000000000000000));
     return false;
   }
 }
