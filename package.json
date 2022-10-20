@@ -15,7 +15,7 @@
     "forge:playground": "script/playground.sh"
   },
   "dependencies": {
-    "@compound-finance/comet-extension": "^0.0.1-alpha3",
+    "@compound-finance/comet-extension": "^0.0.1",
     "@esbuild-plugins/node-globals-polyfill": "^0.1.1",
     "@ethersproject/abi": "^5.6.2",
     "@ethersproject/bignumber": "^5.4.2",
