@@ -4,7 +4,7 @@ import { CometState, RPC } from '@compound-finance/comet-extension';
 import { Contract } from '@ethersproject/contracts';
 import { JsonRpcProvider } from '@ethersproject/providers';
 import { useEffect, useMemo, useReducer, useState } from 'react';
-import { useTransactionTracker } from './lib/useTransactionTracker';
+import { hasPendingTransaction, useTransactionTracker } from './lib/useTransactionTracker';
 
 import ERC20 from '../abis/ERC20';
 import Comet from '../abis/Comet';
@@ -590,7 +590,7 @@ export function App<N extends Network>({ rpc, web3, account, networkConfig }: Ap
           </div>
           <div className="migrator__input-view__right">
             {tokenState.allowance === 0n ? (
-              <button className="button button--small" onClick={() => setTokenApproval(sym)}>
+              <button className="button button--small" disabled={hasPendingTransaction(tracker)} onClick={() => setTokenApproval(sym)}>
                 Enable
               </button>
             ) : tokenState.transfer === 'max' ? (
@@ -777,12 +777,12 @@ export function App<N extends Network>({ rpc, web3, account, networkConfig }: Ap
         <div className="masthead L1">
           <h1 className="L0 heading heading--emphasized">Compound V2 Migration Tool (USDC)</h1>
           {state.data.migratorEnabled ? (
-            <button className="button button--large button--supply" onClick={disableMigrator}>
+            <button disabled={hasPendingTransaction(tracker)} className="button button--large button--supply" onClick={disableMigrator}>
               <CircleCheckmark />
               <label>Enabled</label>
             </button>
           ) : (
-            <button className="button button--large button--supply" onClick={enableMigrator}>
+            <button disabled={hasPendingTransaction(tracker)} className="button button--large button--supply" onClick={enableMigrator}>
               Enable
             </button>
           )}
@@ -912,7 +912,7 @@ export function App<N extends Network>({ rpc, web3, account, networkConfig }: Ap
                   </div>
                 </div>
               </div>
-              <button className="button button--x-large" disabled={typeof migrateParams === 'string'} onClick={migrate}>
+              <button className="button button--x-large" disabled={typeof migrateParams === 'string' || hasPendingTransaction(tracker)} onClick={migrate}>
                 Migrate Balances
               </button>
             </div>
