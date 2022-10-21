@@ -423,12 +423,13 @@ contract CometMigratorV2 is IUniswapV3FlashCallback {
   }
 
   /**
-    * @dev Similar to ERC20 transfer, except it handles a False success from `transfer` and returns an explanatory
-    *      error code rather than reverting.
-    *
-    *      Note: This wrapper safely handles non-standard ERC-20 tokens that do not return a value.
-    *            See here: https://medium.com/coinmonks/missing-return-value-bug-at-least-130-tokens-affected-d67bf08521ca
-    */
+    * @notice Similar to ERC-20 transfer, except it also properly handles `transfer` from non-standard ERC-20 tokens.
+    * @param asset The ERC-20 token to transfer out.
+    * @param to The recipient of the token transfer.
+    * @param amount The amount of the token to transfer.
+    * @return Boolean indicating the success of the transfer.
+    * @dev Note: This wrapper safely handles non-standard ERC-20 tokens that do not return a value. See here: https://medium.com/coinmonks/missing-return-value-bug-at-least-130-tokens-affected-d67bf08521ca
+    **/
   function doTransferOut(IERC20NonStandard asset, address to, uint amount) internal returns (bool) {
       asset.transfer(to, amount);
 
