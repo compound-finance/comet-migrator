@@ -24,6 +24,7 @@ contract CometMigratorV2 is IUniswapV3FlashCallback {
   error InvalidConfiguration(uint256 loc);
   error InvalidCallback(uint256 loc);
   error InvalidInputs(uint256 loc);
+  error AssetNotSupported(address asset);
 
   /** Events **/
   event Migrated(
@@ -262,6 +263,10 @@ contract CometMigratorV2 is IUniswapV3FlashCallback {
     // **FOREACH** `(cToken, borrowAmount): CompoundV2Borrow, path: bytes` in `position`:
     for (uint i = 0; i < position.borrows.length; i++) {
       CompoundV2Borrow memory borrow = position.borrows[i];
+
+      // **REQUIRE** `cToken != cETH`
+      if (borrow.cToken == cETH) revert AssetNotSupported(address(cETH));
+
       uint256 repayAmount;
       // **WHEN** `borrowAmount == type(uint256).max)`:
       if (borrow.amount == type(uint256).max) {
