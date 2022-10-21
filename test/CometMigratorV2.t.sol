@@ -1560,7 +1560,7 @@ contract CometMigratorV2Test is Positor {
         assertApproxEqRel(comet.borrowBalanceOf(borrower), 350e6 * 1.0001, 0.01e18, "v3 borrow balance");
     }
 
-    function testMigrateSingleCompoundV2Borrow_allUsdt() public {
+    function testMigrateSingleCompoundV2Borrow_nonStandardErc20_allUsdt() public {
         // Posit
         CometMigratorV2.CompoundV2Collateral[] memory initialCollateral = new CometMigratorV2.CompoundV2Collateral[](1);
         initialCollateral[0] = CometMigratorV2.CompoundV2Collateral({
@@ -1618,6 +1618,65 @@ contract CometMigratorV2Test is Positor {
         assertApproxEqRel(comet.collateralBalanceOf(borrower, address(uni)), 199e18, 0.01e18, "v3 collateral balance");
         // Approximate assertion because of slippage from USDT to USDC
         assertApproxEqRel(comet.borrowBalanceOf(borrower), 350e6 * 1.0001, 0.01e18, "v3 borrow balance");
+    }
+
+    function testMigrateSingleCompoundV2Borrow_nonStableBorrow_allUni() public {
+        // Posit
+        CometMigratorV2.CompoundV2Collateral[] memory initialCollateral = new CometMigratorV2.CompoundV2Collateral[](1);
+        initialCollateral[0] = CometMigratorV2.CompoundV2Collateral({
+            cToken: cUNI,
+            amount: 300e18 // ~ $5 * 300 = ~$1500 75% collateral factor = $1,000
+        });
+        CometMigratorV2.CompoundV2Borrow[] memory initialBorrows = new CometMigratorV2.CompoundV2Borrow[](1);
+        initialBorrows[0] = CometMigratorV2.CompoundV2Borrow({
+            cToken: cUNI,
+            amount: 100e18 // spot price at block 15542274 is ~$5.88, so this is ~$588 of borrows
+        });
+        posit(Posit({
+            borrower: borrower,
+            collateral: initialCollateral,
+            borrows: initialBorrows
+        }));
+
+        preflightChecks();
+
+        // Migrate
+        CometMigratorV2.CompoundV2Collateral[] memory collateralToMigrate = new CometMigratorV2.CompoundV2Collateral[](1);
+        collateralToMigrate[0] = CometMigratorV2.CompoundV2Collateral({
+            cToken: cUNI,
+            amount: type(uint256).max
+        });
+        bytes[] memory paths = new bytes[](1);
+        uint24 uniWethPoolFee = 3000;
+        uint24 usdcWethPoolFee = 500;
+        bytes memory swapPath = abi.encodePacked(
+            address(uni), uniWethPoolFee, address(weth), usdcWethPoolFee, address(usdc)
+        );
+        paths[0] = swapPath;
+        CometMigratorV2.CompoundV2Position memory compoundV2Position = CometMigratorV2.CompoundV2Position({
+            collateral: collateralToMigrate,
+            borrows: initialBorrows,
+            paths: paths
+        });
+        uint256 flashEstimate = 600e6; // We overestimate slightly to account for slippage
+        vm.startPrank(borrower);
+        cUNI.approve(address(migrator), type(uint256).max);
+        comet.allow(address(migrator), true);
+
+        // Check event
+        vm.expectEmit(true, false, false, true);
+        emit Migrated(borrower, compoundV2Position, EMPTY_AAVE_V2_POSITION, flashEstimate, 600e6 * 1.0001);
+
+        migrator.migrate(compoundV2Position, EMPTY_AAVE_V2_POSITION, flashEstimate);
+
+        // Check v2 balances
+        assertEq(cUNI.balanceOf(borrower), 0e18, "Amount of cUNI should have been migrated");
+        assertEq(cUNI.borrowBalanceCurrent(borrower), 0e18, "Remainder of tokens");
+
+        // Check v3 balances
+        assertApproxEqRel(comet.collateralBalanceOf(borrower, address(uni)), 300e18, 0.01e18, "v3 collateral balance");
+        // Approximate assertion because of slippage from UNI to USDC
+        assertApproxEqRel(comet.borrowBalanceOf(borrower), 588e6 * 1.0001, 0.01e18, "v3 borrow balance");
     }
 
     function testMigrateCompoundV2Borrow_multihopSwapPath() public {
@@ -3340,7 +3399,6 @@ contract CometMigratorV2Test is Positor {
     }
 
     // XXX More general tests:
-    // XXX migrate non-stable borrow
     // XXX Migrate v2 ETH borrow (need to support cETH interface)
     // XXX Low flash estimate for Aave, CDP
     // XXX Test migrating WETH base position (requires cWETHv3 to be deployed first)
