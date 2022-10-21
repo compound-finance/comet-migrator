@@ -4,6 +4,7 @@ import { CometState, RPC } from '@compound-finance/comet-extension';
 import { Contract } from '@ethersproject/contracts';
 import { JsonRpcProvider } from '@ethersproject/providers';
 import { useEffect, useMemo, useReducer, useState } from 'react';
+import { useTransactionTracker } from './lib/useTransactionTracker';
 
 import ERC20 from '../abis/ERC20';
 import Comet from '../abis/Comet';
@@ -217,15 +218,13 @@ export function App<N extends Network>({ rpc, web3, account, networkConfig }: Ap
   const { cTokenNames } = networkConfig;
   const [state, dispatch] = useReducer(reducer, initialState);
   const [cometState, setCometState] = useState<CometState>([StateType.Loading, undefined]);
+  const { tracker, trackTransaction } = useTransactionTracker(web3);
 
   useEffect(() => {
     if (rpc) {
-      console.log('setting RPC');
       rpc.on({
         setTheme: ({ theme }) => {
-          console.log('theme', theme);
           getDocument(document => {
-            console.log('document', document);
             document.body.classList.add('theme');
             document.body.classList.remove(`theme--dark`);
             document.body.classList.remove(`theme--light`);
@@ -267,19 +266,19 @@ export function App<N extends Network>({ rpc, web3, account, networkConfig }: Ap
 
   async function setTokenApproval(tokenSym: CTokenSym<Network>) {
     console.log('setting allowance');
-    await cTokenCtxs.get(tokenSym)!.approve(migrator.address, MAX_UINT256);
+    await trackTransaction(cTokenCtxs.get(tokenSym)!.approve(migrator.address, MAX_UINT256));
     console.log('setting allowance');
   }
 
   async function enableMigrator() {
     console.log('enabling migrator');
-    await comet.allow(migrator.address, true);
+    await trackTransaction(comet.allow(migrator.address, true));
     console.log('enabled migrator');
   }
 
   async function disableMigrator() {
     console.log('disabling migrator');
-    await comet.allow(migrator.address, false);
+    await trackTransaction(comet.allow(migrator.address, false));
     console.log('disabling migrator');
   }
 
@@ -338,7 +337,7 @@ export function App<N extends Network>({ rpc, web3, account, networkConfig }: Ap
         cTokens: tokenStates
       }
     });
-  }, [timer, account, networkConfig.network, cTokenCtxs]);
+  }, [timer, tracker, account, networkConfig.network, cTokenCtxs]);
 
   function validateForm(): { borrowAmount: bigint; collateral: Collateral[] } | string {
     if (state.type === StateType.Loading) {
@@ -407,7 +406,7 @@ export function App<N extends Network>({ rpc, web3, account, networkConfig }: Ap
     console.log('migrate', state, migrateParams);
     if (typeof migrateParams !== 'string') {
       try {
-        await migrator.migrate(migrateParams.collateral, migrateParams.borrowAmount);
+        await trackTransaction(migrator.migrate(migrateParams.collateral, migrateParams.borrowAmount));
       } catch (e) {
         if ('code' in (e as any) && (e as any).code === 'UNPREDICTABLE_GAS_LIMIT') {
           dispatch({
