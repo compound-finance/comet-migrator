@@ -833,7 +833,7 @@ export function App<N extends Network>({ rpc, web3, account, networkConfig }: Ap
 }
 
 export default ({ rpc, web3 }: AppProps) => {
-  let timer = usePoll(10000);
+  let timer = usePoll(30000);
   const [account, setAccount] = useState<string | null>(null);
   const [networkConfig, setNetworkConfig] = useState<NetworkConfig<Network> | 'unsupported' | null>(null);
 
