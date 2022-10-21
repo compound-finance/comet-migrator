@@ -28,6 +28,8 @@ contract MainnetConstants {
     ADebtTokenLike public constant variableDebtDAI = ADebtTokenLike(0x6C3c78838c761c6Ac7bE9F59fe808ea2A6E4379d);
     ADebtTokenLike public constant variableDebtUSDT = ADebtTokenLike(0x531842cEbbdD378f8ee36D171d6cC9C4fcf475Ec);
     ADebtTokenLike public constant stableDebtUSDT = ADebtTokenLike(0xe91D55AB2240594855aBd11b3faAE801Fd4c4687);
+    ADebtTokenLike public constant variableDebtUNI = ADebtTokenLike(0x5BdB050A92CADcCfCDcCCBFC17204a1C9cC0Ab73);
+    ADebtTokenLike public constant stableDebtUNI = ADebtTokenLike(0xD939F7430dC8D5a427f156dE1012A56C18AcB6Aa);
     IUniswapV3Pool public constant pool_DAI_USDC = IUniswapV3Pool(0x5777d92f208679DB4b9778590Fa3CAB3aC9e2168);
     IUniswapV3Pool public constant pool_USDT_USDC = IUniswapV3Pool(0x3416cF6C708Da44DB2624D63ea0AAef7113527C6);
     address payable public constant sweepee = payable(0x6d903f6003cca6255D85CcA4D3B5E5146dC33925);
