@@ -20,7 +20,6 @@ contract CometMigratorV2 is IUniswapV3FlashCallback {
   error CompoundV2Error(uint256 loc, uint256 code);
   error SweepFailure(uint256 loc);
   error CTokenTransferFailure();
-  error ATokenTransferFailure();
   error InvalidConfiguration(uint256 loc);
   error InvalidCallback(uint256 loc);
   error InvalidInputs(uint256 loc);
@@ -297,8 +296,9 @@ contract CometMigratorV2 is IUniswapV3FlashCallback {
 
     // **FOREACH** `(cToken, amount): CompoundV2Collateral` in `position.collateral`:
     for (uint i = 0; i < position.collateral.length; i++) {
-      // **CALL** `cToken.transferFrom(user, address(this), amount == type(uint256).max ? cToken.balanceOf(user) : amount)`
       CompoundV2Collateral memory collateral = position.collateral[i];
+
+      // **CALL** `cToken.transferFrom(user, address(this), amount == type(uint256).max ? cToken.balanceOf(user) : amount)`
       bool transferSuccess = collateral.cToken.transferFrom(
         user,
         address(this),
@@ -388,16 +388,14 @@ contract CometMigratorV2 is IUniswapV3FlashCallback {
 
     // **FOREACH** `(aToken, amount): AaveV2Collateral` in `position.collateral`:
     for (uint i = 0; i < position.collateral.length; i++) {
-      // **CALL** `aToken.transferFrom(user, address(this), amount == type(uint256).max ? aToken.balanceOf(user) : amount)`
       AaveV2Collateral memory collateral = position.collateral[i];
-      bool transferSuccess = collateral.aToken.transferFrom(
+
+      // **CALL** `aToken.transferFrom(user, address(this), amount == type(uint256).max ? aToken.balanceOf(user) : amount)`
+      collateral.aToken.transferFrom(
         user,
         address(this),
         collateral.amount == type(uint256).max ? collateral.aToken.balanceOf(user) : collateral.amount
       );
-      if (!transferSuccess) {
-        revert ATokenTransferFailure();
-      }
 
       // **BIND READ** `underlyingCollateral = aToken.UNDERLYING_ASSET_ADDRESS()`
       IERC20 underlyingCollateral = IERC20(collateral.aToken.UNDERLYING_ASSET_ADDRESS());
