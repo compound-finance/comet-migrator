@@ -22,4 +22,4 @@ echo "Running playground script..."
 forge script script/Playground.s.sol --rpc-url "$ETH_RPC_URL" --private-key "$ETH_PRIVATE_KEY" --broadcast --etherscan-api-key "$ETHERSCAN_KEY" -vvvv $@
 echo "Pitter patter."
 
-wait "$anvil_pid"
+yarn web:dev --mode playground

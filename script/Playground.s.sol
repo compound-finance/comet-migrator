@@ -19,6 +19,13 @@ contract Playground is Script, Test, MainnetConstants {
         CometMigrator migrator = deployCometMigrator();
         console.log("Deployed Comet Migrator", address(migrator));
 
+        string memory fileAddress = ".env.playground.local";
+        vm.writeFile(fileAddress,
+            string.concat(
+                string.concat("VITE_MAINNET_EXT_ADDRESS=", vm.toString(address(migrator)))));
+
+        console.log("Wrote", fileAddress);
+
         console.log("Wrapping WETH");
         weth.deposit{value: 50 ether}();
         require(weth.balanceOf(caller) == 50 ether, "invalid weth balance");

@@ -56,12 +56,6 @@ Next, we'll need to make sure MetaMask is set-up to talk to this network. Follow
 
 ⚠️ Note: it's possible you already have such a network set-up. If so, you may want to ensure the chain id is `1`. Go into MetaMask -> Settings -> Networks -> Localhost 8545 and then you should see a screen that has `Chain ID: #`. It should be `1`, and if it is not, change it to `1` and hit Save.
 
-Next, start the standalone dev experience by running:
-
-```
-yarn web:dev
-```
-
 This should spawn a web server at an address such as http://localhost:5183. Visit that page and you should be running in the playground.
 
 A few notes:
