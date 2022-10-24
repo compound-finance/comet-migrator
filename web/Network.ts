@@ -107,7 +107,6 @@ export function getNetworkById(chainId: number): Network | null {
 }
 
 function getMigratorAddress(network: Network): string {
-  console.log(['zzz', import.meta.env.VITE_MAINNET_EXT_ADDRESS, import.meta.env.VITE_GOERLI_EXT_ADDRESS]);
   if (network === 'mainnet') {
     return import.meta.env.VITE_MAINNET_EXT_ADDRESS;
   } else if (network === 'goerli') {
