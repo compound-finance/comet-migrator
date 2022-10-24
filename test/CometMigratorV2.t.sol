@@ -18,18 +18,6 @@ contract CometMigratorV2Test is Positor {
 
     address public constant borrower = address(0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266);
 
-    CometMigratorV2.CompoundV2Position EMPTY_COMPOUND_V2_POSITION = CometMigratorV2.CompoundV2Position({
-        collateral: new CometMigratorV2.CompoundV2Collateral[](0),
-        borrows: new CometMigratorV2.CompoundV2Borrow[](0),
-        paths: new bytes[](0)
-    });
-
-    CometMigratorV2.AaveV2Position EMPTY_AAVE_V2_POSITION = CometMigratorV2.AaveV2Position({
-        collateral: new CometMigratorV2.AaveV2Collateral[](0),
-        borrows: new CometMigratorV2.AaveV2Borrow[](0),
-        paths: new bytes[](0)
-    });
-
     /* ===== Migrator V1 Tests ===== */
 
     function testMigrateSimpleUniPosition() public {
@@ -139,6 +127,11 @@ contract CometMigratorV2Test is Positor {
         vm.startPrank(borrower);
         cETH.approve(address(migrator), type(uint256).max);
         comet.allow(address(migrator), true);
+        migrator.migrate(compoundV2Position, EMPTY_AAVE_V2_POSITION, 600e6);
+
+        // Check v2 balances
+        assertEq(cETH.balanceOf(borrower), cETHPre - migrateAmount, "Amount of cETH should have been migrated");
+        assertEq(cUSDC.borrowBalanceCurrent(borrower), 100e6, "Remainder of tokens");
 
         // Check v3 balances
         assertApproxEqRel(comet.collateralBalanceOf(borrower, address(weth)), 0.6e18, 0.01e18, "v3 collateral balance");
@@ -1038,18 +1031,6 @@ contract CometMigratorV2Test is Positor {
             borrows: borrowsToMigrate0,
             paths: paths0
         });
-        CometMigratorV2.CompoundV2Borrow[] memory borrowsToMigrate0 = new CometMigratorV2.CompoundV2Borrow[](1);
-        borrowsToMigrate0[0] = CometMigratorV2.CompoundV2Borrow({
-            cToken: cUSDC,
-            amount: 650e6
-        });
-        bytes[] memory paths0 = new bytes[](1);
-        paths0[0] = "";
-        CometMigratorV2.CompoundV2Position memory compoundV2Position0 = CometMigratorV2.CompoundV2Position({
-            collateral: collateralToMigrate0,
-            borrows: borrowsToMigrate0,
-            paths: paths0
-        });
 
         // Migration 1
         CometMigratorV2.CompoundV2Collateral[] memory collateralToMigrate1 = new CometMigratorV2.CompoundV2Collateral[](2);
@@ -1061,18 +1042,6 @@ contract CometMigratorV2Test is Positor {
         collateralToMigrate1[1] = CometMigratorV2.CompoundV2Collateral({
             cToken: cETH,
             amount: uniAndethMigrateAmount1[1]
-        });
-        CometMigratorV2.CompoundV2Borrow[] memory borrowsToMigrate1 = new CometMigratorV2.CompoundV2Borrow[](1);
-        borrowsToMigrate1[0] = CometMigratorV2.CompoundV2Borrow({
-            cToken: cUSDC,
-            amount: 550e6
-        });
-        bytes[] memory paths1 = new bytes[](1);
-        paths1[0] = "";
-        CometMigratorV2.CompoundV2Position memory compoundV2Position1 = CometMigratorV2.CompoundV2Position({
-            collateral: collateralToMigrate1,
-            borrows: borrowsToMigrate1,
-            paths: paths1
         });
         CometMigratorV2.CompoundV2Borrow[] memory borrowsToMigrate1 = new CometMigratorV2.CompoundV2Borrow[](1);
         borrowsToMigrate1[0] = CometMigratorV2.CompoundV2Borrow({
