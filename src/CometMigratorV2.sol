@@ -376,7 +376,6 @@ contract CometMigratorV2 is IUniswapV3FlashCallback {
               deadline: block.timestamp
           })
         );
-        // XXX Should we keep a running counter of how much borrowed asset is left? (subtract `amountIn` from `flashAmount`)
       }
 
       // **BIND READ** `underlyingDebt = aDebtToken.UNDERLYING_ASSET_ADDRESS()`
