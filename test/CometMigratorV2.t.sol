@@ -12,6 +12,7 @@ contract CometMigratorV2Test is Positor {
     event Migrated(
         address indexed user,
         CometMigratorV2.CompoundV2Position compoundV2Position,
+        CometMigratorV2.AaveV2Position aaveV2Position,
         uint256 flashAmount,
         uint256 flashAmountWithFee);
 
@@ -62,12 +63,12 @@ contract CometMigratorV2Test is Positor {
 
         // Check event
         vm.expectEmit(true, false, false, true);
-        emit Migrated(borrower, compoundV2Position, 600e6, 600e6 * 1.0001);
+        emit Migrated(borrower, compoundV2Position, EMPTY_AAVE_V2_POSITION, 600e6, 600e6 * 1.0001);
 
         vm.startPrank(borrower);
         cUNI.approve(address(migrator), type(uint256).max);
         comet.allow(address(migrator), true);
-        migrator.migrate(compoundV2Position, 600e6);
+        migrator.migrate(compoundV2Position, EMPTY_AAVE_V2_POSITION, 600e6);
 
         // Check v2 balances
         assertEq(cUNI.balanceOf(borrower), cUNIPre - migrateAmount, "Amount of cUNI should have been migrated");
@@ -121,12 +122,12 @@ contract CometMigratorV2Test is Positor {
 
         // Check event
         vm.expectEmit(true, false, false, true);
-        emit Migrated(borrower, compoundV2Position, 600e6, 600e6 * 1.0001);
+        emit Migrated(borrower, compoundV2Position, EMPTY_AAVE_V2_POSITION, 600e6, 600e6 * 1.0001);
 
         vm.startPrank(borrower);
         cETH.approve(address(migrator), type(uint256).max);
         comet.allow(address(migrator), true);
-        migrator.migrate(compoundV2Position, 600e6);
+        migrator.migrate(compoundV2Position, EMPTY_AAVE_V2_POSITION, 600e6);
 
         // Check v2 balances
         assertEq(cETH.balanceOf(borrower), cETHPre - migrateAmount, "Amount of cETH should have been migrated");
@@ -184,12 +185,12 @@ contract CometMigratorV2Test is Positor {
 
         // Check event
         vm.expectEmit(true, false, false, true);
-        emit Migrated(borrower, compoundV2Position, 600e6, 600e6 * 1.0001);
+        emit Migrated(borrower, compoundV2Position, EMPTY_AAVE_V2_POSITION, 600e6, 600e6 * 1.0001);
 
         vm.startPrank(borrower);
         cUNI.approve(address(migrator), type(uint256).max);
         comet.allow(address(migrator), true);
-        migrator.migrate(compoundV2Position, 600e6);
+        migrator.migrate(compoundV2Position, EMPTY_AAVE_V2_POSITION, 600e6);
 
         // Check v2 balances
         assertEq(cUNI.balanceOf(borrower), cUNIPre - migrateAmount, "Amount of cUNI should have been migrated");
@@ -241,12 +242,12 @@ contract CometMigratorV2Test is Positor {
 
         // Check event
         vm.expectEmit(true, false, false, true);
-        emit Migrated(borrower, compoundV2Position, 700e6, 700e6 * 1.0001);
+        emit Migrated(borrower, compoundV2Position, EMPTY_AAVE_V2_POSITION, 700e6, 700e6 * 1.0001);
 
         vm.startPrank(borrower);
         cUNI.approve(address(migrator), type(uint256).max);
         comet.allow(address(migrator), true);
-        migrator.migrate(compoundV2Position, 700e6);
+        migrator.migrate(compoundV2Position, EMPTY_AAVE_V2_POSITION, 700e6);
 
         // Check v2 balances
         assertEq(cUNI.balanceOf(borrower), 0, "Amount of cUNI should have been migrated");
@@ -298,12 +299,12 @@ contract CometMigratorV2Test is Positor {
 
         // Check event
         vm.expectEmit(true, false, false, true);
-        emit Migrated(borrower, compoundV2Position, 700e6, 700e6 * 1.0001);
+        emit Migrated(borrower, compoundV2Position, EMPTY_AAVE_V2_POSITION, 700e6, 700e6 * 1.0001);
 
         vm.startPrank(borrower);
         cUNI.approve(address(migrator), type(uint256).max);
         comet.allow(address(migrator), true);
-        migrator.migrate(compoundV2Position, 700e6);
+        migrator.migrate(compoundV2Position, EMPTY_AAVE_V2_POSITION, 700e6);
 
         // Check v2 balances
         assertEq(cUNI.balanceOf(borrower), 0, "Amount of cUNI should have been migrated");
@@ -361,12 +362,12 @@ contract CometMigratorV2Test is Positor {
 
         // Check event
         vm.expectEmit(true, false, false, true);
-        emit Migrated(borrower, compoundV2Position, 600e6, 600e6 * 1.0001);
+        emit Migrated(borrower, compoundV2Position, EMPTY_AAVE_V2_POSITION, 600e6, 600e6 * 1.0001);
 
         vm.startPrank(borrower);
         cUNI.approve(address(migrator), type(uint256).max);
         comet.allow(address(migrator), true);
-        migrator.migrate(compoundV2Position, 600e6);
+        migrator.migrate(compoundV2Position, EMPTY_AAVE_V2_POSITION, 600e6);
 
         // Check v2 balances
         assertEq(cUNI.balanceOf(borrower), cUNIPre - migrateAmount, "Amount of cUNI should have been migrated");
@@ -430,13 +431,13 @@ contract CometMigratorV2Test is Positor {
 
         // Check event
         vm.expectEmit(true, false, false, true);
-        emit Migrated(borrower, compoundV2Position, 1200e6, 1200e6 * 1.0001);
+        emit Migrated(borrower, compoundV2Position, EMPTY_AAVE_V2_POSITION, 1200e6, 1200e6 * 1.0001);
 
         vm.startPrank(borrower);
         cUNI.approve(address(migrator), type(uint256).max);
         cETH.approve(address(migrator), type(uint256).max);
         comet.allow(address(migrator), true);
-        migrator.migrate(compoundV2Position, 1200e6);
+        migrator.migrate(compoundV2Position, EMPTY_AAVE_V2_POSITION, 1200e6);
 
         // Check v2 balances
         assertEq(cUNI.balanceOf(borrower), cUNIPre - uniMigrateAmount, "Amount of cUNI should have been migrated");
@@ -493,7 +494,7 @@ contract CometMigratorV2Test is Positor {
         cUNI.approve(address(migrator), 0);
         comet.allow(address(migrator), true);
         vm.expectRevert(stdError.arithmeticError);
-        migrator.migrate(compoundV2Position, 600e6);
+        migrator.migrate(compoundV2Position, EMPTY_AAVE_V2_POSITION, 600e6);
 
         // Check v2 balances
         assertEq(cUNI.balanceOf(borrower), cUNIPre, "Amount of cUNI should have been migrated");
@@ -548,7 +549,7 @@ contract CometMigratorV2Test is Positor {
         cETH.approve(address(migrator), 0);
         comet.allow(address(migrator), true);
         vm.expectRevert(CometMigratorV2.CTokenTransferFailure.selector);
-        migrator.migrate(compoundV2Position, 600e6);
+        migrator.migrate(compoundV2Position, EMPTY_AAVE_V2_POSITION, 600e6);
 
         // Check v2 balances
         assertEq(cETH.balanceOf(borrower), cETHPre, "Amount of cETH should have been migrated");
@@ -603,7 +604,7 @@ contract CometMigratorV2Test is Positor {
         cUNI.approve(address(migrator), type(uint256).max);
         comet.allow(address(migrator), true);
         vm.expectRevert(abi.encodeWithSelector(CTokenLike.TransferComptrollerRejection.selector, 4));
-        migrator.migrate(compoundV2Position, 600e6);
+        migrator.migrate(compoundV2Position, EMPTY_AAVE_V2_POSITION, 600e6);
 
         // Check v2 balances
         assertEq(cUNI.balanceOf(borrower), cUNIPre, "Amount of cUNI should have been migrated");
@@ -658,7 +659,7 @@ contract CometMigratorV2Test is Positor {
         cETH.approve(address(migrator), type(uint256).max);
         comet.allow(address(migrator), true);
         vm.expectRevert(CometMigratorV2.CTokenTransferFailure.selector);
-        migrator.migrate(compoundV2Position, 600e6);
+        migrator.migrate(compoundV2Position, EMPTY_AAVE_V2_POSITION, 600e6);
 
         // Check v2 balances
         assertEq(cETH.balanceOf(borrower), cETHPre, "Amount of cETH should have been migrated");
@@ -711,7 +712,7 @@ contract CometMigratorV2Test is Positor {
         vm.startPrank(borrower);
         cUNI.approve(address(migrator), type(uint256).max);
         vm.expectRevert(Comet.Unauthorized.selector);
-        migrator.migrate(compoundV2Position, 600e6);
+        migrator.migrate(compoundV2Position, EMPTY_AAVE_V2_POSITION, 600e6);
 
         // Check v2 balances
         assertEq(cUNI.balanceOf(borrower), cUNIPre, "Amount of cUNI should have been migrated");
@@ -766,7 +767,7 @@ contract CometMigratorV2Test is Positor {
         cUNI.approve(address(migrator), type(uint256).max);
         comet.allow(address(migrator), true);
         vm.expectRevert(abi.encodeWithSelector(CTokenLike.TransferComptrollerRejection.selector, 4));
-        migrator.migrate(compoundV2Position, 0e6);
+        migrator.migrate(compoundV2Position, EMPTY_AAVE_V2_POSITION, 0e6);
 
         // Check v2 balances
         assertEq(cUNI.balanceOf(borrower), cUNIPre, "Amount of cUNI should have been migrated");
@@ -821,7 +822,7 @@ contract CometMigratorV2Test is Positor {
         cUNI.approve(address(migrator), type(uint256).max);
         comet.allow(address(migrator), true);
         vm.expectRevert(abi.encodeWithSelector(CometMigratorV2.CompoundV2Error.selector, 0, 9));
-        migrator.migrate(compoundV2Position, 800e6);
+        migrator.migrate(compoundV2Position, EMPTY_AAVE_V2_POSITION, 800e6);
 
         // Check v2 balances
         assertEq(cUNI.balanceOf(borrower), cUNIPre, "Amount of cUNI should have been migrated");
@@ -875,7 +876,7 @@ contract CometMigratorV2Test is Positor {
         cUNI.approve(address(migrator), type(uint256).max);
         comet.allow(address(migrator), true);
         vm.expectRevert(abi.encodeWithSelector(CometMigratorV2.CompoundV2Error.selector, 0, 9));
-        migrator.migrate(compoundV2Position, 800e6);
+        migrator.migrate(compoundV2Position, EMPTY_AAVE_V2_POSITION, 800e6);
 
         // Check v2 balances
         assertEq(cUNI.balanceOf(borrower), cUNIPre, "Amount of cUNI should have been migrated");
@@ -929,7 +930,7 @@ contract CometMigratorV2Test is Positor {
         cUNI.approve(address(migrator), type(uint256).max);
         comet.allow(address(migrator), true);
         vm.expectRevert(abi.encodeWithSelector(CometMigratorV2.CompoundV2Error.selector, 0, 9));
-        migrator.migrate(compoundV2Position, 800e6);
+        migrator.migrate(compoundV2Position, EMPTY_AAVE_V2_POSITION, 800e6);
 
         // Check v2 balances
         assertEq(cUNI.balanceOf(borrower), cUNIPre, "Amount of cUNI should have been migrated");
@@ -970,7 +971,7 @@ contract CometMigratorV2Test is Positor {
         vm.startPrank(borrower);
         cUNI.approve(address(migrator), type(uint256).max);
         comet.allow(address(migrator), true);
-        migrator.migrate(compoundV2Position, 0e6);
+        migrator.migrate(compoundV2Position, EMPTY_AAVE_V2_POSITION, 0e6);
 
         // Check v2 balances
         assertEq(cUNI.balanceOf(borrower), cUNIPre, "Amount of cUNI should have been migrated");
@@ -1062,14 +1063,14 @@ contract CometMigratorV2Test is Positor {
 
         // Check event 0
         vm.expectEmit(true, false, false, true);
-        emit Migrated(borrower, compoundV2Position0, 650e6, 650e6 * 1.0001);
+        emit Migrated(borrower, compoundV2Position0, EMPTY_AAVE_V2_POSITION, 650e6, 650e6 * 1.0001);
 
         // Check event 1
         vm.expectEmit(true, false, false, true);
-        emit Migrated(borrower, compoundV2Position1, 550e6, 550e6 * 1.0001);
+        emit Migrated(borrower, compoundV2Position1, EMPTY_AAVE_V2_POSITION, 550e6, 550e6 * 1.0001);
 
         // Migration 0
-        migrator.migrate(compoundV2Position0, 650e6);
+        migrator.migrate(compoundV2Position0, EMPTY_AAVE_V2_POSITION, 650e6);
 
         // Check v2 balances
         assertEq(cUNI.balanceOf(borrower), cUNIPre - uniAndethMigrateAmount0[0], "Amount of cUNI should have been migrated first");
@@ -1082,7 +1083,7 @@ contract CometMigratorV2Test is Positor {
         assertEq(comet.borrowBalanceOf(borrower), 650e6 * 1.0001, "v3 borrow balance");
 
         // Migration 1
-        migrator.migrate(compoundV2Position1, 550e6);
+        migrator.migrate(compoundV2Position1, EMPTY_AAVE_V2_POSITION, 550e6);
 
         // Check v2 balances
         assertEq(cUNI.balanceOf(borrower), cUNIPre - uniAndethMigrateAmount0[0] - uniAndethMigrateAmount1[0], "Amount of cUNI should have been migrated both");
@@ -1167,14 +1168,14 @@ contract CometMigratorV2Test is Positor {
 
         // Check event 0
         vm.expectEmit(true, false, false, true);
-        emit Migrated(borrower, compoundV2Position0, 1200e6, 1200e6 * 1.0001);
+        emit Migrated(borrower, compoundV2Position0, EMPTY_AAVE_V2_POSITION, 1200e6, 1200e6 * 1.0001);
 
         // Check event 1
         vm.expectEmit(true, false, false, true);
-        emit Migrated(borrower, compoundV2Position1, 200e6, 200e6 * 1.0001);
+        emit Migrated(borrower, compoundV2Position1, EMPTY_AAVE_V2_POSITION, 200e6, 200e6 * 1.0001);
 
         // Migration 0
-        migrator.migrate(compoundV2Position0, 1200e6);
+        migrator.migrate(compoundV2Position0, EMPTY_AAVE_V2_POSITION, 1200e6);
 
         // Check v2 balances
         assertEq(cUNI.balanceOf(borrower), cUNIPre - uniMigrateAmount0, "Amount of cUNI should have been migrated first");
@@ -1187,7 +1188,7 @@ contract CometMigratorV2Test is Positor {
         assertEq(comet.borrowBalanceOf(borrower), 1200e6 * 1.0001, "v3 borrow balance");
 
         // Migration 1 [No collateral moved, but still okay]
-        migrator.migrate(compoundV2Position1, 200e6);
+        migrator.migrate(compoundV2Position1, EMPTY_AAVE_V2_POSITION, 200e6);
 
         // Check v2 balances
         assertEq(cUNI.balanceOf(borrower), cUNIPre - uniMigrateAmount0, "Amount of cUNI should have been migrated both");
@@ -1221,7 +1222,7 @@ contract CometMigratorV2Test is Positor {
         uint256 cETHPre = cETH.balanceOf(borrower);
         preflightChecks();
 
-        vm.expectRevert(abi.encodeWithSelector(CometMigrator.Reentrancy.selector, 1));
+        vm.expectRevert(abi.encodeWithSelector(CometMigratorV2.Reentrancy.selector, 1));
         migrator.uniswapV3FlashCallback(0, 0, "");
 
         // Check v2 balances
@@ -1286,6 +1287,7 @@ contract CometMigratorV2Test is Positor {
             usdc,
             cETH,
             weth,
+            aaveV2LendingPool,
             pool_ETH_USDT,
             swapRouter,
             sweepee
@@ -1306,7 +1308,7 @@ contract CometMigratorV2Test is Positor {
             paths: new bytes[](0)
         });
         vm.expectRevert(abi.encodeWithSelector(CometMigratorV2.Reentrancy.selector, 0));
-        migrator.migrate(compoundV2Position, 0e6);
+        migrator.migrate(compoundV2Position, EMPTY_AAVE_V2_POSITION, 0e6);
     }
 
     function testInvalidCallbackZero() public {
@@ -1323,7 +1325,7 @@ contract CometMigratorV2Test is Positor {
             paths: new bytes[](0)
         });
         vm.expectRevert(abi.encodeWithSelector(CometMigratorV2.InvalidCallback.selector, 0));
-        migrator.migrate(compoundV2Position, 0e6);
+        migrator.migrate(compoundV2Position, EMPTY_AAVE_V2_POSITION, 0e6);
     }
 
     function testReentrancyTwo_SweepToken() public {
@@ -1340,7 +1342,7 @@ contract CometMigratorV2Test is Positor {
             paths: new bytes[](0)
         });
         vm.expectRevert(abi.encodeWithSelector(CometMigratorV2.Reentrancy.selector, 2));
-        migrator.migrate(compoundV2Position, 0e6);
+        migrator.migrate(compoundV2Position, EMPTY_AAVE_V2_POSITION, 0e6);
     }
 
     function testSweepFailure_Zero() public {
@@ -1350,6 +1352,7 @@ contract CometMigratorV2Test is Positor {
             usdc,
             cETH,
             weth,
+            aaveV2LendingPool,
             pool_DAI_USDC,
             swapRouter,
             payable(address(lazyToken))
@@ -1380,10 +1383,12 @@ contract CometMigratorV2Test is Positor {
             paths: new bytes[](0)
         });
         vm.expectRevert(abi.encodeWithSelector(CometMigratorV2.CompoundV2Error.selector, 1, 10));
-        migrator.migrate(compoundV2Position, 0e6);
+        migrator.migrate(compoundV2Position, EMPTY_AAVE_V2_POSITION, 0e6);
     }
 
     /* ===== Migrator V2 Specific Tests ===== */
+
+    /* ===== Migrate from Compound v2 ===== */
 
     function testMigrateSingleCompoundV2Borrow_allUsdc() public {
         // Posit
@@ -1420,16 +1425,16 @@ contract CometMigratorV2Test is Positor {
             borrows: initialBorrows,
             paths: paths
         });
-        uint256 flashEstimate = 360e6;
+        uint256 flashEstimate = 350e6; // no need to overestimate
         vm.startPrank(borrower);
         cUNI.approve(address(migrator), type(uint256).max);
         comet.allow(address(migrator), true);
 
         // Check event
         vm.expectEmit(true, false, false, true);
-        emit Migrated(borrower, compoundV2Position, flashEstimate, 360e6 * 1.0001);
+        emit Migrated(borrower, compoundV2Position, EMPTY_AAVE_V2_POSITION, flashEstimate, 350e6 * 1.0001);
 
-        migrator.migrate(compoundV2Position, flashEstimate);
+        migrator.migrate(compoundV2Position, EMPTY_AAVE_V2_POSITION, flashEstimate);
 
         // Check v2 balances
         assertEq(cUNI.balanceOf(borrower), cUNIPre - migrateAmount, "Amount of cUNI should have been migrated");
@@ -1437,7 +1442,7 @@ contract CometMigratorV2Test is Positor {
 
         // Check v3 balances
         assertApproxEqRel(comet.collateralBalanceOf(borrower, address(uni)), 199e18, 0.01e18, "v3 collateral balance");
-        assertEq(comet.borrowBalanceOf(borrower), 350e6 + 360e6 * 0.0001, "v3 borrow balance");
+        assertEq(comet.borrowBalanceOf(borrower), 350e6 * 1.0001, "v3 borrow balance");
     }
 
     function testMigrateSingleCompoundV2Borrow_allDai() public {
@@ -1487,9 +1492,9 @@ contract CometMigratorV2Test is Positor {
 
         // Check event
         vm.expectEmit(true, false, false, true);
-        emit Migrated(borrower, compoundV2Position, flashEstimate, 360e6 * 1.0001);
+        emit Migrated(borrower, compoundV2Position, EMPTY_AAVE_V2_POSITION, flashEstimate, 360e6 * 1.0001);
 
-        migrator.migrate(compoundV2Position, flashEstimate);
+        migrator.migrate(compoundV2Position, EMPTY_AAVE_V2_POSITION, flashEstimate);
 
         // Check v2 balances
         assertEq(cUNI.balanceOf(borrower), cUNIPre - migrateAmount, "Amount of cUNI should have been migrated");
@@ -1548,9 +1553,9 @@ contract CometMigratorV2Test is Positor {
 
         // Check event
         vm.expectEmit(true, false, false, true);
-        emit Migrated(borrower, compoundV2Position, flashEstimate, 360e6 * 1.0001);
+        emit Migrated(borrower, compoundV2Position, EMPTY_AAVE_V2_POSITION, flashEstimate, 360e6 * 1.0001);
 
-        migrator.migrate(compoundV2Position, flashEstimate);
+        migrator.migrate(compoundV2Position, EMPTY_AAVE_V2_POSITION, flashEstimate);
 
         // Check v2 balances
         assertEq(cUNI.balanceOf(borrower), cUNIPre - migrateAmount, "Amount of cUNI should have been migrated");
@@ -1614,9 +1619,9 @@ contract CometMigratorV2Test is Positor {
 
         // Check event
         vm.expectEmit(true, false, false, true);
-        emit Migrated(borrower, compoundV2Position, flashEstimate, 710e6 * 1.0001);
+        emit Migrated(borrower, compoundV2Position, EMPTY_AAVE_V2_POSITION, flashEstimate, 710e6 * 1.0001);
 
-        migrator.migrate(compoundV2Position, flashEstimate);
+        migrator.migrate(compoundV2Position, EMPTY_AAVE_V2_POSITION, flashEstimate);
 
         // Check v2 balances
         assertEq(cUNI.balanceOf(borrower), cUNIPre - migrateAmount, "Amount of cUNI should have been migrated");
@@ -1629,7 +1634,7 @@ contract CometMigratorV2Test is Positor {
         assertApproxEqRel(comet.borrowBalanceOf(borrower), 700e6 * 1.0001, 0.01e18, "v3 borrow balance");
     }
 
-    function testMigrateSingleCompoundV2Borrow_lowFlashEstimate() public {
+    function testMigrateSingleCompoundV2Borrow_LowFlashEstimate_WithNoSwap() public {
         // Posit
         CometMigratorV2.CompoundV2Collateral[] memory initialCollateral = new CometMigratorV2.CompoundV2Collateral[](1);
         initialCollateral[0] = CometMigratorV2.CompoundV2Collateral({
@@ -1638,8 +1643,8 @@ contract CometMigratorV2Test is Positor {
         });
         CometMigratorV2.CompoundV2Borrow[] memory initialBorrows = new CometMigratorV2.CompoundV2Borrow[](1);
         initialBorrows[0] = CometMigratorV2.CompoundV2Borrow({
-            cToken: cDAI,
-            amount: 350e18
+            cToken: cUSDC,
+            amount: 350e6
         });
         posit(Posit({
             borrower: borrower,
@@ -1658,35 +1663,30 @@ contract CometMigratorV2Test is Positor {
             amount: migrateAmount
         });
         bytes[] memory paths = new bytes[](1);
-        uint24 poolFee = 500;
-        // Path is reversed (DAI -> USDC) because we are using exact output instead of exact input
-        bytes memory swapPath = abi.encodePacked(
-            address(dai), poolFee, address(usdc)
-        );
-        paths[0] = swapPath;
+        paths[0] = "";
         CometMigratorV2.CompoundV2Position memory compoundV2Position = CometMigratorV2.CompoundV2Position({
             collateral: collateralToMigrate,
             borrows: initialBorrows,
             paths: paths
         });
-        uint256 flashEstimate = 350e6; // This should be too low due to slippage
+        uint256 flashEstimate = 349e6; // This should be too low to repay borrow
         vm.startPrank(borrower);
         cUNI.approve(address(migrator), type(uint256).max);
         comet.allow(address(migrator), true);
 
-        vm.expectRevert(bytes("STF")); // Uniswap SafeTransferFrom revert due to lack of USDC to complete swap
-        migrator.migrate(compoundV2Position, flashEstimate);
+        vm.expectRevert(abi.encodeWithSelector(CometMigratorV2.CompoundV2Error.selector, 0, 13)); // revert due to lack of USDC to repay borrow
+        migrator.migrate(compoundV2Position, EMPTY_AAVE_V2_POSITION, flashEstimate);
 
         // Check v2 balances
         assertEq(cUNI.balanceOf(borrower), cUNIPre, "Amount of cUNI should have been migrated");
-        assertEq(cDAI.borrowBalanceCurrent(borrower), 350e18, "Remainder of tokens");
+        assertEq(cUSDC.borrowBalanceCurrent(borrower), 350e6, "Remainder of tokens");
 
         // Check v3 balances
         assertEq(comet.collateralBalanceOf(borrower, address(uni)), 0, "v3 collateral balance");
         assertEq(comet.borrowBalanceOf(borrower), 0, "v3 borrow balance");
     }
 
-    function testMigrateDualCompoundV2Borrow_LowFlashEstimate() public {
+    function testMigrateDualCompoundV2Borrow_LowFlashEstimate_WithSwap() public {
         // Posit
         CometMigratorV2.CompoundV2Collateral[] memory initialCollateral = new CometMigratorV2.CompoundV2Collateral[](1);
         initialCollateral[0] = CometMigratorV2.CompoundV2Collateral({
@@ -1737,7 +1737,7 @@ contract CometMigratorV2Test is Positor {
         comet.allow(address(migrator), true);
 
         vm.expectRevert(bytes("STF")); // Uniswap SafeTransferFrom revert due to lack of USDC to complete swap
-        migrator.migrate(compoundV2Position, flashEstimate);
+        migrator.migrate(compoundV2Position, EMPTY_AAVE_V2_POSITION, flashEstimate);
 
         // Check v2 balances
         assertEq(cUNI.balanceOf(borrower), cUNIPre, "Amount of cUNI should have been migrated");
@@ -1791,9 +1791,9 @@ contract CometMigratorV2Test is Positor {
 
         // Check event
         vm.expectEmit(true, false, false, true);
-        emit Migrated(borrower, compoundV2Position, flashEstimate, 35000e6 * 1.0001);
+        emit Migrated(borrower, compoundV2Position, EMPTY_AAVE_V2_POSITION, flashEstimate, 35000e6 * 1.0001);
 
-        migrator.migrate(compoundV2Position, flashEstimate);
+        migrator.migrate(compoundV2Position, EMPTY_AAVE_V2_POSITION, flashEstimate);
 
         // Check v2 balances
         assertEq(cUNI.balanceOf(borrower), cUNIPre - migrateAmount, "Amount of cUNI should have been migrated");
@@ -1844,7 +1844,7 @@ contract CometMigratorV2Test is Positor {
         comet.allow(address(migrator), true);
 
         vm.expectRevert(abi.encodeWithSelector(CometMigratorV2.InvalidInputs.selector, 0));
-        migrator.migrate(compoundV2Position, flashEstimate);
+        migrator.migrate(compoundV2Position, EMPTY_AAVE_V2_POSITION, flashEstimate);
 
         // Check v2 balances
         assertEq(cUNI.balanceOf(borrower), cUNIPre, "Amount of cUNI should have been migrated");
@@ -1899,7 +1899,7 @@ contract CometMigratorV2Test is Positor {
         comet.allow(address(migrator), true);
 
         vm.expectRevert(); // XXX no revert message
-        migrator.migrate(compoundV2Position, flashEstimate);
+        migrator.migrate(compoundV2Position, EMPTY_AAVE_V2_POSITION, flashEstimate);
 
         // Check v2 balances
         assertEq(cUNI.balanceOf(borrower), cUNIPre, "Amount of cUNI should have been migrated");
@@ -1956,7 +1956,7 @@ contract CometMigratorV2Test is Positor {
         comet.allow(address(migrator), true);
 
         vm.expectRevert(bytes("STF")); // slippage is too high so `flashEstimate` is not enough to cover the swap
-        migrator.migrate(compoundV2Position, flashEstimate);
+        migrator.migrate(compoundV2Position, EMPTY_AAVE_V2_POSITION, flashEstimate);
 
         // Check v2 balances
         assertEq(cUNI.balanceOf(borrower), cUNIPre, "Amount of cUNI should have been migrated");
@@ -2014,9 +2014,9 @@ contract CometMigratorV2Test is Positor {
 
         // Check event
         vm.expectEmit(true, false, false, true);
-        emit Migrated(borrower, compoundV2Position, flashEstimate, 500e6 * 1.0001);
+        emit Migrated(borrower, compoundV2Position, EMPTY_AAVE_V2_POSITION, flashEstimate, 500e6 * 1.0001);
 
-        migrator.migrate(compoundV2Position, flashEstimate);
+        migrator.migrate(compoundV2Position, EMPTY_AAVE_V2_POSITION, flashEstimate);
 
         // Check v2 balances
         assertEq(cUNI.balanceOf(borrower), cUNIPre - migrateAmount, "Amount of cUNI should have been migrated");
@@ -2028,7 +2028,1075 @@ contract CometMigratorV2Test is Positor {
         assertApproxEqRel(comet.borrowBalanceOf(borrower), 350e6 * 1.0001, 0.5e18 /* 50% approximation */, "v3 borrow balance");
     }
 
-    // XXX More tests:
+    /* ===== Migrate from Aave v2 ===== */
+
+    function testMigrateSingleAaveV2Borrow_uniCollateral_variableDebtUsdc_migrateSome() public {
+        // Posit
+        CometMigratorV2.AaveV2Collateral[] memory initialCollateral = new CometMigratorV2.AaveV2Collateral[](1);
+        initialCollateral[0] = CometMigratorV2.AaveV2Collateral({
+            aToken: aUNI,
+            amount: 300e18 // ~ $5 * 300 = ~$1500 75% collateral factor = $1,000
+        });
+        CometMigratorV2.AaveV2Borrow[] memory initialBorrows = new CometMigratorV2.AaveV2Borrow[](1);
+        initialBorrows[0] = CometMigratorV2.AaveV2Borrow({
+            aDebtToken: variableDebtUSDC,
+            amount: 700e6
+        });
+        positAaveV2(PositAaveV2({
+            borrower: borrower,
+            collateral: initialCollateral,
+            borrows: initialBorrows
+        }));
+
+        uint256 aUNIPre = aUNI.balanceOf(borrower);
+        preflightChecks();
+
+        // Migrate
+        CometMigratorV2.AaveV2Collateral[] memory collateralToMigrate = new CometMigratorV2.AaveV2Collateral[](1);
+        uint256 migrateAmount = 199e18;
+        collateralToMigrate[0] = CometMigratorV2.AaveV2Collateral({
+            aToken: aUNI,
+            amount: migrateAmount
+        });
+        CometMigratorV2.AaveV2Borrow[] memory borrowsToMigrate = new CometMigratorV2.AaveV2Borrow[](1);
+        borrowsToMigrate[0] = CometMigratorV2.AaveV2Borrow({
+            aDebtToken: variableDebtUSDC,
+            amount: 600e6
+        });
+        bytes[] memory paths = new bytes[](1);
+        paths[0] = "";
+        CometMigratorV2.AaveV2Position memory aaveV2Position = CometMigratorV2.AaveV2Position({
+            collateral: collateralToMigrate,
+            borrows: borrowsToMigrate,
+            paths: paths
+        });
+
+        // Check event
+        vm.expectEmit(true, false, false, true);
+        emit Migrated(borrower, EMPTY_COMPOUND_V2_POSITION, aaveV2Position, 600e6, 600e6 * 1.0001);
+
+        vm.startPrank(borrower);
+        aUNI.approve(address(migrator), type(uint256).max);
+        comet.allow(address(migrator), true);
+        migrator.migrate(EMPTY_COMPOUND_V2_POSITION, aaveV2Position, 600e6);
+
+        // Check Aave v2 balances
+        // XXX off by 1 wei due to rounding?
+        assertApproxEqAbs(aUNI.balanceOf(borrower), aUNIPre - migrateAmount, 1, "Amount of aUNI should have been migrated");
+        assertApproxEqAbs(variableDebtUSDC.balanceOf(borrower), 100e6, 1, "Remainder of tokens");
+
+        // Check v3 balances
+        assertEq(comet.collateralBalanceOf(borrower, address(uni)), 199e18, "v3 collateral balance");
+        assertEq(comet.borrowBalanceOf(borrower), 600e6 * 1.0001, "v3 borrow balance");
+    }
+
+    function testMigrateSingleAaveV2Borrow_uniCollateral_stableDebtUsdc_migrateSome() public {
+        // Posit
+        CometMigratorV2.AaveV2Collateral[] memory initialCollateral = new CometMigratorV2.AaveV2Collateral[](1);
+        initialCollateral[0] = CometMigratorV2.AaveV2Collateral({
+            aToken: aUNI,
+            amount: 300e18 // ~ $5 * 300 = ~$1500 75% collateral factor = $1,000
+        });
+        CometMigratorV2.AaveV2Borrow[] memory initialBorrows = new CometMigratorV2.AaveV2Borrow[](1);
+        initialBorrows[0] = CometMigratorV2.AaveV2Borrow({
+            aDebtToken: stableDebtUSDC,
+            amount: 700e6
+        });
+        positAaveV2(PositAaveV2({
+            borrower: borrower,
+            collateral: initialCollateral,
+            borrows: initialBorrows
+        }));
+
+        uint256 aUNIPre = aUNI.balanceOf(borrower);
+        preflightChecks();
+
+        // Migrate
+        CometMigratorV2.AaveV2Collateral[] memory collateralToMigrate = new CometMigratorV2.AaveV2Collateral[](1);
+        uint256 migrateAmount = 199e18;
+        collateralToMigrate[0] = CometMigratorV2.AaveV2Collateral({
+            aToken: aUNI,
+            amount: migrateAmount
+        });
+        CometMigratorV2.AaveV2Borrow[] memory borrowsToMigrate = new CometMigratorV2.AaveV2Borrow[](1);
+        borrowsToMigrate[0] = CometMigratorV2.AaveV2Borrow({
+            aDebtToken: stableDebtUSDC,
+            amount: 600e6
+        });
+        bytes[] memory paths = new bytes[](1);
+        paths[0] = "";
+        CometMigratorV2.AaveV2Position memory aaveV2Position = CometMigratorV2.AaveV2Position({
+            collateral: collateralToMigrate,
+            borrows: borrowsToMigrate,
+            paths: paths
+        });
+
+        // Check event
+        vm.expectEmit(true, false, false, true);
+        emit Migrated(borrower, EMPTY_COMPOUND_V2_POSITION, aaveV2Position, 600e6, 600e6 * 1.0001);
+
+        vm.startPrank(borrower);
+        aUNI.approve(address(migrator), type(uint256).max);
+        comet.allow(address(migrator), true);
+        migrator.migrate(EMPTY_COMPOUND_V2_POSITION, aaveV2Position, 600e6);
+
+        // Check Aave v2 balances
+        // XXX off by 1 wei due to rounding?
+        assertApproxEqAbs(aUNI.balanceOf(borrower), aUNIPre - migrateAmount, 1, "Amount of aUNI should have been migrated");
+        assertApproxEqAbs(stableDebtUSDC.balanceOf(borrower), 100e6, 1, "Remainder of tokens");
+
+        // Check v3 balances
+        assertEq(comet.collateralBalanceOf(borrower, address(uni)), 199e18, "v3 collateral balance");
+        assertEq(comet.borrowBalanceOf(borrower), 600e6 * 1.0001, "v3 borrow balance");
+    }
+
+    function testMigrateSingleAaveV2Borrow_uniCollateral_variableDebtUsdc_migrateAll() public {
+        // Posit
+        CometMigratorV2.AaveV2Collateral[] memory initialCollateral = new CometMigratorV2.AaveV2Collateral[](1);
+        initialCollateral[0] = CometMigratorV2.AaveV2Collateral({
+            aToken: aUNI,
+            amount: 300e18 // ~ $5 * 300 = ~$1500 75% collateral factor = $1,000
+        });
+        CometMigratorV2.AaveV2Borrow[] memory initialBorrows = new CometMigratorV2.AaveV2Borrow[](1);
+        initialBorrows[0] = CometMigratorV2.AaveV2Borrow({
+            aDebtToken: variableDebtUSDC,
+            amount: 700e6
+        });
+        positAaveV2(PositAaveV2({
+            borrower: borrower,
+            collateral: initialCollateral,
+            borrows: initialBorrows
+        }));
+
+        uint256 aUNIPre = aUNI.balanceOf(borrower);
+        preflightChecks();
+
+        // Migrate
+        CometMigratorV2.AaveV2Collateral[] memory collateralToMigrate = new CometMigratorV2.AaveV2Collateral[](1);
+        collateralToMigrate[0] = CometMigratorV2.AaveV2Collateral({
+            aToken: aUNI,
+            amount: type(uint256).max
+        });
+        CometMigratorV2.AaveV2Borrow[] memory borrowsToMigrate = new CometMigratorV2.AaveV2Borrow[](1);
+        borrowsToMigrate[0] = CometMigratorV2.AaveV2Borrow({
+            aDebtToken: variableDebtUSDC,
+            amount: type(uint256).max
+        });
+        bytes[] memory paths = new bytes[](1);
+        paths[0] = "";
+        CometMigratorV2.AaveV2Position memory aaveV2Position = CometMigratorV2.AaveV2Position({
+            collateral: collateralToMigrate,
+            borrows: borrowsToMigrate,
+            paths: paths
+        });
+        uint256 flashEstimate = 710e6; // We overestimate slightly to account for slippage
+
+        // Check event
+        vm.expectEmit(true, false, false, true);
+        emit Migrated(borrower, EMPTY_COMPOUND_V2_POSITION, aaveV2Position, flashEstimate, 710e6 * 1.0001);
+
+        vm.startPrank(borrower);
+        aUNI.approve(address(migrator), type(uint256).max);
+        comet.allow(address(migrator), true);
+        migrator.migrate(EMPTY_COMPOUND_V2_POSITION, aaveV2Position, flashEstimate);
+
+        // Check Aave v2 balances
+        assertEq(aUNI.balanceOf(borrower), 0, "Amount of aUNI should have been migrated");
+        assertEq(variableDebtUSDC.balanceOf(borrower), 0, "Remainder of tokens");
+
+        // Check v3 balances
+        assertApproxEqRel(comet.collateralBalanceOf(borrower, address(uni)), 300e18, 0.01e18, "v3 collateral balance");
+        assertEq(comet.borrowBalanceOf(borrower), 700e6 + 710e6 * 0.0001, "v3 borrow balance");
+    }
+
+    function testMigrateSingleAaveV2Borrow_uniCollateral_stableDebtUsdc_migrateAll() public {
+        // Posit
+        CometMigratorV2.AaveV2Collateral[] memory initialCollateral = new CometMigratorV2.AaveV2Collateral[](1);
+        initialCollateral[0] = CometMigratorV2.AaveV2Collateral({
+            aToken: aUNI,
+            amount: 300e18 // ~ $5 * 300 = ~$1500 75% collateral factor = $1,000
+        });
+        CometMigratorV2.AaveV2Borrow[] memory initialBorrows = new CometMigratorV2.AaveV2Borrow[](1);
+        initialBorrows[0] = CometMigratorV2.AaveV2Borrow({
+            aDebtToken: stableDebtUSDC,
+            amount: 700e6
+        });
+        positAaveV2(PositAaveV2({
+            borrower: borrower,
+            collateral: initialCollateral,
+            borrows: initialBorrows
+        }));
+
+        uint256 aUNIPre = aUNI.balanceOf(borrower);
+        preflightChecks();
+
+        // Migrate
+        CometMigratorV2.AaveV2Collateral[] memory collateralToMigrate = new CometMigratorV2.AaveV2Collateral[](1);
+        collateralToMigrate[0] = CometMigratorV2.AaveV2Collateral({
+            aToken: aUNI,
+            amount: type(uint256).max
+        });
+        CometMigratorV2.AaveV2Borrow[] memory borrowsToMigrate = new CometMigratorV2.AaveV2Borrow[](1);
+        borrowsToMigrate[0] = CometMigratorV2.AaveV2Borrow({
+            aDebtToken: stableDebtUSDC,
+            amount: type(uint256).max
+        });
+        bytes[] memory paths = new bytes[](1);
+        paths[0] = "";
+        CometMigratorV2.AaveV2Position memory aaveV2Position = CometMigratorV2.AaveV2Position({
+            collateral: collateralToMigrate,
+            borrows: borrowsToMigrate,
+            paths: paths
+        });
+        uint256 flashEstimate = 710e6; // We overestimate slightly to account for slippage
+
+        // Check event
+        vm.expectEmit(true, false, false, true);
+        emit Migrated(borrower, EMPTY_COMPOUND_V2_POSITION, aaveV2Position, flashEstimate, 710e6 * 1.0001);
+
+        vm.startPrank(borrower);
+        aUNI.approve(address(migrator), type(uint256).max);
+        comet.allow(address(migrator), true);
+        migrator.migrate(EMPTY_COMPOUND_V2_POSITION, aaveV2Position, flashEstimate);
+
+        // Check Aave v2 balances
+        assertEq(aUNI.balanceOf(borrower), 0, "Amount of aUNI should have been migrated");
+        assertEq(stableDebtUSDC.balanceOf(borrower), 0, "Remainder of tokens");
+
+        // Check v3 balances
+        assertApproxEqRel(comet.collateralBalanceOf(borrower, address(uni)), 300e18, 0.01e18, "v3 collateral balance");
+        assertEq(comet.borrowBalanceOf(borrower), 700e6 + 710e6 * 0.0001, "v3 borrow balance");
+    }
+
+    function testMigrateSingleAaveV2Borrow_wethCollateral_variableDebtUsdc_migrateSome() public {
+        // Posit
+        CometMigratorV2.AaveV2Collateral[] memory initialCollateral = new CometMigratorV2.AaveV2Collateral[](1);
+        initialCollateral[0] = CometMigratorV2.AaveV2Collateral({
+            aToken: aWETH,
+            amount: 1e18 // ~ $1300 * 1 = ~$1300 86% collateral factor = $1,100
+        });
+        CometMigratorV2.AaveV2Borrow[] memory initialBorrows = new CometMigratorV2.AaveV2Borrow[](1);
+        initialBorrows[0] = CometMigratorV2.AaveV2Borrow({
+            aDebtToken: variableDebtUSDC,
+            amount: 700e6
+        });
+        positAaveV2(PositAaveV2({
+            borrower: borrower,
+            collateral: initialCollateral,
+            borrows: initialBorrows
+        }));
+
+        uint256 aWETHPre = aWETH.balanceOf(borrower);
+        preflightChecks();
+
+        // Migrate
+        CometMigratorV2.AaveV2Collateral[] memory collateralToMigrate = new CometMigratorV2.AaveV2Collateral[](1);
+        uint256 migrateAmount = 0.6e18;
+        collateralToMigrate[0] = CometMigratorV2.AaveV2Collateral({
+            aToken: aWETH,
+            amount: migrateAmount
+        });
+        CometMigratorV2.AaveV2Borrow[] memory borrowsToMigrate = new CometMigratorV2.AaveV2Borrow[](1);
+        borrowsToMigrate[0] = CometMigratorV2.AaveV2Borrow({
+            aDebtToken: variableDebtUSDC,
+            amount: 600e6
+        });
+        bytes[] memory paths = new bytes[](1);
+        paths[0] = "";
+        CometMigratorV2.AaveV2Position memory aaveV2Position = CometMigratorV2.AaveV2Position({
+            collateral: collateralToMigrate,
+            borrows: borrowsToMigrate,
+            paths: paths
+        });
+
+        // Check event
+        vm.expectEmit(true, false, false, true);
+        emit Migrated(borrower, EMPTY_COMPOUND_V2_POSITION, aaveV2Position, 600e6, 600e6 * 1.0001);
+
+        vm.startPrank(borrower);
+        aWETH.approve(address(migrator), type(uint256).max);
+        comet.allow(address(migrator), true);
+        migrator.migrate(EMPTY_COMPOUND_V2_POSITION, aaveV2Position, 600e6);
+
+        // Check Aave v2 balances
+        // XXX off by 1 wei due to rounding?
+        assertApproxEqAbs(aWETH.balanceOf(borrower), aWETHPre - migrateAmount, 1, "Amount of aWETH should have been migrated");
+        assertApproxEqAbs(variableDebtUSDC.balanceOf(borrower), 100e6, 1, "Remainder of tokens");
+
+        // Check v3 balances
+        assertEq(comet.collateralBalanceOf(borrower, address(weth)), 0.6e18, "v3 collateral balance");
+        assertEq(comet.borrowBalanceOf(borrower), 600e6 * 1.0001, "v3 borrow balance");
+    }
+
+    function testMigrateSingleAaveV2Borrow_wethCollateral_stableDebtUsdc_migrateSome() public {
+        // Posit
+        CometMigratorV2.AaveV2Collateral[] memory initialCollateral = new CometMigratorV2.AaveV2Collateral[](1);
+        initialCollateral[0] = CometMigratorV2.AaveV2Collateral({
+            aToken: aWETH,
+            amount: 1e18 // ~ $1300 * 1 = ~$1300 86% collateral factor = $1,100
+        });
+        CometMigratorV2.AaveV2Borrow[] memory initialBorrows = new CometMigratorV2.AaveV2Borrow[](1);
+        initialBorrows[0] = CometMigratorV2.AaveV2Borrow({
+            aDebtToken: stableDebtUSDC,
+            amount: 700e6
+        });
+        positAaveV2(PositAaveV2({
+            borrower: borrower,
+            collateral: initialCollateral,
+            borrows: initialBorrows
+        }));
+
+        uint256 aWETHPre = aWETH.balanceOf(borrower);
+        preflightChecks();
+
+        // Migrate
+        CometMigratorV2.AaveV2Collateral[] memory collateralToMigrate = new CometMigratorV2.AaveV2Collateral[](1);
+        uint256 migrateAmount = 0.6e18;
+        collateralToMigrate[0] = CometMigratorV2.AaveV2Collateral({
+            aToken: aWETH,
+            amount: migrateAmount
+        });
+        CometMigratorV2.AaveV2Borrow[] memory borrowsToMigrate = new CometMigratorV2.AaveV2Borrow[](1);
+        borrowsToMigrate[0] = CometMigratorV2.AaveV2Borrow({
+            aDebtToken: stableDebtUSDC,
+            amount: 600e6
+        });
+        bytes[] memory paths = new bytes[](1);
+        paths[0] = "";
+        CometMigratorV2.AaveV2Position memory aaveV2Position = CometMigratorV2.AaveV2Position({
+            collateral: collateralToMigrate,
+            borrows: borrowsToMigrate,
+            paths: paths
+        });
+
+        // Check event
+        vm.expectEmit(true, false, false, true);
+        emit Migrated(borrower, EMPTY_COMPOUND_V2_POSITION, aaveV2Position, 600e6, 600e6 * 1.0001);
+
+        vm.startPrank(borrower);
+        aWETH.approve(address(migrator), type(uint256).max);
+        comet.allow(address(migrator), true);
+        migrator.migrate(EMPTY_COMPOUND_V2_POSITION, aaveV2Position, 600e6);
+
+        // Check Aave v2 balances
+        // XXX off by 1 wei due to rounding?
+        assertApproxEqAbs(aWETH.balanceOf(borrower), aWETHPre - migrateAmount, 1, "Amount of aWETH should have been migrated");
+        assertApproxEqAbs(stableDebtUSDC.balanceOf(borrower), 100e6, 1, "Remainder of tokens");
+
+        // Check v3 balances
+        assertEq(comet.collateralBalanceOf(borrower, address(weth)), 0.6e18, "v3 collateral balance");
+        assertEq(comet.borrowBalanceOf(borrower), 600e6 * 1.0001, "v3 borrow balance");
+    }
+
+    function testMigrateSingleAaveV2Borrow_wethCollateral_variableDebtUsdc_migrateAll() public {
+        // Posit
+        CometMigratorV2.AaveV2Collateral[] memory initialCollateral = new CometMigratorV2.AaveV2Collateral[](1);
+        initialCollateral[0] = CometMigratorV2.AaveV2Collateral({
+            aToken: aWETH,
+            amount: 1e18 // ~ $1300 * 1 = ~$1300 86% collateral factor = $1,100
+        });
+        CometMigratorV2.AaveV2Borrow[] memory initialBorrows = new CometMigratorV2.AaveV2Borrow[](1);
+        initialBorrows[0] = CometMigratorV2.AaveV2Borrow({
+            aDebtToken: variableDebtUSDC,
+            amount: 700e6
+        });
+        positAaveV2(PositAaveV2({
+            borrower: borrower,
+            collateral: initialCollateral,
+            borrows: initialBorrows
+        }));
+
+        uint256 aWETHPre = aWETH.balanceOf(borrower);
+        preflightChecks();
+
+        // Migrate
+        CometMigratorV2.AaveV2Collateral[] memory collateralToMigrate = new CometMigratorV2.AaveV2Collateral[](1);
+        collateralToMigrate[0] = CometMigratorV2.AaveV2Collateral({
+            aToken: aWETH,
+            amount: type(uint256).max
+        });
+        CometMigratorV2.AaveV2Borrow[] memory borrowsToMigrate = new CometMigratorV2.AaveV2Borrow[](1);
+        borrowsToMigrate[0] = CometMigratorV2.AaveV2Borrow({
+            aDebtToken: variableDebtUSDC,
+            amount: type(uint256).max
+        });
+        bytes[] memory paths = new bytes[](1);
+        paths[0] = "";
+        CometMigratorV2.AaveV2Position memory aaveV2Position = CometMigratorV2.AaveV2Position({
+            collateral: collateralToMigrate,
+            borrows: borrowsToMigrate,
+            paths: paths
+        });
+        uint256 flashEstimate = 710e6; // We overestimate slightly to account for slippage
+
+        // Check event
+        vm.expectEmit(true, false, false, true);
+        emit Migrated(borrower, EMPTY_COMPOUND_V2_POSITION, aaveV2Position, flashEstimate, 710e6 * 1.0001);
+
+        vm.startPrank(borrower);
+        aWETH.approve(address(migrator), type(uint256).max);
+        comet.allow(address(migrator), true);
+        migrator.migrate(EMPTY_COMPOUND_V2_POSITION, aaveV2Position, flashEstimate);
+
+        // Check Aave v2 balances
+        assertEq(aWETH.balanceOf(borrower), 0, "Amount of aWETH should have been migrated");
+        assertEq(variableDebtUSDC.balanceOf(borrower), 0, "Remainder of tokens");
+
+        // Check v3 balances
+        assertEq(comet.collateralBalanceOf(borrower, address(weth)), 1e18, "v3 collateral balance");
+        assertEq(comet.borrowBalanceOf(borrower), 700e6 + 710e6 * 0.0001, "v3 borrow balance");
+    }
+
+    function testMigrateSingleAaveV2Borrow_wethCollateral_stableDebtUsdc_migrateAll() public {
+        // Posit
+        CometMigratorV2.AaveV2Collateral[] memory initialCollateral = new CometMigratorV2.AaveV2Collateral[](1);
+        initialCollateral[0] = CometMigratorV2.AaveV2Collateral({
+            aToken: aWETH,
+            amount: 1e18 // ~ $1300 * 1 = ~$1300 86% collateral factor = $1,100
+        });
+        CometMigratorV2.AaveV2Borrow[] memory initialBorrows = new CometMigratorV2.AaveV2Borrow[](1);
+        initialBorrows[0] = CometMigratorV2.AaveV2Borrow({
+            aDebtToken: stableDebtUSDC,
+            amount: 700e6
+        });
+        positAaveV2(PositAaveV2({
+            borrower: borrower,
+            collateral: initialCollateral,
+            borrows: initialBorrows
+        }));
+
+        uint256 aWETHPre = aWETH.balanceOf(borrower);
+        preflightChecks();
+
+        // Migrate
+        CometMigratorV2.AaveV2Collateral[] memory collateralToMigrate = new CometMigratorV2.AaveV2Collateral[](1);
+        collateralToMigrate[0] = CometMigratorV2.AaveV2Collateral({
+            aToken: aWETH,
+            amount: type(uint256).max
+        });
+        CometMigratorV2.AaveV2Borrow[] memory borrowsToMigrate = new CometMigratorV2.AaveV2Borrow[](1);
+        borrowsToMigrate[0] = CometMigratorV2.AaveV2Borrow({
+            aDebtToken: stableDebtUSDC,
+            amount: type(uint256).max
+        });
+        bytes[] memory paths = new bytes[](1);
+        paths[0] = "";
+        CometMigratorV2.AaveV2Position memory aaveV2Position = CometMigratorV2.AaveV2Position({
+            collateral: collateralToMigrate,
+            borrows: borrowsToMigrate,
+            paths: paths
+        });
+        uint256 flashEstimate = 710e6; // We overestimate slightly to account for slippage
+
+        // Check event
+        vm.expectEmit(true, false, false, true);
+        emit Migrated(borrower, EMPTY_COMPOUND_V2_POSITION, aaveV2Position, flashEstimate, 710e6 * 1.0001);
+
+        vm.startPrank(borrower);
+        aWETH.approve(address(migrator), type(uint256).max);
+        comet.allow(address(migrator), true);
+        migrator.migrate(EMPTY_COMPOUND_V2_POSITION, aaveV2Position, flashEstimate);
+
+        // Check Aave v2 balances
+        assertEq(aWETH.balanceOf(borrower), 0, "Amount of aWETH should have been migrated");
+        assertEq(stableDebtUSDC.balanceOf(borrower), 0, "Remainder of tokens");
+
+        // Check v3 balances
+        assertEq(comet.collateralBalanceOf(borrower, address(weth)), 1e18, "v3 collateral balance");
+        assertEq(comet.borrowBalanceOf(borrower), 700e6 + 710e6 * 0.0001, "v3 borrow balance");
+    }
+
+    function testMigrateSingleAaveV2Borrow_variableDebtDai() public {
+        // Posit
+        CometMigratorV2.AaveV2Collateral[] memory initialCollateral = new CometMigratorV2.AaveV2Collateral[](1);
+        initialCollateral[0] = CometMigratorV2.AaveV2Collateral({
+            aToken: aUNI,
+            amount: 300e18 // ~ $5 * 300 = ~$1500 75% collateral factor = $1,000
+        });
+        CometMigratorV2.AaveV2Borrow[] memory initialBorrows = new CometMigratorV2.AaveV2Borrow[](1);
+        initialBorrows[0] = CometMigratorV2.AaveV2Borrow({
+            aDebtToken: variableDebtDAI,
+            amount: 700e18
+        });
+        positAaveV2(PositAaveV2({
+            borrower: borrower,
+            collateral: initialCollateral,
+            borrows: initialBorrows
+        }));
+
+        uint256 aUNIPre = aUNI.balanceOf(borrower);
+        preflightChecks();
+
+        // Migrate
+        CometMigratorV2.AaveV2Collateral[] memory collateralToMigrate = new CometMigratorV2.AaveV2Collateral[](1);
+        uint256 migrateAmount = 199e18;
+        collateralToMigrate[0] = CometMigratorV2.AaveV2Collateral({
+            aToken: aUNI,
+            amount: migrateAmount
+        });
+        CometMigratorV2.AaveV2Borrow[] memory borrowsToMigrate = new CometMigratorV2.AaveV2Borrow[](1);
+        borrowsToMigrate[0] = CometMigratorV2.AaveV2Borrow({
+            aDebtToken: variableDebtDAI,
+            amount: 600e18
+        });
+        uint24 poolFee = 500;
+        bytes memory swapPath = abi.encodePacked(
+            address(dai), poolFee, address(usdc)
+        );
+        bytes[] memory paths = new bytes[](1);
+        paths[0] = swapPath;
+        CometMigratorV2.AaveV2Position memory aaveV2Position = CometMigratorV2.AaveV2Position({
+            collateral: collateralToMigrate,
+            borrows: borrowsToMigrate,
+            paths: paths
+        });
+        uint256 flashEstimate = 610e6; // We overestimate slightly to account for slippage
+
+        // Check event
+        vm.expectEmit(true, false, false, true);
+        emit Migrated(borrower, EMPTY_COMPOUND_V2_POSITION, aaveV2Position, flashEstimate, 610e6 * 1.0001);
+
+        vm.startPrank(borrower);
+        aUNI.approve(address(migrator), type(uint256).max);
+        comet.allow(address(migrator), true);
+        migrator.migrate(EMPTY_COMPOUND_V2_POSITION, aaveV2Position, flashEstimate);
+
+        // Check Aave v2 balances
+        // XXX off by 1 wei due to rounding?
+        assertApproxEqAbs(aUNI.balanceOf(borrower), aUNIPre - migrateAmount, 1, "Amount of aUNI should have been migrated");
+        assertEq(variableDebtDAI.balanceOf(borrower), 100e18, "Remainder of tokens");
+
+        // Check v3 balances
+        assertEq(comet.collateralBalanceOf(borrower, address(uni)), 199e18, "v3 collateral balance");
+        // Approximate assertion because of slippage from DAI to USDC
+        assertApproxEqRel(comet.borrowBalanceOf(borrower), 600e6 + 610e6 * 0.0001, 0.01e18, "v3 borrow balance");
+    }
+
+    function testMigrateSingleAaveV2Borrow_stableDebtDai() public {
+        // Posit
+        CometMigratorV2.AaveV2Collateral[] memory initialCollateral = new CometMigratorV2.AaveV2Collateral[](1);
+        initialCollateral[0] = CometMigratorV2.AaveV2Collateral({
+            aToken: aUNI,
+            amount: 300e18 // ~ $5 * 300 = ~$1500 75% collateral factor = $1,000
+        });
+        CometMigratorV2.AaveV2Borrow[] memory initialBorrows = new CometMigratorV2.AaveV2Borrow[](1);
+        initialBorrows[0] = CometMigratorV2.AaveV2Borrow({
+            aDebtToken: stableDebtDAI,
+            amount: 700e18
+        });
+        positAaveV2(PositAaveV2({
+            borrower: borrower,
+            collateral: initialCollateral,
+            borrows: initialBorrows
+        }));
+
+        uint256 aUNIPre = aUNI.balanceOf(borrower);
+        preflightChecks();
+
+        // Migrate
+        CometMigratorV2.AaveV2Collateral[] memory collateralToMigrate = new CometMigratorV2.AaveV2Collateral[](1);
+        uint256 migrateAmount = 199e18;
+        collateralToMigrate[0] = CometMigratorV2.AaveV2Collateral({
+            aToken: aUNI,
+            amount: migrateAmount
+        });
+        CometMigratorV2.AaveV2Borrow[] memory borrowsToMigrate = new CometMigratorV2.AaveV2Borrow[](1);
+        borrowsToMigrate[0] = CometMigratorV2.AaveV2Borrow({
+            aDebtToken: stableDebtDAI,
+            amount: 600e18
+        });
+        uint24 poolFee = 500;
+        bytes memory swapPath = abi.encodePacked(
+            address(dai), poolFee, address(usdc)
+        );
+        bytes[] memory paths = new bytes[](1);
+        paths[0] = swapPath;
+        CometMigratorV2.AaveV2Position memory aaveV2Position = CometMigratorV2.AaveV2Position({
+            collateral: collateralToMigrate,
+            borrows: borrowsToMigrate,
+            paths: paths
+        });
+        uint256 flashEstimate = 610e6; // We overestimate slightly to account for slippage
+
+        // Check event
+        vm.expectEmit(true, false, false, true);
+        emit Migrated(borrower, EMPTY_COMPOUND_V2_POSITION, aaveV2Position, flashEstimate, 610e6 * 1.0001);
+
+        vm.startPrank(borrower);
+        aUNI.approve(address(migrator), type(uint256).max);
+        comet.allow(address(migrator), true);
+        migrator.migrate(EMPTY_COMPOUND_V2_POSITION, aaveV2Position, flashEstimate);
+
+        // Check Aave v2 balances
+        // XXX off by 1 wei due to rounding?
+        assertApproxEqAbs(aUNI.balanceOf(borrower), aUNIPre - migrateAmount, 1, "Amount of aUNI should have been migrated");
+        assertEq(stableDebtDAI.balanceOf(borrower), 100e18, "Remainder of tokens");
+
+        // Check v3 balances
+        assertEq(comet.collateralBalanceOf(borrower, address(uni)), 199e18, "v3 collateral balance");
+        // Approximate assertion because of slippage from DAI to USDC
+        assertApproxEqRel(comet.borrowBalanceOf(borrower), 600e6 + 610e6 * 0.0001, 0.01e18, "v3 borrow balance");
+    }
+
+    function testMigrateDualAaveV2Borrow_variableDebtUsdcAndDai() public {
+        // Posit
+        CometMigratorV2.AaveV2Collateral[] memory initialCollateral = new CometMigratorV2.AaveV2Collateral[](1);
+        initialCollateral[0] = CometMigratorV2.AaveV2Collateral({
+            aToken: aUNI,
+            amount: 600e18 // ~ $5 * 600 = ~$3000 75% collateral factor = $2,250
+        });
+        CometMigratorV2.AaveV2Borrow[] memory initialBorrows = new CometMigratorV2.AaveV2Borrow[](2);
+        initialBorrows[0] = CometMigratorV2.AaveV2Borrow({
+            aDebtToken: variableDebtUSDC,
+            amount: 350e6
+        });
+        initialBorrows[1] = CometMigratorV2.AaveV2Borrow({
+            aDebtToken: variableDebtDAI,
+            amount: 350e18
+        });
+        positAaveV2(PositAaveV2({
+            borrower: borrower,
+            collateral: initialCollateral,
+            borrows: initialBorrows
+        }));
+
+        uint256 aUNIPre = aUNI.balanceOf(borrower);
+        preflightChecks();
+
+        // Migrate
+        CometMigratorV2.AaveV2Collateral[] memory collateralToMigrate = new CometMigratorV2.AaveV2Collateral[](1);
+        uint256 migrateAmount = 398e18;
+        collateralToMigrate[0] = CometMigratorV2.AaveV2Collateral({
+            aToken: aUNI,
+            amount: migrateAmount
+        });
+        bytes[] memory paths = new bytes[](2);
+        uint24 poolFee = 500;
+        bytes memory usdcToDaiPath = abi.encodePacked(
+            address(dai), poolFee, address(usdc)
+        );
+        paths[0] = "";
+        paths[1] = usdcToDaiPath;
+        CometMigratorV2.AaveV2Position memory aaveV2Position = CometMigratorV2.AaveV2Position({
+            collateral: collateralToMigrate,
+            borrows: initialBorrows,
+            paths: paths
+        });
+        uint256 flashEstimate = 710e6; // We overestimate slightly to account for slippage
+        vm.startPrank(borrower);
+        aUNI.approve(address(migrator), type(uint256).max);
+        comet.allow(address(migrator), true);
+
+        // Check event
+        vm.expectEmit(true, false, false, true);
+        emit Migrated(borrower, EMPTY_COMPOUND_V2_POSITION, aaveV2Position, flashEstimate, 710e6 * 1.0001);
+
+        migrator.migrate(EMPTY_COMPOUND_V2_POSITION, aaveV2Position, flashEstimate);
+
+        // Check Aave v2 balances
+        // XXX off by 1 wei due to rounding?
+        assertApproxEqAbs(aUNI.balanceOf(borrower), aUNIPre - migrateAmount, 1, "Amount of aUNI should have been migrated");
+        assertEq(variableDebtUSDC.balanceOf(borrower), 0e6, "Remainder of tokens");
+        assertEq(variableDebtDAI.balanceOf(borrower), 0e18, "Remainder of tokens");
+
+        // Check v3 balances
+        assertEq(comet.collateralBalanceOf(borrower, address(uni)), 398e18, "v3 collateral balance");
+        // Approximate assertion because of slippage from DAI to USDC
+        assertApproxEqRel(comet.borrowBalanceOf(borrower), 700e6 + 710e6 * 0.0001, 0.01e18, "v3 borrow balance");
+    }
+
+    function testMigrateDualAaveV2Borrow_variableAndStableDebtUsdcAndDai() public {
+        // Posit
+        CometMigratorV2.AaveV2Collateral[] memory initialCollateral = new CometMigratorV2.AaveV2Collateral[](1);
+        initialCollateral[0] = CometMigratorV2.AaveV2Collateral({
+            aToken: aUNI,
+            amount: 600e18 // ~ $5 * 600 = ~$3000 75% collateral factor = $2,250
+        });
+        CometMigratorV2.AaveV2Borrow[] memory initialBorrows = new CometMigratorV2.AaveV2Borrow[](2);
+        initialBorrows[0] = CometMigratorV2.AaveV2Borrow({
+            aDebtToken: variableDebtUSDC,
+            amount: 350e6
+        });
+        initialBorrows[1] = CometMigratorV2.AaveV2Borrow({
+            aDebtToken: stableDebtDAI,
+            amount: 350e18
+        });
+        positAaveV2(PositAaveV2({
+            borrower: borrower,
+            collateral: initialCollateral,
+            borrows: initialBorrows
+        }));
+
+        uint256 aUNIPre = aUNI.balanceOf(borrower);
+        preflightChecks();
+
+        // Migrate
+        CometMigratorV2.AaveV2Collateral[] memory collateralToMigrate = new CometMigratorV2.AaveV2Collateral[](1);
+        uint256 migrateAmount = 398e18;
+        collateralToMigrate[0] = CometMigratorV2.AaveV2Collateral({
+            aToken: aUNI,
+            amount: migrateAmount
+        });
+        bytes[] memory paths = new bytes[](2);
+        uint24 poolFee = 500;
+        bytes memory usdcToDaiPath = abi.encodePacked(
+            address(dai), poolFee, address(usdc)
+        );
+        paths[0] = "";
+        paths[1] = usdcToDaiPath;
+        CometMigratorV2.AaveV2Position memory aaveV2Position = CometMigratorV2.AaveV2Position({
+            collateral: collateralToMigrate,
+            borrows: initialBorrows,
+            paths: paths
+        });
+        uint256 flashEstimate = 710e6; // We overestimate slightly to account for slippage
+        vm.startPrank(borrower);
+        aUNI.approve(address(migrator), type(uint256).max);
+        comet.allow(address(migrator), true);
+
+        // Check event
+        vm.expectEmit(true, false, false, true);
+        emit Migrated(borrower, EMPTY_COMPOUND_V2_POSITION, aaveV2Position, flashEstimate, 710e6 * 1.0001);
+
+        migrator.migrate(EMPTY_COMPOUND_V2_POSITION, aaveV2Position, flashEstimate);
+
+        // Check Aave v2 balances
+        // XXX off by 1 wei due to rounding?
+        assertApproxEqAbs(aUNI.balanceOf(borrower), aUNIPre - migrateAmount, 1, "Amount of aUNI should have been migrated");
+        assertEq(variableDebtUSDC.balanceOf(borrower), 0e6, "Remainder of tokens");
+        assertEq(stableDebtDAI.balanceOf(borrower), 0e18, "Remainder of tokens");
+
+        // Check v3 balances
+        assertEq(comet.collateralBalanceOf(borrower, address(uni)), 398e18, "v3 collateral balance");
+        // Approximate assertion because of slippage from DAI to USDC
+        assertApproxEqRel(comet.borrowBalanceOf(borrower), 700e6 + 710e6 * 0.0001, 0.01e18, "v3 borrow balance");
+    }
+
+    function testMigrateDualAaveV2CollateralAndBorrow() public {
+        // Posit
+        CometMigratorV2.AaveV2Collateral[] memory initialCollateral = new CometMigratorV2.AaveV2Collateral[](2);
+        initialCollateral[0] = CometMigratorV2.AaveV2Collateral({
+            aToken: aUNI,
+            amount: 300e18 // ~ $5 * 300 = ~$1500 75% collateral factor = $1000
+        });
+        initialCollateral[1] = CometMigratorV2.AaveV2Collateral({
+            aToken: aWETH,
+            amount: 1e18 // ~ $1300 * 1 = ~$1300 86% collateral factor = $1,100
+        });
+        CometMigratorV2.AaveV2Borrow[] memory initialBorrows = new CometMigratorV2.AaveV2Borrow[](2);
+        initialBorrows[0] = CometMigratorV2.AaveV2Borrow({
+            aDebtToken: stableDebtUSDC,
+            amount: 350e6
+        });
+        initialBorrows[1] = CometMigratorV2.AaveV2Borrow({
+            aDebtToken: variableDebtDAI,
+            amount: 350e18
+        });
+        positAaveV2(PositAaveV2({
+            borrower: borrower,
+            collateral: initialCollateral,
+            borrows: initialBorrows
+        }));
+
+        uint256 aUNIPre = aUNI.balanceOf(borrower);
+        preflightChecks();
+
+        // Migrate
+        bytes[] memory paths = new bytes[](2);
+        uint24 poolFee = 500;
+        bytes memory usdcToDaiPath = abi.encodePacked(
+            address(dai), poolFee, address(usdc)
+        );
+        paths[0] = "";
+        paths[1] = usdcToDaiPath;
+        CometMigratorV2.AaveV2Position memory aaveV2Position = CometMigratorV2.AaveV2Position({
+            collateral: initialCollateral,
+            borrows: initialBorrows,
+            paths: paths
+        });
+        uint256 flashEstimate = 710e6; // We overestimate slightly to account for slippage
+        vm.startPrank(borrower);
+        aUNI.approve(address(migrator), type(uint256).max);
+        aWETH.approve(address(migrator), type(uint256).max);
+        comet.allow(address(migrator), true);
+
+        // Check event
+        vm.expectEmit(true, false, false, true);
+        emit Migrated(borrower, EMPTY_COMPOUND_V2_POSITION, aaveV2Position, flashEstimate, 710e6 * 1.0001);
+
+        migrator.migrate(EMPTY_COMPOUND_V2_POSITION, aaveV2Position, flashEstimate);
+
+        // Check Aave v2 balances
+        assertEq(aUNI.balanceOf(borrower), 0, "Amount of aUNI should have been migrated");
+        assertEq(stableDebtUSDC.balanceOf(borrower), 0e6, "Remainder of tokens");
+        assertEq(variableDebtDAI.balanceOf(borrower), 0e18, "Remainder of tokens");
+
+        // Check v3 balances
+        assertEq(comet.collateralBalanceOf(borrower, address(uni)), 300e18, "v3 collateral balance");
+        assertEq(comet.collateralBalanceOf(borrower, address(weth)), 1e18, "v3 collateral balance");
+        // Approximate assertion because of slippage from DAI to USDC
+        assertApproxEqRel(comet.borrowBalanceOf(borrower), 700e6 + 710e6 * 0.0001, 0.01e18, "v3 borrow balance");
+    }
+
+    function testMigrateAaveV2_invalidInput() public {
+        // Posit
+        CometMigratorV2.AaveV2Collateral[] memory initialCollateral = new CometMigratorV2.AaveV2Collateral[](1);
+        initialCollateral[0] = CometMigratorV2.AaveV2Collateral({
+            aToken: aUNI,
+            amount: 300e18 // ~ $5 * 300 = ~$1500 75% collateral factor = $1,000
+        });
+        CometMigratorV2.AaveV2Borrow[] memory initialBorrows = new CometMigratorV2.AaveV2Borrow[](1);
+        initialBorrows[0] = CometMigratorV2.AaveV2Borrow({
+            aDebtToken: variableDebtUSDC,
+            amount: 700e6
+        });
+        positAaveV2(PositAaveV2({
+            borrower: borrower,
+            collateral: initialCollateral,
+            borrows: initialBorrows
+        }));
+
+        uint256 aUNIPre = aUNI.balanceOf(borrower);
+        preflightChecks();
+
+        // Migrate
+        CometMigratorV2.AaveV2Collateral[] memory collateralToMigrate = new CometMigratorV2.AaveV2Collateral[](1);
+        uint256 migrateAmount = 199e18;
+        collateralToMigrate[0] = CometMigratorV2.AaveV2Collateral({
+            aToken: aUNI,
+            amount: migrateAmount
+        });
+        CometMigratorV2.AaveV2Position memory aaveV2Position = CometMigratorV2.AaveV2Position({
+            collateral: collateralToMigrate,
+            borrows: initialBorrows,
+            paths: new bytes[](0)
+        });
+
+        vm.startPrank(borrower);
+        aUNI.approve(address(migrator), type(uint256).max);
+        comet.allow(address(migrator), true);
+
+        vm.expectRevert(abi.encodeWithSelector(CometMigratorV2.InvalidInputs.selector, 1));
+        migrator.migrate(EMPTY_COMPOUND_V2_POSITION, aaveV2Position, 600e6);
+
+        // Check Aave v2 balances
+        assertEq(aUNI.balanceOf(borrower), aUNIPre, "Amount of aUNI should have been migrated");
+        assertEq(variableDebtUSDC.balanceOf(borrower), 700e6, "Remainder of tokens");
+
+        // Check v3 balances
+        assertEq(comet.collateralBalanceOf(borrower, address(uni)), 0e18, "v3 collateral balance");
+        assertEq(comet.borrowBalanceOf(borrower), 0e6, "v3 borrow balance");
+    }
+
+    function testMigrateAaveV2_invalidSwapPath() public {
+        // Posit
+        CometMigratorV2.AaveV2Collateral[] memory initialCollateral = new CometMigratorV2.AaveV2Collateral[](1);
+        initialCollateral[0] = CometMigratorV2.AaveV2Collateral({
+            aToken: aUNI,
+            amount: 300e18 // ~ $5 * 300 = ~$1500 75% collateral factor = $1,000
+        });
+        CometMigratorV2.AaveV2Borrow[] memory initialBorrows = new CometMigratorV2.AaveV2Borrow[](1);
+        initialBorrows[0] = CometMigratorV2.AaveV2Borrow({
+            aDebtToken: variableDebtUSDC,
+            amount: 700e6
+        });
+        positAaveV2(PositAaveV2({
+            borrower: borrower,
+            collateral: initialCollateral,
+            borrows: initialBorrows
+        }));
+
+        uint256 aUNIPre = aUNI.balanceOf(borrower);
+        preflightChecks();
+
+        // Migrate
+        CometMigratorV2.AaveV2Collateral[] memory collateralToMigrate = new CometMigratorV2.AaveV2Collateral[](1);
+        uint256 migrateAmount = 199e18;
+        collateralToMigrate[0] = CometMigratorV2.AaveV2Collateral({
+            aToken: aUNI,
+            amount: migrateAmount
+        });
+        bytes[] memory paths = new bytes[](1);
+        bytes memory invalidSwapPath = abi.encodePacked(
+            address(dai), address(dai) /* should be poolFee here */, address(usdc)
+        );
+        paths[0] = invalidSwapPath;
+        CometMigratorV2.AaveV2Position memory aaveV2Position = CometMigratorV2.AaveV2Position({
+            collateral: collateralToMigrate,
+            borrows: initialBorrows,
+            paths: paths
+        });
+
+        vm.startPrank(borrower);
+        aUNI.approve(address(migrator), type(uint256).max);
+        comet.allow(address(migrator), true);
+
+        vm.expectRevert(); // XXX no revert message
+        migrator.migrate(EMPTY_COMPOUND_V2_POSITION, aaveV2Position, 600e6);
+
+        // Check Aave v2 balances
+        assertEq(aUNI.balanceOf(borrower), aUNIPre, "Amount of aUNI should have been migrated");
+        assertEq(variableDebtUSDC.balanceOf(borrower), 700e6, "Remainder of tokens");
+
+        // Check v3 balances
+        assertEq(comet.collateralBalanceOf(borrower, address(uni)), 0e18, "v3 collateral balance");
+        assertEq(comet.borrowBalanceOf(borrower), 0e6, "v3 borrow balance");
+    }
+
+    function testMigrateAaveV2_noApproval() public {
+        // Posit
+        CometMigratorV2.AaveV2Collateral[] memory initialCollateral = new CometMigratorV2.AaveV2Collateral[](1);
+        initialCollateral[0] = CometMigratorV2.AaveV2Collateral({
+            aToken: aUNI,
+            amount: 300e18 // ~ $5 * 300 = ~$1500 75% collateral factor = $1,000
+        });
+        CometMigratorV2.AaveV2Borrow[] memory initialBorrows = new CometMigratorV2.AaveV2Borrow[](0);
+        positAaveV2(PositAaveV2({
+            borrower: borrower,
+            collateral: initialCollateral,
+            borrows: initialBorrows
+        }));
+
+        uint256 aUNIPre = aUNI.balanceOf(borrower);
+        preflightChecks();
+
+        // Migrate
+        CometMigratorV2.AaveV2Position memory aaveV2Position = CometMigratorV2.AaveV2Position({
+            collateral: initialCollateral,
+            borrows: initialBorrows,
+            paths: new bytes[](0)
+        });
+
+        vm.startPrank(borrower);
+        comet.allow(address(migrator), true);
+
+        vm.expectRevert(bytes("ERC20: transfer amount exceeds allowance"));
+        migrator.migrate(EMPTY_COMPOUND_V2_POSITION, aaveV2Position, 600e6);
+
+        // Check Aave v2 balances
+        assertEq(aUNI.balanceOf(borrower), aUNIPre, "Amount of aUNI should have been migrated");
+
+        // Check v3 balances
+        assertEq(comet.collateralBalanceOf(borrower, address(uni)), 0e18, "v3 collateral balance");
+        assertEq(comet.borrowBalanceOf(borrower), 0e6, "v3 borrow balance");
+    }
+
+    /* ===== Migrate from multiple sources ===== */
+
+    function testMigrateCompoundV2AaveV2() public {
+        // Posit Compound v2
+        CometMigratorV2.CompoundV2Collateral[] memory initialCompoundCollateral = new CometMigratorV2.CompoundV2Collateral[](2);
+        initialCompoundCollateral[0] = CometMigratorV2.CompoundV2Collateral({
+            cToken: cUNI,
+            amount: 300e18 // ~ $5 * 300 = ~$1500 75% collateral factor = $1,125
+        });
+        initialCompoundCollateral[1] = CometMigratorV2.CompoundV2Collateral({
+            cToken: cETH,
+            amount: 1e18 // ~ $2000 * 1 = ~$2000 82-83% collateral factor = $1,600
+        });
+        CometMigratorV2.CompoundV2Borrow[] memory initialCompoundBorrows = new CometMigratorV2.CompoundV2Borrow[](2);
+        initialCompoundBorrows[0] = CometMigratorV2.CompoundV2Borrow({
+            cToken: cUSDC,
+            amount: 350e6
+        });
+        initialCompoundBorrows[1] = CometMigratorV2.CompoundV2Borrow({
+            cToken: cDAI,
+            amount: 350e18
+        });
+        posit(Posit({
+            borrower: borrower,
+            collateral: initialCompoundCollateral,
+            borrows: initialCompoundBorrows
+        }));
+
+        // Posit Aave v2
+        CometMigratorV2.AaveV2Collateral[] memory initialAaveCollateral = new CometMigratorV2.AaveV2Collateral[](2);
+        initialAaveCollateral[0] = CometMigratorV2.AaveV2Collateral({
+            aToken: aUNI,
+            amount: 300e18 // ~ $5 * 300 = ~$1500 75% collateral factor = $1000
+        });
+        initialAaveCollateral[1] = CometMigratorV2.AaveV2Collateral({
+            aToken: aWETH,
+            amount: 1e18 // ~ $1300 * 1 = ~$1300 86% collateral factor = $1,100
+        });
+        CometMigratorV2.AaveV2Borrow[] memory initialAaveBorrows = new CometMigratorV2.AaveV2Borrow[](2);
+        initialAaveBorrows[0] = CometMigratorV2.AaveV2Borrow({
+            aDebtToken: stableDebtUSDC,
+            amount: 350e6
+        });
+        initialAaveBorrows[1] = CometMigratorV2.AaveV2Borrow({
+            aDebtToken: variableDebtDAI,
+            amount: 350e18
+        });
+        positAaveV2(PositAaveV2({
+            borrower: borrower,
+            collateral: initialAaveCollateral,
+            borrows: initialAaveBorrows
+        }));
+
+        preflightChecks();
+
+        // Migrate
+        bytes[] memory paths = new bytes[](2);
+        uint24 poolFee = 500;
+        bytes memory usdcToDaiPath = abi.encodePacked(
+            address(dai), poolFee, address(usdc)
+        );
+        paths[0] = "";
+        paths[1] = usdcToDaiPath;
+        CometMigratorV2.CompoundV2Collateral[] memory collateralToMigrate = new CometMigratorV2.CompoundV2Collateral[](2);
+        collateralToMigrate[0] = CometMigratorV2.CompoundV2Collateral({
+            cToken: cUNI,
+            amount: type(uint256).max
+        });
+        collateralToMigrate[1] = CometMigratorV2.CompoundV2Collateral({
+            cToken: cETH,
+            amount: type(uint256).max
+        });
+        CometMigratorV2.CompoundV2Position memory compoundV2Position = CometMigratorV2.CompoundV2Position({
+            collateral: collateralToMigrate,
+            borrows: initialCompoundBorrows,
+            paths: paths
+        });
+        CometMigratorV2.AaveV2Position memory aaveV2Position = CometMigratorV2.AaveV2Position({
+            collateral: initialAaveCollateral,
+            borrows: initialAaveBorrows,
+            paths: paths
+        });
+        uint256 flashEstimate = 1410e6; // We overestimate slightly to account for slippage
+        vm.startPrank(borrower);
+        cUNI.approve(address(migrator), type(uint256).max);
+        cETH.approve(address(migrator), type(uint256).max);
+        aUNI.approve(address(migrator), type(uint256).max);
+        aWETH.approve(address(migrator), type(uint256).max);
+        comet.allow(address(migrator), true);
+
+        // Check event
+        vm.expectEmit(true, false, false, true);
+        emit Migrated(borrower, compoundV2Position, aaveV2Position, flashEstimate, 1410e6 * 1.0001);
+
+        migrator.migrate(compoundV2Position, aaveV2Position, flashEstimate);
+
+        // Check Compound v2 balances
+        assertEq(cUNI.balanceOf(borrower), 0, "Amount of cUNI should have been migrated");
+        assertEq(cETH.balanceOf(borrower), 0, "Amount of cETH should have been migrated");
+        assertEq(cUSDC.borrowBalanceCurrent(borrower), 0, "Remainder of tokens");
+        assertEq(cDAI.borrowBalanceCurrent(borrower), 0, "Remainder of tokens");
+
+        // Check Aave v2 balances
+        assertEq(aUNI.balanceOf(borrower), 0, "Amount of aUNI should have been migrated");
+        assertEq(aWETH.balanceOf(borrower), 0, "Amount of aWETH should have been migrated");
+        assertEq(stableDebtUSDC.balanceOf(borrower), 0e6, "Remainder of tokens");
+        assertEq(variableDebtDAI.balanceOf(borrower), 0e18, "Remainder of tokens");
+
+        // Check v3 balances
+        assertApproxEqRel(comet.collateralBalanceOf(borrower, address(uni)), 600e18, 0.005e18, "v3 collateral balance");
+        assertApproxEqRel(comet.collateralBalanceOf(borrower, address(weth)), 2e18, 0.005e18, "v3 collateral balance");
+        // Approximate assertion because of slippage from DAI to USDC
+        assertApproxEqRel(comet.borrowBalanceOf(borrower), 1400e6 + 1410e6 * 0.0001, 0.01e18, "v3 borrow balance");
+    }
+
+    // XXX More general tests:
     // XXX USDT (won't work until we switch to NonCompliantIERC20)
     // XXX Migrate v2 ETH borrow (need to support cETH interface)
     // XXX Low flash estimate for Aave, CDP
@@ -2084,9 +3152,9 @@ contract CometMigratorV2Test is Positor {
 
     //     // Check event
     //     vm.expectEmit(true, false, false, true);
-    //     emit Migrated(borrower, compoundV2Position, flashEstimate, 360e6 * 1.0001);
+    //     emit Migrated(borrower, compoundV2Position, EMPTY_AAVE_V2_POSITION, flashEstimate, 360e6 * 1.0001);
 
-    //     migrator.migrate(compoundV2Position, flashEstimate);
+    //     migrator.migrate(compoundV2Position, EMPTY_AAVE_V2_POSITION, flashEstimate);
 
     //     // Check v2 balances
     //     assertEq(cUNI.balanceOf(borrower), cUNIPre - migrateAmount, "Amount of cUNI should have been migrated");
@@ -2145,9 +3213,9 @@ contract CometMigratorV2Test is Positor {
 
     //     // Check event
     //     vm.expectEmit(true, false, false, true);
-    //     emit Migrated(borrower, compoundV2Position, flashEstimate, 360e6 * 1.0001);
+    //     emit Migrated(borrower, compoundV2Position, EMPTY_AAVE_V2_POSITION, flashEstimate, 360e6 * 1.0001);
 
-    //     migrator.migrate(compoundV2Position, flashEstimate);
+    //     migrator.migrate(compoundV2Position, EMPTY_AAVE_V2_POSITION, flashEstimate);
 
     //     // Check v2 balances
     //     assertEq(cUNI.balanceOf(borrower), cUNIPre - migrateAmount, "Amount of cUNI should have been migrated");
