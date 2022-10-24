@@ -21,7 +21,7 @@ Users can specify the following parameters, generally:
  * `uniswapLiquidityPool: IUniswapV3Pool` **immutable**: The Uniswap pool used by this contract to source liquidity (i.e. flash loans).
  * `swapRouter: ISwapRouter` **immutable**: The Uniswap router for facilitating token swaps.
  * `isUniswapLiquidityPoolToken0: boolean` **immutable**: True if borrow token is token 0 in the Uniswap liquidity pool, otherwise false if token 1.
- * `baseToken: IERC20` **immutable**: The base token of the Compound III market (e.g. `cUSDC`).
+ * `baseToken: IERC20` **immutable**: The base token of the Compound III market (e.g. `USDC`).
  * `cETH: CToken` **immutable**: The address of the `cETH` token.
  * `weth: WETH9` **immutable**: The address of the `weth` token.
  * `aaveV2LendingPool: ILendingPool` **immutable**: The address of the Aave v2 LendingPool contract. This is the contract that all `withdraw` and `repay` transactions through.
@@ -52,7 +52,7 @@ Represents a given amount of collateral to migrate.
 ```c
 struct CompoundV2Collateral {
   CToken cToken,
-  uint256 amount
+  uint256 amount // Note: amount of cToken
 }
 ```
 
@@ -63,7 +63,7 @@ Represents a given amount of borrow to migrate.
 ```c
 struct CompoundV2Borrow {
   CToken cToken,
-  uint256 amount
+  uint256 amount // Note: amount of underlying
 }
 ```
 
@@ -72,7 +72,7 @@ struct CompoundV2Borrow {
 Represents a set of positions on Aave V2 to migrate:
 
 ```c
-struct AvveV2Position {
+struct AaveV2Position {
   AaveV2Collateral[] collateral,
   AaveV2Borrow[] borrows,
   bytes[] paths // empty path if no swap is required (e.g. repaying USDC borrow)
@@ -85,7 +85,7 @@ Represents a given amount of collateral to migrate.
 
 ```c
 struct AaveV2Collateral {
-  AToken asset,
+  AToken aToken,
   uint256 amount
 }
 ```
@@ -96,7 +96,7 @@ Represents a given amount of borrow to migrate.
 
 ```c
 struct AaveV2Borrow {
-  ADebtToken asset, // Note: Aave has two separate debt tokens per asset: stable and variable rate
+  ADebtToken aDebtToken, // Note: Aave has two separate debt tokens per asset: stable and variable rate
   uint256 amount
 }
 ```
@@ -123,8 +123,8 @@ struct MigrationCallbackData {
   address user,
   uint256 flashAmount,
   CompoundV2Position compoundV2Position,
-  AvveV2Position avveV2Position,
-  CDPPosition[] cdpPositions 
+  AaveV2Position aaveV2Position,
+  CDPPosition[] cdpPositions
 }
 ```
 
@@ -190,7 +190,7 @@ Before calling this function, a user is required to:
 
  - a) Call `comet.allow(migrator, true)`
  - b) For each `{cToken, amount}` in `CompoundV2Position.collateral`, call `cToken.approve(migrator, amount)`.
- - c) For each `{aToken, amount}` in `AvveV2Position.collateral`, call `aToken.approve(migrator, amount)`.
+ - c) For each `{aToken, amount}` in `AaveV2Position.collateral`, call `aToken.approve(migrator, amount)`.
  - d) For each `cdpId` in `CDPPosition`, call `cdpManager.cdpAllow(cdpId, migrator, 1)`.
 
 Notes for (b):
@@ -201,13 +201,13 @@ Notes for (b):
 #### Inputs
 
  * `compoundV2Position: CompoundV2Position` - Structure containing the user’s Compound V2 collateral and borrow positions to migrate to Compound III. See notes below.
- * `avveV2Position: AvveV2Position` - Structure containing the user’s Aave V2 collateral and borrow positions to migrate to Compound III. See notes below.
+ * `aaveV2Position: AaveV2Position` - Structure containing the user’s Aave V2 collateral and borrow positions to migrate to Compound III. See notes below.
  * `cdpPositions: CDPPosition[]` - List of structures that each represent a single CDP’s collateral and borrow position to migrate to Compound III. See notes below.
  * `flashAmount: uint256` - Amount of base asset to borrow from the Uniswap flash loan to facilitate the migration. See notes below.
 
 Notes:
  - Each `collateral` market must be supported in Compound III.
- - `collateral` amounts of 0 are strictly ignored. Collateral amounts of max uint256 are set to the user's current balance.
+ - `collateral` amounts of max uint256 are set to the user's current balance.
  - `flashAmount` is provided by the user as a hint to the Migrator to know the maximum expected cost (in terms of the base asset) of the migration. If `flashAmount` is less than the total amount needed to migrate the user’s positions, the transaction will revert.
 
 #### Bindings
@@ -217,19 +217,16 @@ Notes:
 
 #### Function Spec
 
-`function migrate(compoundV2Position: CompoundV2Position, avveV2Position: AvveV2Position, cdpPositions: CDPPosition[], flashAmount: uint256) external`
+`function migrate(compoundV2Position: CompoundV2Position, aaveV2Position: AaveV2Position, cdpPositions: CDPPosition[], flashAmount: uint256) external`
 
   - **REQUIRE** `inMigration == 0`
   - **STORE** `inMigration += 1`
   - **BIND** `user = msg.sender`
   - **REQUIRE** `compoundV2Position.borrows.length == compoundV2Position.paths.length`
-  - **REQUIRE** `avveV2Position.borrows.length == avveV2Position.paths.length`
-
-  - **BIND** `data = abi.encode(MigrationCallbackData{user, flashAmount, compoundV2Position, avveV2Position, makerPositions})`
+  - **REQUIRE** `aaveV2Position.borrows.length == aaveV2Position.paths.length`
+  - **BIND** `data = abi.encode(MigrationCallbackData{user, flashAmount, compoundV2Position, aaveV2Position, makerPositions})`
   - **CALL** `uniswapLiquidityPool.flash(address(this), isUniswapLiquidityPoolToken0 ? flashAmount : 0, isUniswapLiquidityPoolToken0 ? 0 : flashAmount, data)`
   - **STORE** `inMigration -= 1`
-
-Note: for fee calculation see [UniswapV3Pool](https://github.com/Uniswap/v3-core/blob/main/contracts/UniswapV3Pool.sol#L800).
 
 ### Uniswap Liquidity Pool Callback Function
 
@@ -237,7 +234,7 @@ This function handles a callback from the Uniswap Liquidity Pool after it has se
 
 #### Pre-conditions
 
-This function may only be called during a migration command. We ensure this by making sure this function, itself, is the caller of the `swap` command. We check that the call originates from the expected Uniswap pool, and we check that we are actively processing a migration. This combination of events should ensure that no external party can trigger this code, though it's not clear it would be dangerous even if such a party did.
+This function may only be called during a migration command. We check that the call originates from the expected Uniswap pool, and we check that we are actively processing a migration. This combination of events should ensure that no external party can trigger this code, though it's not clear it would be dangerous even if such a party did.
 
 #### Inputs
 
@@ -250,8 +247,8 @@ This function may only be called during a migration command. We ensure this by m
  * `user: address`: Alias for `msg.sender`
  * `flashAmount: uint256`: The amount of base asset borrowed as part of the Uniswap flash loan.
  * `flashAmountWithFee: uint256`: The amount to borrow from Compound III to pay back the flash loan, accounting for fees.
- * `compoundV2Position: CompoundV2Position`: Structure containing the user’s Compound V2 collateral and borrow positions to migrate to Compound III. Array of collateral to transfer into Compound III.
- * `avveV2Position: AvveV2Position`: Structure containing the user’s Aave V2 collateral and borrow positions to migrate to Compound III.
+ * `compoundV2Position: CompoundV2Position`: Structure containing the user’s Compound II collateral and borrow positions to migrate to Compound III. Array of collateral to transfer into Compound III.
+ * `aaveV2Position: AaveV2Position`: Structure containing the user’s Aave V2 collateral and borrow positions to migrate to Compound III.
  * `cdpPositions: CDPPosition[]`: List of structures that each represent a single CDP’s collateral and borrow position to migrate to Compound III.
  * `underlying: IERC20` - The underlying of a cToken, or `weth` in the case of `cETH`.
 
@@ -261,10 +258,10 @@ This function may only be called during a migration command. We ensure this by m
 
   - **REQUIRE** `inMigration == 1`
   - **REQUIRE** `msg.sender == uniswapLiquidityPool`
-  - **BIND** `MigrationCallbackData{user, flashAmount, compoundV2Position, avveV2Position, cdpPositions} = abi.decode(data, (MigrationCallbackData))`
+  - **BIND** `MigrationCallbackData{user, flashAmount, compoundV2Position, aaveV2Position, cdpPositions} = abi.decode(data, (MigrationCallbackData))`
   - **BIND** `flashAmountWithFee = flashAmount + isUniswapLiquidityPoolToken0 ? fee0 : fee1`
   - **EXEC** `migrateCompoundV2Position(user, compoundV2Position)`
-  - **EXEC** `migrateAvveV2Position(user, avveV2Position)`
+  - **EXEC** `migrateAaveV2Position(user, aaveV2Position)`
   - **EXEC** `migrateCdpPositions(user, cdpPositions)`
   - **CALL** `comet.withdrawFrom(user, address(this), baseToken, flashAmountWithFee - baseToken.balanceOf(address(this)))`
   - **CALL** `baseToken.transfer(address(uniswapLiquidityPool), flashAmountWithFee)`
@@ -288,8 +285,8 @@ This internal helper function repays the user’s borrow positions on Compound V
 #### Function Spec
 
 `function migrateCompoundV2Position(address user, CompoundV2Position position) internal`
-
   - **FOREACH** `(cToken, borrowAmount): CompoundV2Borrow, path: bytes` in `position`:
+    - **REQUIRE** `cToken != cETH`
     - **WHEN** `borrowAmount == type(uint256).max)`:
       - **BIND READ** `repayAmount = cToken.borrowBalanceCurrent(user)`
     - **ELSE**
@@ -316,7 +313,7 @@ This internal helper function repays the user’s borrow positions on Aave V2 (e
 #### Inputs
 
  - `address user`: Alias for the `msg.sender` of the original `migrate` call
- - `avveV2Position AvveV2Position` - Structure containing the user’s Aave V2 collateral and borrow positions to migrate to Compound III.
+ - `aaveV2Position AaveV2Position` - Structure containing the user’s Aave V2 collateral and borrow positions to migrate to Compound III.
 
 #### Bindings
 
@@ -328,8 +325,7 @@ This internal helper function repays the user’s borrow positions on Aave V2 (e
 
 #### Function Spec
 
-`function migrateAvveV2Position(address user, AvveV2Position position) internal`
-
+`function migrateAaveV2Position(address user, AaveV2Position position) internal`
   - **FOREACH** `(aDebtToken, borrowAmount): AaveV2Borrow, path: bytes` in `position`:
     - **WHEN** `borrowAmount == type(uint256).max)`:
       - **BIND READ** `repayAmount = aDebtToken.balanceOf(user)`
@@ -339,13 +335,14 @@ This internal helper function repays the user’s borrow positions on Aave V2 (e
       - **CALL** `ISwapRouter.exactOutput(ExactOutputParams({path: path, recipient: address(this), amountOut: repayAmount, amountInMaximum: type(uint256).max})`
     - **BIND READ** `underlyingDebt = aDebtToken.UNDERLYING_ASSET_ADDRESS()`
     - **BIND READ** `rateMode = aDebtToken.DEBT_TOKEN_REVISION()`
+    - **CALL** `underlyingDebt.approve(address(aaveV2LendingPool), repayAmount)`
     - **CALL** `aaveV2LendingPool.repay(underlyingDebt, repayAmount, rateMode, user)`
   - **FOREACH** `(aToken, amount): AaveV2Collateral` in `position.collateral`:
     - **CALL** `aToken.transferFrom(user, address(this), amount == type(uint256).max ? aToken.balanceOf(user) : amount)`
     - **BIND READ** `underlyingCollateral = aToken.UNDERLYING_ASSET_ADDRESS()`
     - **CALL** `aaveV2LendingPool.withdraw(underlyingCollateral, aToken.balanceOf(address(this)), address(this))`
     - **CALL** `underlyingCollateral.approve(address(comet), type(uint256).max)`
-    - **CALL** `comet.supplyTo(user, underlying, underlying.balanceOf(address(this)))`
+    - **CALL** `comet.supplyTo(user, underlyingCollateral, underlyingCollateral.balanceOf(address(this)))`
 
 ### Migrate Maker CDP Positions Function
 
@@ -388,7 +385,6 @@ This internal helper function repays the user’s borrow positions on Maker (exe
     - **BIND READ** `underlyingCollateral = gemJoin.gem()`
     - **CALL** `underlyingCollateral.approve(address(comet), type(uint256).max)`
     - **CALL** `comet.supplyTo(user, underlying, underlying.balanceOf(address(this)))`
-
     
 ### Sweep Function
 
@@ -407,5 +403,3 @@ Sends any tokens in this contract to the sweepee address. This contract should n
 	- **EXEC** `sweepee.send(address(this).balance)`
   - **ELSE**
 	- **CALL** `token.transfer(sweepee, token.balanceOf(address(this)))`
-
-
