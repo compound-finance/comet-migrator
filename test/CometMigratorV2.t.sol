@@ -1031,18 +1031,6 @@ contract CometMigratorV2Test is Positor {
             borrows: borrowsToMigrate0,
             paths: paths0
         });
-        CometMigratorV2.CompoundV2Borrow[] memory borrowsToMigrate0 = new CometMigratorV2.CompoundV2Borrow[](1);
-        borrowsToMigrate0[0] = CometMigratorV2.CompoundV2Borrow({
-            cToken: cUSDC,
-            amount: 650e6
-        });
-        bytes[] memory paths0 = new bytes[](1);
-        paths0[0] = "";
-        CometMigratorV2.CompoundV2Position memory compoundV2Position0 = CometMigratorV2.CompoundV2Position({
-            collateral: collateralToMigrate0,
-            borrows: borrowsToMigrate0,
-            paths: paths0
-        });
 
         // Migration 1
         CometMigratorV2.CompoundV2Collateral[] memory collateralToMigrate1 = new CometMigratorV2.CompoundV2Collateral[](2);
@@ -1054,18 +1042,6 @@ contract CometMigratorV2Test is Positor {
         collateralToMigrate1[1] = CometMigratorV2.CompoundV2Collateral({
             cToken: cETH,
             amount: uniAndethMigrateAmount1[1]
-        });
-        CometMigratorV2.CompoundV2Borrow[] memory borrowsToMigrate1 = new CometMigratorV2.CompoundV2Borrow[](1);
-        borrowsToMigrate1[0] = CometMigratorV2.CompoundV2Borrow({
-            cToken: cUSDC,
-            amount: 550e6
-        });
-        bytes[] memory paths1 = new bytes[](1);
-        paths1[0] = "";
-        CometMigratorV2.CompoundV2Position memory compoundV2Position1 = CometMigratorV2.CompoundV2Position({
-            collateral: collateralToMigrate1,
-            borrows: borrowsToMigrate1,
-            paths: paths1
         });
         CometMigratorV2.CompoundV2Borrow[] memory borrowsToMigrate1 = new CometMigratorV2.CompoundV2Borrow[](1);
         borrowsToMigrate1[0] = CometMigratorV2.CompoundV2Borrow({
