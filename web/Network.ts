@@ -107,10 +107,11 @@ export function getNetworkById(chainId: number): Network | null {
 }
 
 function getMigratorAddress(network: Network): string {
+  console.log(['zzz', import.meta.env.VITE_MAINNET_EXT_ADDRESS, import.meta.env.VITE_GOERLI_EXT_ADDRESS]);
   if (network === 'mainnet') {
-    return '0x1dD398C2c7fAee61eBB522c434e9f83cf3A9196b';
+    return import.meta.env.VITE_MAINNET_EXT_ADDRESS;
   } else if (network === 'goerli') {
-    return '0x6d1f37f5c2c6cf70871a93e439bf921c195c427f';
+    return import.meta.env.VITE_GOERLI_EXT_ADDRESS;
   }
 
   return null as never;
