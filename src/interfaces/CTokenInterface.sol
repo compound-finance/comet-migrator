@@ -2,6 +2,7 @@
 pragma solidity 0.8.16;
 
 import "../vendor/@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "./IERC20NonStandard.sol";
 
 interface CTokenLike {
   error TransferComptrollerRejection(uint256);
@@ -16,7 +17,7 @@ interface CTokenLike {
 }
 
 interface CErc20 is CTokenLike {
-  function underlying() external returns (IERC20);
+  function underlying() external returns (address);
   function borrow(uint amount) external returns (uint);
   function mint(uint mintAmount) external returns (uint);
   function repayBorrowBehalf(address borrower, uint repayAmount) external returns (uint);

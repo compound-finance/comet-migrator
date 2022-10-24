@@ -4,7 +4,7 @@ pragma solidity ^0.8.13;
 import "forge-std/Script.sol";
 import "../src/CometMigratorV2.sol";
 import "forge-std/Test.sol";
-import "./MainnetConstants.t.sol";
+import "./MainnetConstantsV2.t.sol";
 
 contract Positor is Test, MainnetConstants {
     // XXX change name to `PositCompoundV2`?
@@ -20,6 +20,7 @@ contract Positor is Test, MainnetConstants {
         CometMigratorV2.AaveV2Borrow[] borrows;
     }
 
+    // XXX consider using `deal` instead to set token balances
     mapping (CTokenLike => address) cTokenHolders;
     mapping (ATokenLike => address) aTokenHolders;
     CometMigratorV2 public immutable migrator;
@@ -50,12 +51,23 @@ contract Positor is Test, MainnetConstants {
 
         for (uint8 i = 0; i < borrows.length; i++) {
             CErc20 cToken = borrows[i].cToken;
-            IERC20 underlying = cToken.underlying(); // XXX doesn't work for cETH
-            uint256 preUnderlyingAmount = underlying.balanceOf(borrower);
+            IERC20NonStandard underlying;
+            uint256 preUnderlyingAmount;
+            if (cToken == cETH) {
+                underlying = weth;
+                preUnderlyingAmount = address(borrower).balance;
+            } else {
+                underlying = IERC20NonStandard(cToken.underlying());
+                preUnderlyingAmount = underlying.balanceOf(borrower);
+            }
             uint256 borrowAmount = borrows[i].amount;
             vm.prank(borrower);
-            require(cToken.borrow(borrowAmount) == 0, "failed to borrow"); // 100 USDC
-            require(underlying.balanceOf(borrower) - preUnderlyingAmount == borrowAmount, "incorrect borrow");
+            require(cToken.borrow(borrowAmount) == 0, "failed to borrow");
+            if (cToken == cETH) {
+                require(address(borrower).balance - preUnderlyingAmount == borrowAmount, "incorrect borrow");
+            } else {
+                require(underlying.balanceOf(borrower) - preUnderlyingAmount == borrowAmount, "incorrect borrow");
+            }
             require(cToken.borrowBalanceCurrent(borrower) >= borrowAmount, "incorrect borrow");
         }
 
@@ -85,7 +97,7 @@ contract Positor is Test, MainnetConstants {
 
         for (uint8 i = 0; i < borrows.length; i++) {
             ADebtTokenLike aDebtToken = borrows[i].aDebtToken;
-            IERC20 underlying = IERC20(aDebtToken.UNDERLYING_ASSET_ADDRESS());
+            IERC20NonStandard underlying = IERC20NonStandard(aDebtToken.UNDERLYING_ASSET_ADDRESS());
             uint256 preUnderlyingAmount = underlying.balanceOf(borrower);
             uint256 borrowAmount = borrows[i].amount;
             vm.prank(borrower);
