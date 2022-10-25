@@ -286,15 +286,18 @@ This internal helper function repays the user’s borrow positions on Compound V
 
 `function migrateCompoundV2Position(address user, CompoundV2Position position) internal`
   - **FOREACH** `(cToken, borrowAmount): CompoundV2Borrow, path: bytes` in `position`:
-    - **REQUIRE** `cToken != cETH`
     - **WHEN** `borrowAmount == type(uint256).max)`:
       - **BIND READ** `repayAmount = cToken.borrowBalanceCurrent(user)`
     - **ELSE**
       - **BIND** `repayAmount = borrowAmount`
     - **WHEN** `path.length > 0`:
       - **CALL** `ISwapRouter.exactOutput(ExactOutputParams({path: path, recipient: address(this), amountOut: repayAmount, amountInMaximum: type(uint256).max})`
-    - **CALL** `cToken.underlying().approve(address(cToken), repayAmount)`
-    - **CALL** `cToken.repayBorrowBehalf(user, repayAmount)`
+    - **WHEN** `cToken == cETH`
+      - **CALL** `weth.withdraw(repayAmount)`
+      - **CALL** `cToken.repayBorrowBehalf{value: repayAmount}(user)`
+    - **ELSE**
+      - **CALL** `cToken.underlying().approve(address(cToken), repayAmount)`
+  		- **CALL** `cToken.repayBorrowBehalf(user, repayAmount)`
   - **FOREACH** `(cToken, amount): CompoundV2Collateral` in `position.collateral`:
     - **CALL** `cToken.transferFrom(user, address(this), amount == type(uint256).max ? cToken.balanceOf(user) : amount)`
     - **CALL** `cToken.redeem(cToken.balanceOf(address(this)))`

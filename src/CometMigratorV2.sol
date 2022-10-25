@@ -263,9 +263,6 @@ contract CometMigratorV2 is IUniswapV3FlashCallback {
     for (uint i = 0; i < position.borrows.length; i++) {
       CompoundV2Borrow memory borrow = position.borrows[i];
 
-      // **REQUIRE** `cToken != cETH`
-      if (borrow.cToken == cETH) revert AssetNotSupported(address(cETH));
-
       uint256 repayAmount;
       // **WHEN** `borrowAmount == type(uint256).max)`:
       if (borrow.amount == type(uint256).max) {
@@ -290,13 +287,22 @@ contract CometMigratorV2 is IUniswapV3FlashCallback {
         );
       }
 
-      // **CALL** `cToken.underlying().approve(address(cToken), repayAmount)`
-      IERC20NonStandard(borrow.cToken.underlying()).approve(address(borrow.cToken), repayAmount);
+      // **WHEN** `cToken == cETH`
+      if (borrow.cToken == cETH) {
+        // **CALL** `weth.withdraw(repayAmount)`
+        weth.withdraw(repayAmount);
 
-      // **CALL** `cToken.repayBorrowBehalf(user, repayAmount)`
-      uint256 err = borrow.cToken.repayBorrowBehalf(user, repayAmount);
-      if (err != 0) {
-        revert CompoundV2Error(0, err);
+        // **CALL** `cToken.repayBorrowBehalf{value: repayAmount}(user)
+        CEther(address(borrow.cToken)).repayBorrowBehalf{ value: repayAmount }(user);
+      } else {
+        // **CALL** `cToken.underlying().approve(address(cToken), repayAmount)`
+        IERC20NonStandard(borrow.cToken.underlying()).approve(address(borrow.cToken), repayAmount);
+
+        // **CALL** `cToken.repayBorrowBehalf(user, repayAmount)`
+        uint256 err = borrow.cToken.repayBorrowBehalf(user, repayAmount);
+        if (err != 0) {
+          revert CompoundV2Error(0, err);
+        }
       }
     }
 
@@ -411,7 +417,7 @@ contract CometMigratorV2 is IUniswapV3FlashCallback {
       // **CALL** `underlyingCollateral.approve(address(comet), type(uint256).max)`
       underlyingCollateral.approve(address(comet), type(uint256).max);
 
-      // **CALL** `comet.supplyTo(user, underlyingCollateral, underlyingCollateral.balanceOf(address(this)))`
+      // **CALL** `comet.supplyTo(user, underillyingCollateral, underlyingCollateral.balanceOf(address(this)))`
       comet.supplyTo(
         user,
         address(underlyingCollateral),

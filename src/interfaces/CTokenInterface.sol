@@ -22,3 +22,7 @@ interface CErc20 is CTokenLike {
   function mint(uint mintAmount) external returns (uint);
   function repayBorrowBehalf(address borrower, uint repayAmount) external returns (uint);
 }
+
+interface CEther is CTokenLike {
+  function repayBorrowBehalf(address borrower) external payable;
+}
