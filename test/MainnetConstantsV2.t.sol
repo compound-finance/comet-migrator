@@ -35,8 +35,6 @@ contract MainnetConstants {
     address payable public constant sweepee = payable(0x6d903f6003cca6255D85CcA4D3B5E5146dC33925);
     address public constant uniswapFactory = address(0x1F98431c8aD98523631AE4a59f267346ea31F984);
     IWETH9 public constant weth = IWETH9(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
-    address public constant cHolderUni = address(0x39d8014b4F40d2CBC441137011d32023f4f1fd87);
-    address public constant cHolderEth = address(0xe84A061897afc2e7fF5FB7e3686717C528617487);
     address public constant aHolderUni = address(0x3E0182CcC2DB35146E0529de779fB1025e8b0178);
     address public constant aHolderWeth = address(0x32e2665c8d696726c73CE28aCEe310bfac54Db85);
     address public constant usdtHolder = address(0x5041ed759Dd4aFc3a72b8192C143F72f4724081A);
