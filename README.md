@@ -68,7 +68,7 @@ To run this in embedded mode (see Embedding below), you should run the following
 
 ```sh
 # in webb3/
-VITE_WEBB3_MAINNET_URL=http://localhost:8545 VITE_COMET_MIGRATOR_SOURCE=http://localhost:5183/embedded.html yarn dev
+yarn dev --mode playground
 ```
 
 ## Comet Migrator Operator
