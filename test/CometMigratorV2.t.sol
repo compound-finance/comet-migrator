@@ -1291,8 +1291,7 @@ contract CometMigratorV2Test is Positor {
 
         uint256 usdtPre = usdt.balanceOf(sweepee);
 
-        vm.prank(usdtHolder);
-        usdt.transfer(address(migrator), 300e6);
+        deal(address(usdt), address(migrator), 300e6);
 
         assertEq(usdt.balanceOf(address(migrator)), 300e6, "USDT given to migrator");
         migrator.sweep(IERC20NonStandard(address(usdt)));

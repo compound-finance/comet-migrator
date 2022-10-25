@@ -37,7 +37,6 @@ contract MainnetConstants {
     IWETH9 public constant weth = IWETH9(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
     address public constant aHolderUni = address(0x3E0182CcC2DB35146E0529de779fB1025e8b0178);
     address public constant aHolderWeth = address(0x32e2665c8d696726c73CE28aCEe310bfac54Db85);
-    address public constant usdtHolder = address(0x5041ed759Dd4aFc3a72b8192C143F72f4724081A);
     Comptroller public constant comptroller = Comptroller(0x3d9819210A31b4961b30EF54bE2aeD79B9c9Cd3B);
     ISwapRouter public constant swapRouter = ISwapRouter(0xE592427A0AEce92De3Edee1F18E0157C05861564);
     ILendingPool public constant aaveV2LendingPool = ILendingPool(0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9);
