@@ -3688,7 +3688,6 @@ contract CometMigratorV2Test is Positor {
     }
 
     // XXX More general tests:
-    // XXX Migrate v2 ETH borrow (need to support cETH interface)
     // XXX Low flash estimate for Aave, CDP
     // XXX Test migrating WETH base position (requires cWETHv3 to be deployed first)
     // XXX migrate to an account with existing Comet borrow already
