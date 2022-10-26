@@ -11,7 +11,7 @@ import Comet from '../abis/Comet';
 import Comptroller from '../abis/Comptroller';
 import Oracle from '../abis/Oracle';
 
-import { CircleCheckmark, Close } from './components/Icons';
+import { CircleCheckmark, CircleExclamation } from './components/Icons';
 
 import { formatTokenBalance, getRiskLevelAndPercentage, maybeBigIntFromString } from './helpers/numbers';
 
@@ -350,14 +350,13 @@ export function App<N extends Network>({ rpc, web3, account, networkConfig }: Ap
     }
 
     let borrowAmount = cUSDC.borrowBalance;
-    let usdcDecimals = cUSDC.underlyingDecimals;
     if (!state.data.migratorEnabled) {
       return '';
     }
-    if (!borrowAmount || !usdcDecimals) {
+    if (!borrowAmount) {
       return '';
     }
-    let repayAmount = parseNumber(cUSDC.repayAmount, n => amountToWei(n, usdcDecimals!));
+    let repayAmount = parseNumber(cUSDC.repayAmount, n => amountToWei(n, cUSDC.underlyingDecimals));
     if (repayAmount === null) {
       return 'Invalid repay amount';
     }
@@ -368,7 +367,7 @@ export function App<N extends Network>({ rpc, web3, account, networkConfig }: Ap
     let collateral: Collateral[] = [];
     for (let [
       sym,
-      { address, balance, balanceUnderlying, decimals, underlyingDecimals, transfer, exchangeRate }
+      { address, balance, balanceUnderlying, underlyingDecimals, transfer, exchangeRate }
     ] of state.data.cTokens.entries()) {
       if (transfer === 'max') {
         collateral.push({
@@ -420,18 +419,62 @@ export function App<N extends Network>({ rpc, web3, account, networkConfig }: Ap
     }
   }
 
-  const cTokensWithBorrowBalances =
-    state.type === StateType.Loading
-      ? []
-      : Array.from(state.data.cTokens.entries()).filter(([sym, tokenState]) => {
-          return tokenState.borrowBalance > 0n;
-        });
-  const collateralWithBalances =
-    state.type === StateType.Loading
-      ? []
-      : Array.from(state.data.cTokens.entries()).filter(([sym, tokenState]) => {
-          return tokenState.balance > 0n;
-        });
+  if (state.type === StateType.Loading || cometState[0] !== StateType.Hydrated) {
+    return (
+      <div className="page migrator">
+        <div className="container">
+          <div className="masthead L1">
+            <h1 className="L0 heading heading--emphasized">Compound V2 Migration Tool (USDC)</h1>
+          </div>
+          <div className="migrator__content">
+            <div className="migrator__balances">
+              <div className="panel L4">
+                <div className="panel__header-row">
+                  <h1 className="heading heading--emphasized">V2 Balances</h1>
+                </div>
+                <p className="body">
+                  Select the amounts you want to migrate from Compound V2 to Compound V3. If you are supplying USDC on
+                  one market while borrowing on the other, any supplied USDC will be used to repay any borrowed USDC
+                  before entering you into an earning position in Compound V3.
+                </p>
+
+                <div className="migrator__balances__section">
+                  <label className="L1 label text-color--2 migrator__balances__section__header">Borrowing</label>
+                  <LoadingAsset />
+                </div>
+                <div className="migrator__balances__section">
+                  <label className="L1 label text-color--2 migrator__balances__section__header">Supplying</label>
+                  <LoadingAsset />
+                  <LoadingAsset />
+                  <LoadingAsset />
+                </div>
+              </div>
+            </div>
+            <div className="migrator__summary">
+              <div className="panel L4">
+                <div className="panel__header-row">
+                  <h1 className="heading heading--emphasized">Summary</h1>
+                </div>
+                <p className="body">
+                  If you are borrowing other assets on Compound V2, migrating too much collateral could increase your
+                  liquidation risk.
+                </p>
+                <LoadingPosition />
+                <LoadingPosition />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const cTokensWithBorrowBalances = Array.from(state.data.cTokens.entries()).filter(([, tokenState]) => {
+    return tokenState.borrowBalance > 0n;
+  });
+  const collateralWithBalances = Array.from(state.data.cTokens.entries()).filter(([, tokenState]) => {
+    return tokenState.balance > 0n;
+  });
 
   let borrowEl;
   if (cTokensWithBorrowBalances.length === 0) {
@@ -444,6 +487,8 @@ export function App<N extends Network>({ rpc, web3, account, networkConfig }: Ap
     borrowEl = cTokensWithBorrowBalances.map(([sym, tokenState]) => {
       let repayAmount: string;
       let repayAmountDollarValue: string;
+      let errorTitle: string | undefined;
+      let errorDescription: string | undefined;
 
       if (tokenState.repayAmount === 'max') {
         repayAmount = formatTokenBalance(tokenState.underlyingDecimals, tokenState.borrowBalance);
@@ -472,48 +517,59 @@ export function App<N extends Network>({ rpc, web3, account, networkConfig }: Ap
 
       return (
         <div className="migrator__input-view" key={sym}>
-          <div className="migrator__input-view__left">
-            <div className="migrator__input-view__header">
-              <div className={`asset asset--${sym.slice(1)}`}></div>
-              <label className="L2 label text-color--1">USDC</label>
+          <div className="migrator__input-view__content">
+            <div className="migrator__input-view__left">
+              <div className="migrator__input-view__header">
+                <div className={`asset asset--${sym.slice(1)}`}></div>
+                <label className="L2 label text-color--1">USDC</label>
+              </div>
+              <input
+                placeholder="0.0000"
+                value={repayAmount}
+                onChange={e =>
+                  dispatch({ type: ActionType.SetRepayAmount, payload: { symbol: sym, repayAmount: e.target.value } })
+                }
+                type="text"
+                inputMode="decimal"
+                disabled={sym !== 'cUSDC'}
+              />
+              <p className="meta text-color--2" style={{ marginTop: '0.75rem' }}>
+                {repayAmountDollarValue}
+              </p>
             </div>
-            <input
-              placeholder="0.0000"
-              value={repayAmount}
-              onChange={e =>
-                dispatch({ type: ActionType.SetRepayAmount, payload: { symbol: sym, repayAmount: e.target.value } })
-              }
-              type="text"
-              inputMode="decimal"
-              disabled={sym !== 'cUSDC'}
-            />
-            <p className="meta text-color--2" style={{ marginTop: '0.75rem' }}>
-              {repayAmountDollarValue}
-            </p>
+            <div className="migrator__input-view__right">
+              <button
+                className="button button--small"
+                disabled={sym !== 'cUSDC'}
+                onClick={() =>
+                  dispatch({ type: ActionType.SetRepayAmount, payload: { symbol: sym, repayAmount: 'max' } })
+                }
+              >
+                Max
+              </button>
+              <p className="meta text-color--2" style={{ marginTop: '0.75rem' }}>
+                <span style={{ fontWeight: '500' }}>V2 balance:</span>{' '}
+                {formatTokenBalance(tokenState.underlyingDecimals, tokenState.borrowBalance, false)}
+              </p>
+              <p className="meta text-color--2">
+                {formatTokenBalance(
+                  tokenState.underlyingDecimals + PRICE_PRECISION,
+                  tokenState.borrowBalance * tokenState.price,
+                  false,
+                  true
+                )}
+              </p>
+            </div>
           </div>
-          <div className="migrator__input-view__right">
-            <button
-              className="button button--small"
-              disabled={sym !== 'cUSDC'}
-              onClick={() =>
-                dispatch({ type: ActionType.SetRepayAmount, payload: { symbol: sym, repayAmount: 'max' } })
-              }
-            >
-              Max
-            </button>
-            <p className="meta text-color--2" style={{ marginTop: '0.75rem' }}>
-              <span style={{ fontWeight: '500' }}>V2 balance:</span>{' '}
-              {formatTokenBalance(tokenState.underlyingDecimals, tokenState.borrowBalance, false)}
-            </p>
-            <p className="meta text-color--2">
-              {formatTokenBalance(
-                tokenState.underlyingDecimals + PRICE_PRECISION,
-                tokenState.borrowBalance * tokenState.price,
-                false,
-                true
-              )}
-            </p>
-          </div>
+          {/* {true && (
+            <div className="migrator__input-view__error">
+              <CircleExclamation />
+              <p className="meta">
+                <span style={{ fontWeight: '500' }}>Supply cap exceeded</span> There is $29.15 of wBTC capacity
+                remaining.
+              </p>
+            </div>
+          )} */}
         </div>
       );
     });
@@ -557,78 +613,65 @@ export function App<N extends Network>({ rpc, web3, account, networkConfig }: Ap
       }
       return (
         <div className="migrator__input-view" key={sym}>
-          <div className="migrator__input-view__left">
-            <div className="migrator__input-view__header">
-              <div className={`asset asset--${sym.slice(1)}`}></div>
-              <label className="L2 label text-color--1">USDC</label>
+          <div className="migrator__input-view__content">
+            <div className="migrator__input-view__left">
+              <div className="migrator__input-view__header">
+                <div className={`asset asset--${sym.slice(1)}`}></div>
+                <label className="L2 label text-color--1">USDC</label>
+              </div>
+              <input
+                placeholder="0.0000"
+                value={transfer}
+                onChange={e =>
+                  dispatch({
+                    type: ActionType.SetTransferForCToken,
+                    payload: { symbol: sym, transfer: e.target.value }
+                  })
+                }
+                type="text"
+                inputMode="decimal"
+                disabled={tokenState.allowance === 0n}
+              />
+              <p className="meta text-color--2" style={{ marginTop: '0.75rem' }}>
+                {transferDollarValue}
+              </p>
             </div>
-            <input
-              placeholder="0.0000"
-              value={transfer}
-              onChange={e =>
-                dispatch({ type: ActionType.SetTransferForCToken, payload: { symbol: sym, transfer: e.target.value } })
-              }
-              type="text"
-              inputMode="decimal"
-              disabled={tokenState.allowance === 0n}
-            />
-            <p className="meta text-color--2" style={{ marginTop: '0.75rem' }}>
-              {transferDollarValue}
-            </p>
-          </div>
-          <div className="migrator__input-view__right">
-            {tokenState.allowance === 0n ? (
-              <button className="button button--small" disabled={hasPendingTransaction(tracker)} onClick={() => setTokenApproval(sym)}>
-                Enable
-              </button>
-            ) : tokenState.transfer === 'max' ? (
-              <button
-                className="button button--selected"
-                onClick={() =>
-                  dispatch({ type: ActionType.SetTransferForCToken, payload: { symbol: sym, transfer: '0.0000' } })
-                }
-              >
-                <Close />
-                <span>Max</span>
-              </button>
-            ) : (
-              <button
-                className="button button--small"
-                onClick={() =>
-                  dispatch({ type: ActionType.SetTransferForCToken, payload: { symbol: sym, transfer: 'max' } })
-                }
-              >
-                Max
-              </button>
-            )}
-            <p className="meta text-color--2" style={{ marginTop: '0.75rem' }}>
-              <span style={{ fontWeight: '500' }}>V2 balance:</span>{' '}
-              {formatTokenBalance(tokenState.underlyingDecimals, tokenState.balanceUnderlying, false)}
-            </p>
-            <p className="meta text-color--2">
-              {formatTokenBalance(
-                tokenState.underlyingDecimals + PRICE_PRECISION,
-                tokenState.balanceUnderlying * tokenState.price,
-                false,
-                true
+            <div className="migrator__input-view__right">
+              {tokenState.allowance === 0n ? (
+                <button
+                  className="button button--small"
+                  disabled={hasPendingTransaction(tracker)}
+                  onClick={() => setTokenApproval(sym)}
+                >
+                  Enable
+                </button>
+              ) : (
+                <button
+                  className="button button--small"
+                  onClick={() =>
+                    dispatch({ type: ActionType.SetTransferForCToken, payload: { symbol: sym, transfer: 'max' } })
+                  }
+                >
+                  Max
+                </button>
               )}
-            </p>
+              <p className="meta text-color--2" style={{ marginTop: '0.75rem' }}>
+                <span style={{ fontWeight: '500' }}>V2 balance:</span>{' '}
+                {formatTokenBalance(tokenState.underlyingDecimals, tokenState.balanceUnderlying, false)}
+              </p>
+              <p className="meta text-color--2">
+                {formatTokenBalance(
+                  tokenState.underlyingDecimals + PRICE_PRECISION,
+                  tokenState.balanceUnderlying * tokenState.price,
+                  false,
+                  true
+                )}
+              </p>
+            </div>
           </div>
         </div>
       );
     });
-  }
-
-  if (state.type === StateType.Loading) {
-    return (
-      <div className="page migrator">
-        <div className="container">
-          <div className="masthead L1">
-            <h1 className="L0 heading heading--emphasized">Compound V2 Migration Tool (USDC)</h1>
-          </div>
-        </div>
-      </div>
-    );
   }
 
   const cTokens = Array.from(state.data.cTokens.entries());
@@ -666,24 +709,99 @@ export function App<N extends Network>({ rpc, web3, account, networkConfig }: Ap
   const v2AvailableToBorrow = v2BorrowCapacity - v2BorrowValue;
   const displayV2AvailableToBorrow = formatTokenBalance(PRICE_PRECISION, v2AvailableToBorrow, false, true);
 
-  const v3BorrowValue = cTokens.reduce((acc, [, { borrowBalance, underlyingDecimals, price, repayAmount }]) => {
-    const maybeRepayAmount =
-      repayAmount === 'max' ? borrowBalance : maybeBigIntFromString(repayAmount, underlyingDecimals);
-    const repayAmountBigInt =
-      maybeRepayAmount === undefined ? 0n : maybeRepayAmount > borrowBalance ? borrowBalance : maybeRepayAmount;
-    return acc + ((borrowBalance - repayAmountBigInt) * price) / BigInt(10 ** underlyingDecimals);
-  }, BigInt(0));
-  const displayV3BorrowValue = formatTokenBalance(PRICE_PRECISION, v2BorrowValue, false, true);
+  const cometData = cometState[1];
 
-  const hasMigratePosition =
-    cTokens.findIndex(([, { borrowBalance, repayAmount, underlyingDecimals }]) => {
+  const v2ToV3MigrateBorrowValue = cTokens.reduce(
+    (acc, [, { borrowBalance, underlyingDecimals, price, repayAmount }]) => {
       const maybeRepayAmount =
         repayAmount === 'max' ? borrowBalance : maybeBigIntFromString(repayAmount, underlyingDecimals);
-      return maybeRepayAmount !== undefined && maybeRepayAmount > 0n;
-    }) !== -1;
+      const repayAmountBigInt =
+        maybeRepayAmount === undefined ? 0n : maybeRepayAmount > borrowBalance ? borrowBalance : maybeRepayAmount;
+      return acc + (repayAmountBigInt * price) / BigInt(10 ** underlyingDecimals);
+    },
+    BigInt(0)
+  );
+  const v3BorrowValue = cometData.baseAsset.balance + v2ToV3MigrateBorrowValue;
+  const displayV3BorrowValue = formatTokenBalance(PRICE_PRECISION, v3BorrowValue, false, true);
 
-  const [v2RiskLevel, v2RiskPercentage, v2RiskPercentageFill] = getRiskLevelAndPercentage(v2BorrowValue, v2BorrowCapacity);
-  const [v3RiskLevel, v3RiskPercentage, v3RiskPercentageFill] = getRiskLevelAndPercentage(0n, 100n);
+  const v2ToV3MigrateCollateralValue = cTokens.reduce(
+    (acc, [, { balanceUnderlying, underlyingDecimals, price, transfer }]) => {
+      const maybeTransfer =
+        transfer === 'max' ? balanceUnderlying : maybeBigIntFromString(transfer, underlyingDecimals);
+      const transferBigInt =
+        maybeTransfer === undefined ? 0n : maybeTransfer > balanceUnderlying ? balanceUnderlying : maybeTransfer;
+      return acc + (transferBigInt * price) / BigInt(10 ** underlyingDecimals);
+    },
+    BigInt(0)
+  );
+  const v3CollateralValuePreMigrate = cometData.collateralAssets.reduce((acc, { balance, decimals, price }) => {
+    return acc + (balance * price) / BigInt(10 ** decimals);
+  }, BigInt(0));
+
+  const v3CollateralValue = v2ToV3MigrateCollateralValue + v3CollateralValuePreMigrate;
+  const displayV3CollateralValue = formatTokenBalance(PRICE_PRECISION, v3CollateralValue, false, true);
+
+  const v3BorrowCapacityValue = cometData.collateralAssets.reduce(
+    (acc, { balance, collateralFactor, decimals, price, symbol }) => {
+      const maybeCToken = cTokens.find(([sym]) => sym.slice(1) === symbol)?.[1];
+      const maybeTransfer =
+        maybeCToken === undefined
+          ? undefined
+          : maybeCToken.transfer === 'max'
+          ? maybeCToken.balanceUnderlying
+          : maybeBigIntFromString(maybeCToken.transfer, maybeCToken.underlyingDecimals);
+      const transferBigInt =
+        maybeTransfer === undefined
+          ? 0n
+          : maybeCToken !== undefined && maybeTransfer > maybeCToken.balanceUnderlying
+          ? maybeCToken.balanceUnderlying
+          : maybeTransfer;
+      const dollarValue = ((balance + transferBigInt) * price) / BigInt(10 ** decimals);
+      const capacity = (dollarValue * collateralFactor) / BigInt(10 ** FACTOR_PRECISION);
+      return acc + capacity;
+    },
+    BigInt(0)
+  );
+  const displayV3BorrowCapacity = formatTokenBalance(PRICE_PRECISION, v3BorrowCapacityValue, false, true);
+
+  const v3LiquidationCapacityValue = cometData.collateralAssets.reduce(
+    (acc, { balance, liquidationFactor, decimals, price, symbol }) => {
+      const maybeCToken = cTokens.find(([sym]) => sym.slice(1) === symbol)?.[1];
+      const maybeTransfer =
+        maybeCToken === undefined
+          ? undefined
+          : maybeCToken.transfer === 'max'
+          ? maybeCToken.balanceUnderlying
+          : maybeBigIntFromString(maybeCToken.transfer, maybeCToken.underlyingDecimals);
+      const transferBigInt =
+        maybeTransfer === undefined
+          ? 0n
+          : maybeCToken !== undefined && maybeTransfer > maybeCToken.balanceUnderlying
+          ? maybeCToken.balanceUnderlying
+          : maybeTransfer;
+      const dollarValue = ((balance + transferBigInt) * price) / BigInt(10 ** decimals);
+      const capacity = (dollarValue * liquidationFactor) / BigInt(10 ** FACTOR_PRECISION);
+      return acc + capacity;
+    },
+    BigInt(0)
+  );
+
+  const v3AvailableToBorrow = v3BorrowCapacityValue - v3BorrowValue;
+  const displayV3AvailableToBorrow = formatTokenBalance(PRICE_PRECISION, v3AvailableToBorrow, false, true);
+
+  const hasMigratePosition = v2ToV3MigrateBorrowValue > 0n || v2ToV3MigrateCollateralValue > 0n;
+
+  const [v2RiskLevel, v2RiskPercentage, v2RiskPercentageFill] = getRiskLevelAndPercentage(
+    v2BorrowValue,
+    v2BorrowCapacity
+  );
+  const [v3RiskLevel, v3RiskPercentage, v3RiskPercentageFill] = getRiskLevelAndPercentage(
+    v3BorrowValue,
+    v3LiquidationCapacityValue
+  );
+  const v3LiquidationPoint = (v3CollateralValue * BigInt(Math.min(100, v3RiskPercentage))) / 100n;
+  const displayV3LiquidationPoint = formatTokenBalance(PRICE_PRECISION, v3LiquidationPoint, false, true);
+
   return (
     <div className="page migrator">
       <div className="container">
@@ -776,34 +894,38 @@ export function App<N extends Network>({ rpc, web3, account, networkConfig }: Ap
                   </div>
                 </div>
               </div>
-              <div className={`migrator__summary__section${' migrator__summary__section--disabled'}`}>
+              <div
+                className={`migrator__summary__section${
+                  hasMigratePosition ? '' : ' migrator__summary__section--disabled'
+                }`}
+              >
                 <label className="L1 label text-color--2 migrator__summary__section__header">{`V3 Position${
                   hasMigratePosition ? ' • After' : ''
                 }`}</label>
                 <div className="migrator__summary__section__row">
                   <div>
                     <p className="meta text-color--2">Borrowing</p>
-                    <h4 className="heading heading--emphasized">$0.00</h4>
+                    <h4 className="heading heading--emphasized">{displayV3BorrowValue}</h4>
                   </div>
                 </div>
                 <div className="migrator__summary__section__row">
                   <div>
                     <p className="meta text-color--2">Collateral Value</p>
-                    <p className="body body--link">$0.00</p>
+                    <p className="body body--link">{displayV3CollateralValue}</p>
                   </div>
                   <div>
                     <p className="meta text-color--2">Borrow Capacity</p>
-                    <p className="body body--link">$0.00</p>
+                    <p className="body body--link">{displayV3BorrowCapacity}</p>
                   </div>
                 </div>
                 <div className="migrator__summary__section__row">
                   <div>
                     <p className="meta text-color--2">Available to Borrow</p>
-                    <p className="body body--link">$0.00</p>
+                    <p className="body body--link">{displayV3AvailableToBorrow}</p>
                   </div>
                   <div>
                     <p className="meta text-color--2">Liquidation Point</p>
-                    <p className="body body--link">$0.00</p>
+                    <p className="body body--link">{displayV3LiquidationPoint}</p>
                   </div>
                 </div>
                 <div className="migrator__summary__section__row">
@@ -864,4 +986,104 @@ export default ({ rpc, web3 }: AppProps) => {
   } else {
     return <div>Loading...</div>;
   }
+};
+
+const LoadingAsset = () => {
+  return (
+    <div className="migrator__input-view">
+      <div className="migrator__input-view__content">
+        <div className="migrator__input-view__left">
+          <div className="migrator__input-view__header">
+            <span className="placeholder-content" style={{ width: '25%' }}></span>
+          </div>
+          <h4 className="heading" style={{ marginTop: '1rem' }}>
+            <span className="placeholder-content" style={{ width: '40%' }}></span>
+          </h4>
+          <p className="meta text-color--2" style={{ marginTop: '0.25rem' }}>
+            <span className="placeholder-content" style={{ width: '20%' }}></span>
+          </p>
+        </div>
+        <div className="migrator__input-view__right">
+          <button className="button button--small" disabled style={{ width: '3rem' }}>
+            <span className="placeholder-content" style={{ width: '100%' }}></span>
+          </button>
+          <p className="meta text-color--2" style={{ marginTop: '0.75rem', width: '7rem' }}>
+            <span className="placeholder-content" style={{ width: '100%' }}></span>
+          </p>
+          <p className="meta text-color--2" style={{ width: '5rem' }}>
+            <span className="placeholder-content" style={{ width: '100%' }}></span>
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const LoadingPosition = () => {
+  return (
+    <div className={`migrator__summary__section`}>
+      <label className="L1 label text-color--2 migrator__summary__section__header" style={{ width: '6rem' }}>
+        <span className="placeholder-content" style={{ width: '100%' }}></span>
+      </label>
+      <div className="migrator__summary__section__row">
+        <div>
+          <p className="meta text-color--2">
+            <span className="placeholder-content" style={{ width: '20%' }}></span>
+          </p>
+          <h4 className="heading heading--emphasized">
+            <span className="placeholder-content" style={{ width: '35%' }}></span>
+          </h4>
+        </div>
+      </div>
+      <div className="migrator__summary__section__row">
+        <div>
+          <p className="meta text-color--2">
+            <span className="placeholder-content" style={{ width: '27%' }}></span>
+          </p>
+          <p className="body body--link">
+            <span className="placeholder-content" style={{ width: '45%' }}></span>
+          </p>
+        </div>
+        <div>
+          <p className="meta text-color--2">
+            <span className="placeholder-content" style={{ width: '30%' }}></span>
+          </p>
+          <p className="body body--link">
+            <span className="placeholder-content" style={{ width: '60%' }}></span>
+          </p>
+        </div>
+      </div>
+      <div className="migrator__summary__section__row">
+        <div>
+          <p className="meta text-color--2">
+            <span className="placeholder-content" style={{ width: '33%' }}></span>
+          </p>
+          <p className="body body--link">
+            <span className="placeholder-content" style={{ width: '55%' }}></span>
+          </p>
+        </div>
+        <div>
+          <p className="meta text-color--2">
+            <span className="placeholder-content" style={{ width: '22%' }}></span>
+          </p>
+          <p className="body body--link">
+            <span className="placeholder-content" style={{ width: '50%' }}></span>
+          </p>
+        </div>
+      </div>
+      <div className="migrator__summary__section__row">
+        <div>
+          <p className="meta text-color--2">
+            <span className="placeholder-content" style={{ width: '25%' }}></span>
+          </p>
+          <p className="body body--link">
+            <span className="placeholder-content" style={{ width: '55%' }}></span>
+          </p>
+        </div>
+      </div>
+      <div className="meter">
+        <div className="meter__bar"></div>
+      </div>
+    </div>
+  );
 };
