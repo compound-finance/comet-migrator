@@ -40,7 +40,10 @@ contract MainnetConstants {
     Comptroller public constant comptroller = Comptroller(0x3d9819210A31b4961b30EF54bE2aeD79B9c9Cd3B);
     ISwapRouter public constant swapRouter = ISwapRouter(0xE592427A0AEce92De3Edee1F18E0157C05861564);
     ILendingPool public constant aaveV2LendingPool = ILendingPool(0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9);
+    ManagerLike public constant cdpManager = ManagerLike(0x5ef30b9986345249bc32d8928B7ee64DE9435E39);
+    DaiJoinLike public constant daiJoin = DaiJoinLike(0x9759A6Ac90977b93B58547b4A71c78317f391A28);
 
     CometMigratorV2.CompoundV2Position internal EMPTY_COMPOUND_V2_POSITION;
     CometMigratorV2.AaveV2Position internal EMPTY_AAVE_V2_POSITION;
+    CometMigratorV2.CDPPosition[] internal EMPTY_CDP_POSITIONS;
 }

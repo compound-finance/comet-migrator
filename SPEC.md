@@ -170,7 +170,7 @@ This function describes the initialization process for this contract. We set the
  * **WRITE IMMUTABLE** `aaveV2LendingPool = aaveV2LendingPool_`
  * **WRITE IMMUTABLE** `cdpManager = cdpManager_`
  * **WRITE IMMUTABLE** `daiJoin = daiJoin_`
- * **WRITE IMMUTABLE** `dai = daiJoin_.gem()`
+ * **WRITE IMMUTABLE** `dai = daiJoin_.dai()`
  * **WRITE IMMUTABLE** `uniswapLiquidityPool = uniswapLiquidityPool_`
  * **WRITE IMMUTABLE** `isUniswapLiquidityPoolToken0 = uniswapLiquidityPool.token0() == baseToken`
  * **REQUIRE** `isUniswapLiquidityPoolToken0 || uniswapLiquidityPool.token1() == baseToken`
@@ -224,7 +224,7 @@ Notes:
   - **BIND** `user = msg.sender`
   - **REQUIRE** `compoundV2Position.borrows.length == compoundV2Position.paths.length`
   - **REQUIRE** `aaveV2Position.borrows.length == aaveV2Position.paths.length`
-  - **BIND** `data = abi.encode(MigrationCallbackData{user, flashAmount, compoundV2Position, aaveV2Position, makerPositions})`
+  - **BIND** `data = abi.encode(MigrationCallbackData{user, flashAmount, compoundV2Position, aaveV2Position, cdpPositions})`
   - **CALL** `uniswapLiquidityPool.flash(address(this), isUniswapLiquidityPoolToken0 ? flashAmount : 0, isUniswapLiquidityPoolToken0 ? 0 : flashAmount, data)`
   - **STORE** `inMigration -= 1`
 
@@ -387,7 +387,7 @@ This internal helper function repays the user’s borrow positions on Maker (exe
     - **CALL** `gemJoin.exit(address(this), withdrawAmount)`
     - **BIND READ** `underlyingCollateral = gemJoin.gem()`
     - **CALL** `underlyingCollateral.approve(address(comet), type(uint256).max)`
-    - **CALL** `comet.supplyTo(user, underlying, underlying.balanceOf(address(this)))`
+    - **CALL** `comet.supplyTo(user, underlyingCollateral, underlyingCollateral.balanceOf(address(this)))`
     
 ### Sweep Function
 
