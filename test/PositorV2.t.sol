@@ -20,14 +20,12 @@ contract Positor is Test, MainnetConstants {
         CometMigratorV2.AaveV2Borrow[] borrows;
     }
 
-    // XXX consider using `deal` instead to set token balances
-    mapping (CTokenLike => address) cTokenHolders;
+    // Note: We need this because `deal` is currently incompatible with aTokens
+    // See: https://github.com/foundry-rs/forge-std/issues/140
     mapping (ATokenLike => address) aTokenHolders;
     CometMigratorV2 public immutable migrator;
 
     constructor() {
-        cTokenHolders[cUNI] = cHolderUni;
-        cTokenHolders[cETH] = cHolderEth;
         aTokenHolders[aUNI] = aHolderUni;
         aTokenHolders[aWETH] = aHolderWeth;
 
@@ -78,8 +76,7 @@ contract Positor is Test, MainnetConstants {
         // Next, let's transfer in some of the cToken to ourselves
         uint256 tokens = amountToTokens(amount, cToken);
         console.log(address(cToken), tokens);
-        vm.prank(cTokenHolders[cToken]);
-        cToken.transfer(borrower, tokens);
+        deal(address(cToken), borrower, tokens);
 
         require(cToken.balanceOf(borrower) == tokens, "invalid cToken balance");
 
