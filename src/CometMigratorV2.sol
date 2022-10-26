@@ -47,7 +47,7 @@ contract CometMigratorV2 is IUniswapV3FlashCallback {
 
   /// @notice Represents a given amount of Compound II borrow to migrate.
   struct CompoundV2Borrow {
-    CErc20 cToken;
+    CTokenLike cToken;
     uint256 amount; // Note: This is the amount of the underlying, not the cToken
   }
 
@@ -288,17 +288,21 @@ contract CometMigratorV2 is IUniswapV3FlashCallback {
 
       // **WHEN** `cToken == cETH`
       if (borrow.cToken == cETH) {
+        CEther cToken = CEther(address(borrow.cToken));
+
         // **CALL** `weth.withdraw(repayAmount)`
         weth.withdraw(repayAmount);
 
         // **CALL** `cToken.repayBorrowBehalf{value: repayAmount}(user)
-        CEther(address(borrow.cToken)).repayBorrowBehalf{ value: repayAmount }(user);
+        cToken.repayBorrowBehalf{ value: repayAmount }(user);
       } else {
+        CErc20 cToken = CErc20(address(borrow.cToken));
+
         // **CALL** `cToken.underlying().approve(address(cToken), repayAmount)`
-        IERC20NonStandard(borrow.cToken.underlying()).approve(address(borrow.cToken), repayAmount);
+        IERC20NonStandard(cToken.underlying()).approve(address(borrow.cToken), repayAmount);
 
         // **CALL** `cToken.repayBorrowBehalf(user, repayAmount)`
-        uint256 err = borrow.cToken.repayBorrowBehalf(user, repayAmount);
+        uint256 err = cToken.repayBorrowBehalf(user, repayAmount);
         if (err != 0) {
           revert CompoundV2Error(0, err);
         }

@@ -1425,7 +1425,6 @@ contract CometMigratorV2Test is Positor {
             borrows: noBorrows
         }));
 
-        uint256 cUNIPre = cUNI.balanceOf(borrower);
         preflightChecks();
 
         // Migrate
@@ -2397,7 +2396,6 @@ contract CometMigratorV2Test is Positor {
             borrows: noBorrows
         }));
 
-        uint256 aUNIPre = aUNI.balanceOf(borrower);
         preflightChecks();
 
         // Migrate
@@ -2562,7 +2560,6 @@ contract CometMigratorV2Test is Positor {
             borrows: initialBorrows
         }));
 
-        uint256 aUNIPre = aUNI.balanceOf(borrower);
         preflightChecks();
 
         // Migrate
@@ -2621,7 +2618,6 @@ contract CometMigratorV2Test is Positor {
             borrows: initialBorrows
         }));
 
-        uint256 aUNIPre = aUNI.balanceOf(borrower);
         preflightChecks();
 
         // Migrate
@@ -2800,7 +2796,6 @@ contract CometMigratorV2Test is Positor {
             borrows: initialBorrows
         }));
 
-        uint256 aWETHPre = aWETH.balanceOf(borrower);
         preflightChecks();
 
         // Migrate
@@ -2859,7 +2854,6 @@ contract CometMigratorV2Test is Positor {
             borrows: initialBorrows
         }));
 
-        uint256 aWETHPre = aWETH.balanceOf(borrower);
         preflightChecks();
 
         // Migrate

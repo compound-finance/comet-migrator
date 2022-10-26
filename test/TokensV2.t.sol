@@ -13,6 +13,10 @@ contract LazyToken is CTokenLike {
     return 0;
   }
 
+  function borrow(uint256) external pure returns (uint256) {
+    return 0;
+  }
+
   function transfer(address, uint256) external pure returns (bool) {
     return false;
   }

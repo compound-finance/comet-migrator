@@ -48,14 +48,14 @@ contract Positor is Test, MainnetConstants {
         }
 
         for (uint8 i = 0; i < borrows.length; i++) {
-            CErc20 cToken = borrows[i].cToken;
+            CTokenLike cToken = borrows[i].cToken;
             IERC20NonStandard underlying;
             uint256 preUnderlyingAmount;
             if (cToken == cETH) {
                 underlying = weth;
                 preUnderlyingAmount = address(borrower).balance;
             } else {
-                underlying = IERC20NonStandard(cToken.underlying());
+                underlying = IERC20NonStandard(CErc20(address(cToken)).underlying());
                 preUnderlyingAmount = underlying.balanceOf(borrower);
             }
             uint256 borrowAmount = borrows[i].amount;
