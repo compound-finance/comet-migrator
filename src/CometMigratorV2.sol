@@ -23,7 +23,6 @@ contract CometMigratorV2 is IUniswapV3FlashCallback {
   error InvalidConfiguration(uint256 loc);
   error InvalidCallback(uint256 loc);
   error InvalidInputs(uint256 loc);
-  error AssetNotSupported(address asset);
 
   /** Events **/
   event Migrated(
@@ -48,7 +47,7 @@ contract CometMigratorV2 is IUniswapV3FlashCallback {
 
   /// @notice Represents a given amount of Compound II borrow to migrate.
   struct CompoundV2Borrow {
-    CErc20 cToken;
+    CTokenLike cToken;
     uint256 amount; // Note: This is the amount of the underlying, not the cToken
   }
 
@@ -263,9 +262,6 @@ contract CometMigratorV2 is IUniswapV3FlashCallback {
     for (uint i = 0; i < position.borrows.length; i++) {
       CompoundV2Borrow memory borrow = position.borrows[i];
 
-      // **REQUIRE** `cToken != cETH`
-      if (borrow.cToken == cETH) revert AssetNotSupported(address(cETH));
-
       uint256 repayAmount;
       // **WHEN** `borrowAmount == type(uint256).max)`:
       if (borrow.amount == type(uint256).max) {
@@ -290,13 +286,26 @@ contract CometMigratorV2 is IUniswapV3FlashCallback {
         );
       }
 
-      // **CALL** `cToken.underlying().approve(address(cToken), repayAmount)`
-      IERC20NonStandard(borrow.cToken.underlying()).approve(address(borrow.cToken), repayAmount);
+      // **WHEN** `cToken == cETH`
+      if (borrow.cToken == cETH) {
+        CEther cToken = CEther(address(borrow.cToken));
 
-      // **CALL** `cToken.repayBorrowBehalf(user, repayAmount)`
-      uint256 err = borrow.cToken.repayBorrowBehalf(user, repayAmount);
-      if (err != 0) {
-        revert CompoundV2Error(0, err);
+        // **CALL** `weth.withdraw(repayAmount)`
+        weth.withdraw(repayAmount);
+
+        // **CALL** `cToken.repayBorrowBehalf{value: repayAmount}(user)
+        cToken.repayBorrowBehalf{ value: repayAmount }(user);
+      } else {
+        CErc20 cToken = CErc20(address(borrow.cToken));
+
+        // **CALL** `cToken.underlying().approve(address(cToken), repayAmount)`
+        IERC20NonStandard(cToken.underlying()).approve(address(borrow.cToken), repayAmount);
+
+        // **CALL** `cToken.repayBorrowBehalf(user, repayAmount)`
+        uint256 err = cToken.repayBorrowBehalf(user, repayAmount);
+        if (err != 0) {
+          revert CompoundV2Error(0, err);
+        }
       }
     }
 

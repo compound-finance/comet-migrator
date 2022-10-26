@@ -8,6 +8,7 @@ interface CTokenLike {
   error TransferComptrollerRejection(uint256);
 
   function balanceOf(address holder) external returns (uint);
+  function borrow(uint amount) external returns (uint);
   function transfer(address dst, uint256 amt) external returns (bool);
   function transferFrom(address from, address to, uint256 amount) external returns (bool);
   function redeem(uint redeemTokens) external returns (uint);
@@ -18,7 +19,10 @@ interface CTokenLike {
 
 interface CErc20 is CTokenLike {
   function underlying() external returns (address);
-  function borrow(uint amount) external returns (uint);
   function mint(uint mintAmount) external returns (uint);
   function repayBorrowBehalf(address borrower, uint repayAmount) external returns (uint);
+}
+
+interface CEther is CTokenLike {
+  function repayBorrowBehalf(address borrower) external payable;
 }
