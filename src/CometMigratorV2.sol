@@ -479,6 +479,7 @@ contract CometMigratorV2 is IUniswapV3FlashCallback {
    * @param positions List of structures that each represent a single CDP’s collateral and borrow position to migrate to Compound III.
    **/
   function migrateCdpPositions(address user, CDPPosition[] memory positions) internal {
+    // **BIND READ** `vat = cdpManager.vat()`
     VatLike vat = cdpManager.vat();
 
     // **FOREACH** `(cdpId, borrowAmount, collateralAmount, path, gemJoin): CDPPosition` in `positions`:
@@ -493,8 +494,7 @@ contract CometMigratorV2 is IUniswapV3FlashCallback {
       uint256 repayAmount;
       int256 dart; // change in debt
 
-      // XXX update spec
-      // **WHEN** `borrowAmount == type(uint256).max`
+      // **WHEN** `borrowAmount == type(uint256).max`:
       if (position.borrowAmount == type(uint256).max) {
         // **BIND** `repayAmount = getVaultDebt(vat, ilk, urn)`
         repayAmount = getVaultDebt(vat, ilk, urn);
@@ -506,13 +506,13 @@ contract CometMigratorV2 is IUniswapV3FlashCallback {
         // **BIND** `repayAmount = borrowAmount`
         repayAmount = position.borrowAmount;
 
-        // **BIND** `dart = getWipeDart(vat, repayAmount, urn, ilk)`
+        // **BIND READ** `dart = getWipeDart(vat, repayAmount, urn, ilk)`
         dart = getWipeDart(vat, repayAmount, urn, ilk);
       }
 
-      // **WHEN** `collateralAmount == type(uint256).max`
+      // **WHEN** `collateralAmount == type(uint256).max`:
       if (position.collateralAmount == type(uint256).max) {
-        // **BIND READ** `(withdrawAmount18,) = cdpManager.vat().urns(cdpManager.ilks(cdpId), cdpManager.urns(cdpId))`
+        // **BIND READ** `(withdrawAmount18,) = vat.urns(cdpManager.ilks(cdpId), cdpManager.urns(cdpId))`
         (withdrawAmount18,) = vat.urns(ilk, urn);
 
         // **BIND** `withdrawAmount = withdrawAmount18 / (10 ** (18 - gemJoin.dec()))`
@@ -568,8 +568,8 @@ contract CometMigratorV2 is IUniswapV3FlashCallback {
   /**
     * @notice Calculates the total unnormalized debt remaining in a vault.
     * @param vat The address of the core vault engine for Maker.
-    * @param urn The address of a specific vault.
-    * @param ilk The collateral type for a vault.
+    * @param urn The address of the vault.
+    * @param ilk The collateral type for the vault.
     * @return wad The total unnormalized debt remaining in a vault.
     * @dev Note: Adapted from https://github.com/Instadapp/dsa-connectors/blob/8932e8aa5edbab7eb91ca1c00ad73f6e0062f21f/contracts/mainnet/connectors/makerdao/helpers.sol#L53
     **/
@@ -592,8 +592,8 @@ contract CometMigratorV2 is IUniswapV3FlashCallback {
     * @notice Calculates the normalized amount to decrease a vault's debt by.
     * @param vat The address of the core vault engine for Maker.
     * @param amount The actual unnormalized amount to decrease the debt by.
-    * @param urn The address of a specific vault.
-    * @param ilk The collateral type for a vault.
+    * @param urn The address of the vault.
+    * @param ilk The collateral type for the vault.
     * @return dart The normalized amount to decrease a vault's debt by.
     * @dev Note: Adapted from https://github.com/makerdao/dss-proxy-actions/blob/master/src/DssProxyActions.sol#L183
     **/
