@@ -3473,6 +3473,60 @@ contract CometMigratorV2Test is Positor {
         assertEq(comet.borrowBalanceOf(borrower), 0e6, "v3 borrow balance");
     }
 
+    /* ===== Migrate from Maker ===== */
+
+    function testMigrateSingleMakerBorrow_ethCollateral_migrateSome() public {
+        // Posit
+        CometMigratorV2.CDPPosition[] memory initialPositions = new CometMigratorV2.CDPPosition[](1);
+        initialPositions[0] = CometMigratorV2.CDPPosition({
+            cdpId: 0, // unused
+            collateralAmount: 100e18,
+            borrowAmount: 30_000e18, // minimum of 15k required for this vault
+            path: "", // unused
+            gemJoin: GemJoinLike(0x2F0b23f53734252Bda2277357e97e1517d6B042A) // ETH_A
+        });
+        uint256[] memory cdpIds = positCdp(PositCdp({
+            borrower: borrower,
+            positions: initialPositions
+        }));
+
+        uint256 aUNIPre = aUNI.balanceOf(borrower);
+        preflightChecks();
+
+        // Migrate
+        CometMigratorV2.CDPPosition[] memory cdpPosition = new CometMigratorV2.CDPPosition[](1);
+        cdpPosition[0] = CometMigratorV2.CDPPosition({
+            cdpId: cdpIds[0],
+            collateralAmount: 50e18,
+            borrowAmount: 15_000e18,
+            path: swapPath(address(dai), 500, address(usdc)),
+            gemJoin: GemJoinLike(0x2F0b23f53734252Bda2277357e97e1517d6B042A) // ETH_A
+        });
+
+        uint256 flashEstimate = 15_500e6; // We overestimate slightly to account for slippage
+        vm.startPrank(borrower);
+        cdpManager.cdpAllow(cdpIds[0], address(migrator), 1);
+        comet.allow(address(migrator), true);
+
+        // Check event
+        vm.expectEmit(true, false, false, true);
+        emit Migrated(borrower, EMPTY_COMPOUND_V2_POSITION, EMPTY_AAVE_V2_POSITION, cdpPosition, flashEstimate, 15_500e6 * 1.0001);
+
+        migrator.migrate(EMPTY_COMPOUND_V2_POSITION, EMPTY_AAVE_V2_POSITION, cdpPosition, flashEstimate);
+
+        // Check CDP balance
+        assertCdpCollateralAndDebt(cdpIds[0], 50e18, 15_000e18);
+
+        // Check v3 balances
+        assertEq(comet.collateralBalanceOf(borrower, address(weth)), 50e18, "v3 collateral balance");
+        // Approximate assertion because of slippage from DAI to USDC
+        assertApproxEqRel(comet.borrowBalanceOf(borrower), 15_000e6 + (15_500e6 * 0.0001), 0.01e18, "v3 borrow balance");
+    }
+
+    // XXX test dust...meaning after repaying DAI, vault debt goes below minimum
+    // XXX test fully closing CDP, from 15k debt to 0
+    // XXX test non e18 collateral
+
     /* ===== Migrate from multiple sources ===== */
 
     function testMigrateCompoundV2AaveV2() public {
@@ -3641,5 +3695,18 @@ contract CometMigratorV2Test is Positor {
         arr[0] = data0;
         arr[1] = data1;
         return arr;
+    }
+
+    function assertCdpCollateralAndDebt(uint256 cdpId, uint256 expectedCollateral, uint256 expectedDebt) internal {
+        VatLike vat = VatLike(cdpManager.vat());
+        bytes32 ilk = cdpManager.ilks(cdpId);
+        address urn = cdpManager.urns(cdpId);
+        (uint256 collateral, uint256 normalizedDebt) = vat.urns(ilk, urn);
+        uint256 rate = jug.drip(ilk);
+        uint256 debt = normalizedDebt * rate / RAY;
+        // This is needed due to lack of precision. We might need to subtract an extra wei
+        debt = debt > expectedDebt ? debt - 1 : debt;
+        assertEq(collateral, expectedCollateral, "cdp collateral");
+        assertEq(debt, expectedDebt, "cdp debt");
     }
 }

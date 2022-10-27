@@ -42,6 +42,7 @@ contract MainnetConstants {
     ILendingPool public constant aaveV2LendingPool = ILendingPool(0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9);
     ManagerLike public constant cdpManager = ManagerLike(0x5ef30b9986345249bc32d8928B7ee64DE9435E39);
     DaiJoinLike public constant daiJoin = DaiJoinLike(0x9759A6Ac90977b93B58547b4A71c78317f391A28);
+    JugLike public constant jug = JugLike(0x19c0976f590D67707E62397C87829d896Dc0f1F1);
 
     CometMigratorV2.CompoundV2Position internal EMPTY_COMPOUND_V2_POSITION;
     CometMigratorV2.AaveV2Position internal EMPTY_AAVE_V2_POSITION;

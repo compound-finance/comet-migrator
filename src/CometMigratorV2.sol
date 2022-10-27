@@ -129,6 +129,9 @@ contract CometMigratorV2 is IUniswapV3FlashCallback {
   /// @notice A reentrancy guard.
   uint256 public inMigration;
 
+  // Units used in Maker contracts
+  uint256 internal constant RAY = 10 ** 27;
+
   /**
    * @notice Construct a new CometMigratorV2
    * @param comet_ The Comet Ethereum mainnet USDC contract.
@@ -474,18 +477,23 @@ contract CometMigratorV2 is IUniswapV3FlashCallback {
    * @param positions List of structures that each represent a single CDP’s collateral and borrow position to migrate to Compound III.
    **/
   function migrateCdpPositions(address user, CDPPosition[] memory positions) internal {
+    VatLike vat = cdpManager.vat();
+
     // **FOREACH** `(cdpId, borrowAmount, collateralAmount, path, gemJoin): CDPPosition` in `positions`:
     for (uint i = 0; i < positions.length; i++) {
       CDPPosition memory position = positions[i];
       GemJoinLike gemJoin = position.gemJoin;
       uint256 cdpId = position.cdpId;
+      bytes32 ilk = cdpManager.ilks(cdpId);
+      address urn = cdpManager.urns(cdpId);
       uint256 withdrawAmount18;
       uint256 withdrawAmount;
       uint256 repayAmount;
       // **WHEN** `borrowAmount == type(uint256).max) || collateralAmount == type(uint256).max`:
       if (position.borrowAmount == type(uint256).max || position.collateralAmount == type(uint256).max) {
+        // XXX update spec
         // **BIND READ** `(withdrawAmount18, repayAmount) = cdpManager.vat().urns(cdpManager.ilks(cdpId), cdpManager.urns(cdpId))`
-        (withdrawAmount18, repayAmount) = cdpManager.vat().urns(cdpManager.ilks(cdpId), cdpManager.urns(cdpId));
+        (withdrawAmount18, repayAmount) = vat.urns(ilk, urn);
 
         // **BIND** `withdrawAmount = withdrawAmount18 / (10 ** (18 - gemJoin.dec()))`
         withdrawAmount = withdrawAmount18 / (10 ** (18 - gemJoin.dec()));
@@ -527,9 +535,11 @@ contract CometMigratorV2 is IUniswapV3FlashCallback {
       daiJoin.join(cdpManager.urns(cdpId), repayAmount);
 
       // XXX Convert to int safely
+      // XXX DOCUMENT getWipeDart in spec
       // **CALL** `cdpManager.frob(cdpId, 0, -repayAmount)`
-      cdpManager.frob(cdpId, 0, -int256(repayAmount));
+      cdpManager.frob(cdpId, 0, getWipeDart(vat, repayAmount, urn, ilk));
 
+      // XXX do we actually need this???
       // **CALL** `cdpManager.frob(cdpId, -withdrawAmount18, 0)`
       cdpManager.frob(cdpId, -int256(withdrawAmount18), 0);
 
@@ -548,6 +558,24 @@ contract CometMigratorV2 is IUniswapV3FlashCallback {
       // **CALL** `comet.supplyTo(user, underlyingCollateral, underlyingCollateral.balanceOf(address(this)))
       comet.supplyTo(user, address(underlyingCollateral), underlyingCollateral.balanceOf(address(this)));
     }
+  }
+
+  function getWipeDart(
+    VatLike vat,
+    uint256 amount,
+    address urn,
+    bytes32 ilk
+  ) internal view returns (int dart) {
+    // Gets actual rate from the vat
+    (, uint rate,,,) = vat.ilks(ilk);
+    // Gets actual art value of the urn
+    (, uint art) = vat.urns(ilk, urn);
+
+    // Uses the whole dai balance in the vat to reduce the debt
+    // XXX safe convert to int
+    dart = int256(amount * RAY / rate);
+    // Checks the calculated dart is not higher than urn.art (total debt), otherwise uses its value
+    dart = uint256(dart) <= art ? -dart : -int256(art);
   }
 
   /**

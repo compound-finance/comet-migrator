@@ -10,6 +10,7 @@ interface ManagerLike {
     function urns(uint) external view returns (address);
     function vat() external view returns (VatLike);
     function open(bytes32, address) external returns (uint);
+    function cdpAllow(uint, address, uint) external;
     function give(uint, address) external;
     function frob(uint, int, int) external;
     function flux(uint, address, uint) external;
@@ -37,6 +38,7 @@ interface VatLike {
 interface GemJoinLike {
     function dec() external returns (uint);
     function gem() external returns (address);
+    function ilk() external returns (bytes32);
     function join(address, uint) external payable;
     function exit(address, uint) external;
 }
@@ -46,4 +48,8 @@ interface DaiJoinLike {
     function dai() external returns (address);
     function join(address, uint) external payable;
     function exit(address, uint) external;
+}
+
+interface JugLike {
+    function drip(bytes32) external returns (uint256);
 }
