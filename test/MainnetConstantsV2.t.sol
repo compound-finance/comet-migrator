@@ -14,6 +14,7 @@ contract MainnetConstants {
     IERC20NonStandard public constant usdt = IERC20NonStandard(0xdAC17F958D2ee523a2206206994597C13D831ec7);
     IERC20NonStandard public constant dai = IERC20NonStandard(0x6B175474E89094C44Da98b954EedeAC495271d0F);
     IERC20NonStandard public constant uni = IERC20NonStandard(0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984);
+    IERC20NonStandard public constant wbtc = IERC20NonStandard(0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599);
     CErc20 public constant cUSDC = CErc20(0x39AA39c021dfbaE8faC545936693aC917d5E7563);
     CErc20 public constant cUSDT = CErc20(0xf650C3d88D12dB855b8bf7D11Be6C55A4e07dCC9);
     CErc20 public constant cDAI = CErc20(0x5d3a536E4D6DbD6114cc1Ead35777bAB948E3643);
@@ -43,6 +44,8 @@ contract MainnetConstants {
     ManagerLike public constant cdpManager = ManagerLike(0x5ef30b9986345249bc32d8928B7ee64DE9435E39);
     DaiJoinLike public constant daiJoin = DaiJoinLike(0x9759A6Ac90977b93B58547b4A71c78317f391A28);
     JugLike public constant jug = JugLike(0x19c0976f590D67707E62397C87829d896Dc0f1F1);
+    GemJoinLike public constant join_ETH_A = GemJoinLike(0x2F0b23f53734252Bda2277357e97e1517d6B042A);
+    GemJoinLike public constant join_WBTC_A = GemJoinLike(0xBF72Da2Bd84c5170618Fbe5914B0ECA9638d5eb5);
 
     CometMigratorV2.CompoundV2Position internal EMPTY_COMPOUND_V2_POSITION;
     CometMigratorV2.AaveV2Position internal EMPTY_AAVE_V2_POSITION;

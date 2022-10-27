@@ -24,6 +24,7 @@ contract CometMigratorV2 is IUniswapV3FlashCallback {
   error InvalidConfiguration(uint256 loc);
   error InvalidCallback(uint256 loc);
   error InvalidInputs(uint256 loc);
+  error InvalidInt256();
 
   /** Events **/
   event Migrated(
@@ -130,7 +131,8 @@ contract CometMigratorV2 is IUniswapV3FlashCallback {
   uint256 public inMigration;
 
   // Units used in Maker contracts
-  uint256 internal constant RAY = 10 ** 27;
+  uint256 internal constant WAD = 10**18;
+  uint256 internal constant RAY = 10**27;
 
   /**
    * @notice Construct a new CometMigratorV2
@@ -489,24 +491,33 @@ contract CometMigratorV2 is IUniswapV3FlashCallback {
       uint256 withdrawAmount18;
       uint256 withdrawAmount;
       uint256 repayAmount;
-      // **WHEN** `borrowAmount == type(uint256).max) || collateralAmount == type(uint256).max`:
-      if (position.borrowAmount == type(uint256).max || position.collateralAmount == type(uint256).max) {
-        // XXX update spec
-        // **BIND READ** `(withdrawAmount18, repayAmount) = cdpManager.vat().urns(cdpManager.ilks(cdpId), cdpManager.urns(cdpId))`
-        (withdrawAmount18, repayAmount) = vat.urns(ilk, urn);
+      int256 dart; // change in debt
+
+      // XXX update spec
+      // **WHEN** `borrowAmount == type(uint256).max`
+      if (position.borrowAmount == type(uint256).max) {
+        // **BIND** `repayAmount = getVaultDebt(vat, ilk, urn)`
+        repayAmount = getVaultDebt(vat, ilk, urn);
+
+        // **BIND** `dart = -vat.urns(ilk, urn)`
+        (, uint256 art) = vat.urns(ilk, urn);
+        dart = -signed256(art);
+      } else {
+        // **BIND** `repayAmount = borrowAmount`
+        repayAmount = position.borrowAmount;
+
+        // **BIND** `dart = getWipeDart(vat, repayAmount, urn, ilk)`
+        dart = getWipeDart(vat, repayAmount, urn, ilk);
+      }
+
+      // **WHEN** `collateralAmount == type(uint256).max`
+      if (position.collateralAmount == type(uint256).max) {
+        // **BIND READ** `(withdrawAmount18,) = cdpManager.vat().urns(cdpManager.ilks(cdpId), cdpManager.urns(cdpId))`
+        (withdrawAmount18,) = vat.urns(ilk, urn);
 
         // **BIND** `withdrawAmount = withdrawAmount18 / (10 ** (18 - gemJoin.dec()))`
         withdrawAmount = withdrawAmount18 / (10 ** (18 - gemJoin.dec()));
-      }
-
-      // **WHEN** `borrowAmount != type(uint256).max`
-      if (position.borrowAmount != type(uint256).max) {
-        // **BIND** `repayAmount = borrowAmount`
-        repayAmount = position.borrowAmount;
-      }
-
-      // **WHEN** `collateralAmount != type(uint256).max`
-      if (position.collateralAmount != type(uint256).max) {
+      } else {
         // **BIND** `withdrawAmount = collateralAmount`
         withdrawAmount = position.collateralAmount;
 
@@ -534,14 +545,8 @@ contract CometMigratorV2 is IUniswapV3FlashCallback {
       // **CALL** `daiJoin.join(cdpManager.urns(cdpId), repayAmount)`
       daiJoin.join(cdpManager.urns(cdpId), repayAmount);
 
-      // XXX Convert to int safely
-      // XXX DOCUMENT getWipeDart in spec
-      // **CALL** `cdpManager.frob(cdpId, 0, -repayAmount)`
-      cdpManager.frob(cdpId, 0, getWipeDart(vat, repayAmount, urn, ilk));
-
-      // XXX do we actually need this???
-      // **CALL** `cdpManager.frob(cdpId, -withdrawAmount18, 0)`
-      cdpManager.frob(cdpId, -int256(withdrawAmount18), 0);
+      // **CALL** `cdpManager.frob(cdpId, -withdrawAmount18, dart)`
+      cdpManager.frob(cdpId, -signed256(withdrawAmount18), dart);
 
       // **CALL** `cdpManager.flux(cdpId, address(this), withdrawAmount18)`
       cdpManager.flux(cdpId, address(this), withdrawAmount18);
@@ -560,22 +565,63 @@ contract CometMigratorV2 is IUniswapV3FlashCallback {
     }
   }
 
+  /**
+    * @notice Calculates the total unnormalized debt remaining in a vault.
+    * @param vat The address of the core vault engine for Maker.
+    * @param urn The address of a specific vault.
+    * @param ilk The collateral type for a vault.
+    * @return wad The total unnormalized debt remaining in a vault.
+    * @dev Note: Adapted from https://github.com/Instadapp/dsa-connectors/blob/8932e8aa5edbab7eb91ca1c00ad73f6e0062f21f/contracts/mainnet/connectors/makerdao/helpers.sol#L53
+    **/
+  function getVaultDebt(
+      VatLike vat,
+      bytes32 ilk,
+      address urn
+  ) internal view returns (uint wad) {
+      (, uint rate,,,) = vat.ilks(ilk);
+      (, uint art) = vat.urns(ilk, urn);
+      uint daiInUrn = vat.dai(urn);
+
+      uint rad = (art * rate) - daiInUrn;
+      wad = rad / RAY;
+
+      wad = wad * RAY < rad ? wad + 1 : wad;
+  }
+
+  /**
+    * @notice Calculates the normalized amount to decrease a vault's debt by.
+    * @param vat The address of the core vault engine for Maker.
+    * @param amount The actual unnormalized amount to decrease the debt by.
+    * @param urn The address of a specific vault.
+    * @param ilk The collateral type for a vault.
+    * @return dart The normalized amount to decrease a vault's debt by.
+    * @dev Note: Adapted from https://github.com/makerdao/dss-proxy-actions/blob/master/src/DssProxyActions.sol#L183
+    **/
   function getWipeDart(
     VatLike vat,
     uint256 amount,
     address urn,
     bytes32 ilk
-  ) internal view returns (int dart) {
+  ) internal view returns (int256 dart) {
     // Gets actual rate from the vat
-    (, uint rate,,,) = vat.ilks(ilk);
+    (, uint256 rate,,,) = vat.ilks(ilk);
     // Gets actual art value of the urn
-    (, uint art) = vat.urns(ilk, urn);
+    (, uint256 art) = vat.urns(ilk, urn);
 
     // Uses the whole dai balance in the vat to reduce the debt
-    // XXX safe convert to int
-    dart = int256(amount * RAY / rate);
+    dart = signed256(amount * RAY / rate);
     // Checks the calculated dart is not higher than urn.art (total debt), otherwise uses its value
-    dart = uint256(dart) <= art ? -dart : -int256(art);
+    dart = uint256(dart) <= art ? -dart : -signed256(art);
+  }
+
+  /**
+    * @notice Safely converts a uint256 to a int256.
+    * @param n The uint256 to convert.
+    * @return The converted int256.
+    **/
+  function signed256(uint256 n) internal pure returns (int256) {
+      if (n > uint256(type(int256).max)) revert InvalidInt256();
+      return int256(n);
   }
 
   /**
