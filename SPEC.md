@@ -382,10 +382,10 @@ This internal helper function repays the user’s borrow positions on Maker (exe
       - **BIND READ** `(withdrawAmount18,) = vat.urns(cdpManager.ilks(cdpId), cdpManager.urns(cdpId))`
       - **BIND** `withdrawAmount = withdrawAmount18 / (10 ** (18 - gemJoin.dec()))`
     - **ELSE**
-        - **BIND** `withdrawAmount = collateralAmount`
-        - **BIND** `withdrawAmount18 = collateralAmount * (10 ** (18 - gemJoin.dec()))`
+      - **BIND** `withdrawAmount = collateralAmount`
+      - **BIND** `withdrawAmount18 = collateralAmount * (10 ** (18 - gemJoin.dec()))`
     - **WHEN** `path.length > 0`:
-        - **CALL** `ISwapRouter.exactOutput(ExactOutputParams({path: path, recipient: address(this), amountOut: repayAmount, amountInMaximum: type(uint256).max})`
+      - **CALL** `ISwapRouter.exactOutput(ExactOutputParams({path: path, recipient: address(this), amountOut: repayAmount, amountInMaximum: type(uint256).max})`
     - **CALL** `dai.approve(daiJoin, repayAmount)`
     - **CALL** `daiJoin.join(cdpManager.urns(cdpId), repayAmount)`
     - **CALL** `cdpManager.frob(cdpId, -withdrawAmount18, dart)`
