@@ -486,6 +486,7 @@ contract CometMigratorV2 is IUniswapV3FlashCallback {
     // **FOREACH** `(cdpId, borrowAmount, collateralAmount, path, gemJoin): CDPPosition` in `positions`:
     for (uint i = 0; i < positions.length; i++) {
       CDPPosition memory position = positions[i];
+      GemJoinLike gemJoin = position.gemJoin;
       uint256 cdpId = position.cdpId;
 
       // **BIND READ** `cdpOwner = cdpManager.owns(cdpId)`
@@ -525,19 +526,19 @@ contract CometMigratorV2 is IUniswapV3FlashCallback {
         (withdrawAmount18,) = vat.urns(ilk, urn);
 
         // **BIND** `withdrawAmount = withdrawAmount18 / (10 ** (18 - gemJoin.dec()))`
-        withdrawAmount = withdrawAmount18 / (10 ** (18 - position.gemJoin.dec()));
+        withdrawAmount = withdrawAmount18 / (10 ** (18 - gemJoin.dec()));
       } else {
         // **BIND** `withdrawAmount = collateralAmount`
         withdrawAmount = position.collateralAmount;
 
         // **BIND** `withdrawAmount18 = collateralAmount * (10 ** (18 - gemJoin.dec()))`
-        withdrawAmount18 = position.collateralAmount * (10 ** (18 - position.gemJoin.dec()));
+        withdrawAmount18 = position.collateralAmount * (10 ** (18 - gemJoin.dec()));
       }
 
       // **WHEN** `path.length > 0`:
       if (position.path.length > 0) {
         // **CALL** `ISwapRouter.exactOutput(ExactOutputParams({path: path, recipient: address(this), amountOut: repayAmount, amountInMaximum: type(uint256).max})`
-        uint256 amountIn = swapRouter.exactOutput(
+        swapRouter.exactOutput(
           ISwapRouter.ExactOutputParams({
               path: position.path,
               recipient: address(this),
@@ -561,12 +562,12 @@ contract CometMigratorV2 is IUniswapV3FlashCallback {
       cdpManager.flux(cdpId, address(this), withdrawAmount18);
 
       // **CALL** `gemJoin.exit(address(this), withdrawAmount)`
-      position.gemJoin.exit(address(this), withdrawAmount);
+      gemJoin.exit(address(this), withdrawAmount);
 
       // **WHEN** `withdrawAmount != 0`:
       if (withdrawAmount != 0) {
         // **BIND READ** `underlyingCollateral = gemJoin.gem()`
-        IERC20NonStandard underlyingCollateral = IERC20NonStandard(position.gemJoin.gem());
+        IERC20NonStandard underlyingCollateral = IERC20NonStandard(gemJoin.gem());
 
         // **CALL** `underlyingCollateral.approve(address(comet), type(uint256).max)`
         underlyingCollateral.approve(address(comet), type(uint256).max);
