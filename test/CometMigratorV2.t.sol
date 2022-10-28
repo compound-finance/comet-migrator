@@ -3808,7 +3808,100 @@ contract CometMigratorV2Test is Positor {
         assertApproxEqRel(comet.borrowBalanceOf(borrower), 30_000e6 + (30_500e6 * 0.0001), 0.01e18, "v3 borrow balance");
     }
 
-    function testMigrateSingleMakerBorrow_migrateMultipleVaults() public {
+    function testMigrateSingleMakerBorrow_cdpWithUnsupportedCollateral_migrateOnlyBorrow() public {
+        // Posit
+        CometMigratorV2.CDPPosition[] memory initialPositions = new CometMigratorV2.CDPPosition[](1);
+        initialPositions[0] = CometMigratorV2.CDPPosition({
+            cdpId: 0, // unused
+            collateralAmount: 2_000_000e18,
+            borrowAmount: 30_000e18, // minimum of 15k required for this vault
+            path: "", // unused
+            gemJoin: join_MANA_A
+        });
+        uint256[] memory cdpIds = positCdp(PositCdp({
+            borrower: borrower,
+            positions: initialPositions
+        }));
+
+        preflightChecks();
+
+        // Need to give the borrower some collateral in Comet so we can migrate only borrows
+        deal(address(weth), address(this), 30e18);
+        weth.approve(address(comet), 30e18);
+        comet.supplyTo(borrower, address(weth), 30e18);
+
+        // Migrate
+        CometMigratorV2.CDPPosition[] memory cdpPosition = new CometMigratorV2.CDPPosition[](1);
+        cdpPosition[0] = CometMigratorV2.CDPPosition({
+            cdpId: cdpIds[0],
+            collateralAmount: 0e18,
+            borrowAmount: 15_000e18,
+            path: swapPath(address(dai), 500, address(usdc)),
+            gemJoin: join_MANA_A
+        });
+
+        uint256 flashEstimate = 15_500e6; // We overestimate slightly to account for slippage
+        vm.startPrank(borrower);
+        cdpManager.cdpAllow(cdpIds[0], address(migrator), 1);
+        comet.allow(address(migrator), true);
+
+        // Check event
+        vm.expectEmit(true, false, false, true);
+        emit Migrated(borrower, EMPTY_COMPOUND_V2_POSITION, EMPTY_AAVE_V2_POSITION, cdpPosition, flashEstimate, 15_500e6 * 1.0001);
+
+        migrator.migrate(EMPTY_COMPOUND_V2_POSITION, EMPTY_AAVE_V2_POSITION, cdpPosition, flashEstimate);
+
+        // Check CDP balance
+        assertCdpCollateralAndDebt(cdpIds[0], join_MANA_A, 2_000_000e18, 15_000e18);
+
+        // Check v3 balances
+        // Approximate assertion because of slippage from DAI to USDC
+        assertApproxEqRel(comet.borrowBalanceOf(borrower), 15_000e6 + (15_500e6 * 0.0001), 0.01e18, "v3 borrow balance");
+    }
+
+    function testMigrateSingleMakerBorrow_cdpWithUnsupportedCollateral_migrateCollateralReverts() public {
+        // Posit
+        CometMigratorV2.CDPPosition[] memory initialPositions = new CometMigratorV2.CDPPosition[](1);
+        initialPositions[0] = CometMigratorV2.CDPPosition({
+            cdpId: 0, // unused
+            collateralAmount: 2_000_000e18,
+            borrowAmount: 30_000e18, // minimum of 15k required for this vault
+            path: "", // unused
+            gemJoin: join_MANA_A
+        });
+        uint256[] memory cdpIds = positCdp(PositCdp({
+            borrower: borrower,
+            positions: initialPositions
+        }));
+
+        preflightChecks();
+
+        // Migrate
+        CometMigratorV2.CDPPosition[] memory cdpPosition = new CometMigratorV2.CDPPosition[](1);
+        cdpPosition[0] = CometMigratorV2.CDPPosition({
+            cdpId: cdpIds[0],
+            collateralAmount: type(uint256).max,
+            borrowAmount: type(uint256).max,
+            path: swapPath(address(dai), 500, address(usdc)),
+            gemJoin: join_MANA_A
+        });
+
+        uint256 flashEstimate = 30_500e6; // We overestimate slightly to account for slippage
+        vm.startPrank(borrower);
+        cdpManager.cdpAllow(cdpIds[0], address(migrator), 1);
+        comet.allow(address(migrator), true);
+
+        vm.expectRevert(Comet.BadAsset.selector);
+        migrator.migrate(EMPTY_COMPOUND_V2_POSITION, EMPTY_AAVE_V2_POSITION, cdpPosition, flashEstimate);
+
+        // Check CDP balance
+        assertCdpCollateralAndDebt(cdpIds[0], join_MANA_A, 2_000_000e18, 30_000e18);
+
+        // Check v3 balances
+        assertEq(comet.borrowBalanceOf(borrower), 0e6, "v3 borrow balance");
+    }
+
+    function testMigrateMakerBorrow_migrateMultipleVaults() public {
         // Posit
         CometMigratorV2.CDPPosition[] memory initialPositions = new CometMigratorV2.CDPPosition[](2);
         initialPositions[0] = CometMigratorV2.CDPPosition({
@@ -3872,7 +3965,7 @@ contract CometMigratorV2Test is Positor {
         assertApproxEqRel(comet.borrowBalanceOf(borrower), 45_000e6 + (45_500e6 * 0.0001), 0.01e18, "v3 borrow balance");
     }
 
-    function testMigrateSingleMakerBorrow_tooLittleDebtLeftInCdpAfterMigration() public {
+    function testMigrateMakerBorrow_tooLittleDebtLeftInCdpAfterMigration() public {
         // Posit
         CometMigratorV2.CDPPosition[] memory initialPositions = new CometMigratorV2.CDPPosition[](1);
         initialPositions[0] = CometMigratorV2.CDPPosition({
@@ -3957,6 +4050,143 @@ contract CometMigratorV2Test is Positor {
         // Check v3 balances
         assertEq(comet.collateralBalanceOf(borrower, address(weth)), 0e18, "v3 collateral balance");
         assertEq(comet.borrowBalanceOf(borrower), 0e6, "v3 borrow balance");
+    }
+
+    function testMigrateMaker_noApprovalGivenToMigrator() public {
+        // Posit
+        CometMigratorV2.CDPPosition[] memory initialPositions = new CometMigratorV2.CDPPosition[](1);
+        initialPositions[0] = CometMigratorV2.CDPPosition({
+            cdpId: 0, // unused
+            collateralAmount: 100e18,
+            borrowAmount: 30_000e18, // minimum of 15k required for this vault
+            path: "", // unused
+            gemJoin: join_ETH_A
+        });
+        uint256[] memory cdpIds = positCdp(PositCdp({
+            borrower: borrower,
+            positions: initialPositions
+        }));
+
+        preflightChecks();
+
+        // Migrate
+        CometMigratorV2.CDPPosition[] memory cdpPosition = new CometMigratorV2.CDPPosition[](1);
+        cdpPosition[0] = CometMigratorV2.CDPPosition({
+            cdpId: cdpIds[0],
+            collateralAmount: type(uint256).max,
+            borrowAmount: type(uint256).max,
+            path: swapPath(address(dai), 500, address(usdc)),
+            gemJoin: join_ETH_A
+        });
+
+        uint256 flashEstimate = 30_500e6; // We overestimate slightly to account for slippage
+        vm.startPrank(borrower);
+        comet.allow(address(migrator), true);
+
+        vm.expectRevert(bytes("cdp-not-allowed"));
+        migrator.migrate(EMPTY_COMPOUND_V2_POSITION, EMPTY_AAVE_V2_POSITION, cdpPosition, flashEstimate);
+
+        // Check CDP balance
+        assertCdpCollateralAndDebt(cdpIds[0], join_ETH_A, 100e18, 30_000e18);
+
+        // Check v3 balances
+        assertEq(comet.collateralBalanceOf(borrower, address(weth)), 0e18, "v3 collateral balance");
+        assertEq(comet.borrowBalanceOf(borrower), 0e6, "v3 borrow balance");
+    }
+
+    function testMigrateMaker_userHasNoCdpPermission() public {
+        // Posit
+        address vaultOwner = address(0x501e5F0dBe5C3aeeeC682Dcc66387211e58f3cdd);
+        CometMigratorV2.CDPPosition[] memory initialPositions = new CometMigratorV2.CDPPosition[](1);
+        initialPositions[0] = CometMigratorV2.CDPPosition({
+            cdpId: 0, // unused
+            collateralAmount: 100e18,
+            borrowAmount: 30_000e18, // minimum of 15k required for this vault
+            path: "", // unused
+            gemJoin: join_ETH_A
+        });
+        uint256[] memory cdpIds = positCdp(PositCdp({
+            borrower: vaultOwner,
+            positions: initialPositions
+        }));
+
+        preflightChecks();
+
+        // Migrate
+        CometMigratorV2.CDPPosition[] memory cdpPosition = new CometMigratorV2.CDPPosition[](1);
+        cdpPosition[0] = CometMigratorV2.CDPPosition({
+            cdpId: cdpIds[0],
+            collateralAmount: type(uint256).max,
+            borrowAmount: type(uint256).max,
+            path: swapPath(address(dai), 500, address(usdc)),
+            gemJoin: join_ETH_A
+        });
+
+        uint256 flashEstimate = 30_500e6; // We overestimate slightly to account for slippage
+        vm.startPrank(borrower);
+        comet.allow(address(migrator), true);
+
+        vm.expectRevert(abi.encodeWithSelector(CometMigratorV2.UnauthorizedCDP.selector, cdpIds[0]));
+        migrator.migrate(EMPTY_COMPOUND_V2_POSITION, EMPTY_AAVE_V2_POSITION, cdpPosition, flashEstimate);
+
+        // Check CDP balance
+        assertCdpCollateralAndDebt(cdpIds[0], join_ETH_A, 100e18, 30_000e18);
+
+        // Check v3 balances
+        assertEq(comet.collateralBalanceOf(borrower, address(weth)), 0e18, "v3 collateral balance");
+        assertEq(comet.borrowBalanceOf(borrower), 0e6, "v3 borrow balance");
+    }
+
+    function testMigrateMaker_nonOwnerOfCdpHasPermission() public {
+        // Posit
+        address vaultOwner = address(0x501e5F0dBe5C3aeeeC682Dcc66387211e58f3cdd);
+        CometMigratorV2.CDPPosition[] memory initialPositions = new CometMigratorV2.CDPPosition[](1);
+        initialPositions[0] = CometMigratorV2.CDPPosition({
+            cdpId: 0, // unused
+            collateralAmount: 100e18,
+            borrowAmount: 30_000e18, // minimum of 15k required for this vault
+            path: "", // unused
+            gemJoin: join_ETH_A
+        });
+        uint256[] memory cdpIds = positCdp(PositCdp({
+            borrower: vaultOwner,
+            positions: initialPositions
+        }));
+
+        // Vault owner grants the borrower permission to modify the vault
+        vm.prank(vaultOwner);
+        cdpManager.cdpAllow(cdpIds[0], borrower, 1);
+
+        preflightChecks();
+
+        // Migrate
+        CometMigratorV2.CDPPosition[] memory cdpPosition = new CometMigratorV2.CDPPosition[](1);
+        cdpPosition[0] = CometMigratorV2.CDPPosition({
+            cdpId: cdpIds[0],
+            collateralAmount: type(uint256).max,
+            borrowAmount: type(uint256).max,
+            path: swapPath(address(dai), 500, address(usdc)),
+            gemJoin: join_ETH_A
+        });
+
+        uint256 flashEstimate = 30_500e6; // We overestimate slightly to account for slippage
+        vm.startPrank(borrower);
+        cdpManager.cdpAllow(cdpIds[0], address(migrator), 1);
+        comet.allow(address(migrator), true);
+
+        // Check event
+        vm.expectEmit(true, false, false, true);
+        emit Migrated(borrower, EMPTY_COMPOUND_V2_POSITION, EMPTY_AAVE_V2_POSITION, cdpPosition, flashEstimate, 30_500e6 * 1.0001);
+
+        migrator.migrate(EMPTY_COMPOUND_V2_POSITION, EMPTY_AAVE_V2_POSITION, cdpPosition, flashEstimate);
+
+        // Check CDP balance
+        assertCdpCollateralAndDebt(cdpIds[0], join_ETH_A, 0e18, 0e18);
+
+        // Check v3 balances
+        assertEq(comet.collateralBalanceOf(borrower, address(weth)), 100e18, "v3 collateral balance");
+        // Approximate assertion because of slippage from DAI to USDC
+        assertApproxEqRel(comet.borrowBalanceOf(borrower), 30_000e6 + (30_500e6 * 0.0001), 0.01e18, "v3 borrow balance");
     }
 
     /* ===== Migrate from multiple sources ===== */

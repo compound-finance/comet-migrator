@@ -360,6 +360,7 @@ This internal helper function repays the user’s borrow positions on Maker (exe
 
  * `user: address`: Alias for `msg.sender`.
  * `vat: VatLike`: The address of the core vault engine for Maker.
+ * `cdpOwner: address`: The owner of the CDP.
  * `withdrawAmount: uint256`: The amount of collateral to withdraw.
  * `withdrawAmount18: uint256`: The amount of collateral to withdraw, scaled up to 18 decimals.
  * `repayAmount: uint256`: The amount to repay for each borrow position.
@@ -372,6 +373,9 @@ This internal helper function repays the user’s borrow positions on Maker (exe
 `function migrateCDPPositions(address user, CDPPosition[] positions) internal`
   - **BIND READ** `vat = cdpManager.vat()`
   - **FOREACH** `(cdpId, borrowAmount, collateralAmount, path, gemJoin): CDPPosition` in `positions`:
+    **BIND READ** `cdpOwner = cdpManager.owns(cdpId)`
+    **WHEN** `cdpOwner != user && cdpManager.cdpCan(cdpOwner, cdpId, user) == 0`:
+      - **REVERT** `UnauthorizedCDP(cdpId)`
     - **WHEN** `borrowAmount == type(uint256).max`:
       - **BIND READ** `repayAmount = getVaultDebt(vat, ilk, urn)`
       - **BIND READ** `(, dart) = ​​-vat.urns(ilk, urn)`
@@ -391,9 +395,10 @@ This internal helper function repays the user’s borrow positions on Maker (exe
     - **CALL** `cdpManager.frob(cdpId, -withdrawAmount18, dart)`
     - **CALL** `cdpManager.flux(cdpId, address(this), withdrawAmount18)`
     - **CALL** `gemJoin.exit(address(this), withdrawAmount)`
-    - **BIND READ** `underlyingCollateral = gemJoin.gem()`
-    - **CALL** `underlyingCollateral.approve(address(comet), type(uint256).max)`
-    - **CALL** `comet.supplyTo(user, underlyingCollateral, underlyingCollateral.balanceOf(address(this)))`
+    - **WHEN** `withdrawAmount != 0`:
+      - **BIND READ** `underlyingCollateral = gemJoin.gem()`
+      - **CALL** `underlyingCollateral.approve(address(comet), type(uint256).max)`
+      - **CALL** `comet.supplyTo(user, underlyingCollateral, underlyingCollateral.balanceOf(address(this)))`
 
 ### Get Maker CDP Debt Function
 

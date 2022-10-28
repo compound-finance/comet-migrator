@@ -46,6 +46,7 @@ contract MainnetConstants {
     JugLike public constant jug = JugLike(0x19c0976f590D67707E62397C87829d896Dc0f1F1);
     GemJoinLike public constant join_ETH_A = GemJoinLike(0x2F0b23f53734252Bda2277357e97e1517d6B042A);
     GemJoinLike public constant join_WBTC_A = GemJoinLike(0xBF72Da2Bd84c5170618Fbe5914B0ECA9638d5eb5);
+    GemJoinLike public constant join_MANA_A = GemJoinLike(0xA6EA3b9C04b8a38Ff5e224E7c3D6937ca44C0ef9);
 
     CometMigratorV2.CompoundV2Position internal EMPTY_COMPOUND_V2_POSITION;
     CometMigratorV2.AaveV2Position internal EMPTY_AAVE_V2_POSITION;

@@ -25,6 +25,7 @@ contract CometMigratorV2 is IUniswapV3FlashCallback {
   error InvalidCallback(uint256 loc);
   error InvalidInputs(uint256 loc);
   error InvalidInt256();
+  error UnauthorizedCDP(uint256 cdpId);
 
   /** Events **/
   event Migrated(
@@ -282,8 +283,8 @@ contract CometMigratorV2 is IUniswapV3FlashCallback {
     // **EXEC** `migrateAaveV2Position(user, aaveV2Position)`
     migrateAaveV2Position(migrationData.user, migrationData.aaveV2Position);
 
-    // **EXEC** `migrateCdpPositions(user, cdpPositions)`
-    migrateCdpPositions(migrationData.user, migrationData.cdpPositions);
+    // **EXEC** `migrateCDPPositions(user, cdpPositions)`
+    migrateCDPPositions(migrationData.user, migrationData.cdpPositions);
 
     // **CALL** `comet.withdrawFrom(user, address(this), baseToken, flashAmountWithFee - baseToken.balanceOf(address(this)))`
     comet.withdrawFrom(migrationData.user, address(this), address(baseToken), flashAmountWithFee - baseToken.balanceOf(address(this)));
@@ -478,7 +479,7 @@ contract CometMigratorV2 is IUniswapV3FlashCallback {
    * @param user Alias for the `msg.sender` of the original `migrate` call.
    * @param positions List of structures that each represent a single CDP’s collateral and borrow position to migrate to Compound III.
    **/
-  function migrateCdpPositions(address user, CDPPosition[] memory positions) internal {
+  function migrateCDPPositions(address user, CDPPosition[] memory positions) internal {
     // **BIND READ** `vat = cdpManager.vat()`
     VatLike vat = cdpManager.vat();
 
@@ -487,6 +488,15 @@ contract CometMigratorV2 is IUniswapV3FlashCallback {
       CDPPosition memory position = positions[i];
       GemJoinLike gemJoin = position.gemJoin;
       uint256 cdpId = position.cdpId;
+
+      // **BIND READ** `cdpOwner = cdpManager.owns(cdpId)`
+      address cdpOwner = cdpManager.owns(cdpId);
+      // **WHEN** `cdpOwner != user && cdpManager.cdpCan(cdpOwner, cdpId, user) == 0`:
+      if (cdpOwner != user && cdpManager.cdpCan(cdpOwner, cdpId, user) == 0) {
+        // **REVERT** `UnauthorizedCDP(cdpId)`
+        revert UnauthorizedCDP(cdpId);
+      }
+
       bytes32 ilk = cdpManager.ilks(cdpId);
       address urn = cdpManager.urns(cdpId);
       uint256 withdrawAmount18;
@@ -554,14 +564,17 @@ contract CometMigratorV2 is IUniswapV3FlashCallback {
       // **CALL** `gemJoin.exit(address(this), withdrawAmount)`
       gemJoin.exit(address(this), withdrawAmount);
 
-      // **BIND READ** `underlyingCollateral = gemJoin.gem()`
-      IERC20NonStandard underlyingCollateral = IERC20NonStandard(gemJoin.gem());
+      // **WHEN** `withdrawAmount != 0`:
+      if (withdrawAmount != 0) {
+        // **BIND READ** `underlyingCollateral = gemJoin.gem()`
+        IERC20NonStandard underlyingCollateral = IERC20NonStandard(gemJoin.gem());
 
-      // **CALL** `underlyingCollateral.approve(address(comet), type(uint256).max)`
-      underlyingCollateral.approve(address(comet), type(uint256).max);
+        // **CALL** `underlyingCollateral.approve(address(comet), type(uint256).max)`
+        underlyingCollateral.approve(address(comet), type(uint256).max);
 
-      // **CALL** `comet.supplyTo(user, underlyingCollateral, underlyingCollateral.balanceOf(address(this)))
-      comet.supplyTo(user, address(underlyingCollateral), underlyingCollateral.balanceOf(address(this)));
+        // **CALL** `comet.supplyTo(user, underlyingCollateral, underlyingCollateral.balanceOf(address(this)))
+        comet.supplyTo(user, address(underlyingCollateral), underlyingCollateral.balanceOf(address(this)));
+      }
     }
   }
 
@@ -584,7 +597,6 @@ contract CometMigratorV2 is IUniswapV3FlashCallback {
 
       uint rad = (art * rate) - daiInUrn;
       wad = rad / RAY;
-
       wad = wad * RAY < rad ? wad + 1 : wad;
   }
 
