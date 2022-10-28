@@ -170,7 +170,7 @@ This function describes the initialization process for this contract. We set the
  * **WRITE IMMUTABLE** `aaveV2LendingPool = aaveV2LendingPool_`
  * **WRITE IMMUTABLE** `cdpManager = cdpManager_`
  * **WRITE IMMUTABLE** `daiJoin = daiJoin_`
- * **WRITE IMMUTABLE** `dai = daiJoin_.gem()`
+ * **WRITE IMMUTABLE** `dai = daiJoin_.dai()`
  * **WRITE IMMUTABLE** `uniswapLiquidityPool = uniswapLiquidityPool_`
  * **WRITE IMMUTABLE** `isUniswapLiquidityPoolToken0 = uniswapLiquidityPool.token0() == baseToken`
  * **REQUIRE** `isUniswapLiquidityPoolToken0 || uniswapLiquidityPool.token1() == baseToken`
@@ -224,7 +224,7 @@ Notes:
   - **BIND** `user = msg.sender`
   - **REQUIRE** `compoundV2Position.borrows.length == compoundV2Position.paths.length`
   - **REQUIRE** `aaveV2Position.borrows.length == aaveV2Position.paths.length`
-  - **BIND** `data = abi.encode(MigrationCallbackData{user, flashAmount, compoundV2Position, aaveV2Position, makerPositions})`
+  - **BIND** `data = abi.encode(MigrationCallbackData{user, flashAmount, compoundV2Position, aaveV2Position, cdpPositions})`
   - **CALL** `uniswapLiquidityPool.flash(address(this), isUniswapLiquidityPoolToken0 ? flashAmount : 0, isUniswapLiquidityPoolToken0 ? 0 : flashAmount, data)`
   - **STORE** `inMigration -= 1`
 
@@ -273,8 +273,8 @@ This internal helper function repays the user’s borrow positions on Compound V
 
 #### Inputs
 
- - `address user`: Alias for the `msg.sender` of the original `migrate` call
- - `compoundV2Position CompoundV2Position` - Structure containing the user’s Compound V2 collateral and borrow positions to migrate to Compound III.
+ - `user: address`: Alias for the `msg.sender` of the original `migrate` call
+ - `compoundV2Position: CompoundV2Position` - Structure containing the user’s Compound V2 collateral and borrow positions to migrate to Compound III.
 
 #### Bindings
 
@@ -315,8 +315,8 @@ This internal helper function repays the user’s borrow positions on Aave V2 (e
 
 #### Inputs
 
- - `address user`: Alias for the `msg.sender` of the original `migrate` call
- - `aaveV2Position AaveV2Position` - Structure containing the user’s Aave V2 collateral and borrow positions to migrate to Compound III.
+ - `user: address`: Alias for the `msg.sender` of the original `migrate` call
+ - `aaveV2Position: AaveV2Position` - Structure containing the user’s Aave V2 collateral and borrow positions to migrate to Compound III.
 
 #### Bindings
 
@@ -353,41 +353,93 @@ This internal helper function repays the user’s borrow positions on Maker (exe
 
 #### Inputs
 
- - `address user`: Alias for the `msg.sender` of the original `migrate` call
- - `cdpPositions CDPPosition[]` - List of structures that each represent a single CDP’s collateral and borrow position to migrate to Compound III.
+ - `user: address`: Alias for the `msg.sender` of the original `migrate` call
+ - `cdpPositions: CDPPosition[]` - List of structures that each represent a single CDP’s collateral and borrow position to migrate to Compound III.
 
 #### Bindings
 
  * `user: address`: Alias for `msg.sender`.
+ * `vat: VatLike`: The address of the core vault engine for Maker.
+ * `cdpOwner: address`: The owner of the CDP.
  * `withdrawAmount: uint256`: The amount of collateral to withdraw.
  * `withdrawAmount18: uint256`: The amount of collateral to withdraw, scaled up to 18 decimals.
  * `repayAmount: uint256`: The amount to repay for each borrow position.
+ * `dart: int256`: The normalized amount to decrease a CDP’s debt by.
  * `underlyingDebt: IERC20` - The underlying asset of an Aave debt token.
  * `underlyingCollateral: IERC20` - The underlying asset of an Aave aToken. No special handling needed for ETH because Aave v2 uses WETH.
 
 #### Function Spec
 
 `function migrateCDPPositions(address user, CDPPosition[] positions) internal`
+  - **BIND READ** `vat = cdpManager.vat()`
   - **FOREACH** `(cdpId, borrowAmount, collateralAmount, path, gemJoin): CDPPosition` in `positions`:
-    - **WHEN** `borrowAmount == type(uint256).max) || collateralAmount == type(uint256).max`:
-      - **BIND READ** `(withdrawAmount18, repayAmount) = cdpManager.vat().urns(cdpManager.ilks(cdpId), cdpManager.urns(cdpId))`
-      - **BIND** `withdrawAmount = withdrawAmount18 / (10 ** (18 - gemJoin.dec()))`
-    - **WHEN** `borrowAmount != type(uint256).max`
+    **BIND READ** `cdpOwner = cdpManager.owns(cdpId)`
+    **WHEN** `cdpOwner != user && cdpManager.cdpCan(cdpOwner, cdpId, user) == 0`:
+      - **REVERT** `UnauthorizedCDP(cdpId)`
+    - **WHEN** `borrowAmount == type(uint256).max`:
+      - **BIND READ** `repayAmount = getVaultDebt(vat, ilk, urn)`
+      - **BIND READ** `(, dart) = ​​-vat.urns(ilk, urn)`
+    – **ELSE**
       - **BIND** `repayAmount = borrowAmount`
-    - **WHEN** `collateralAmount != type(uint256).max`
+      - **BIND READ** `dart = getWipeDart(vat, repayAmount, urn, ilk)`
+    - **WHEN** `collateralAmount == type(uint256).max`:
+      - **BIND READ** `(withdrawAmount18,) = vat.urns(cdpManager.ilks(cdpId), cdpManager.urns(cdpId))`
+      - **BIND** `withdrawAmount = withdrawAmount18 / (10 ** (18 - gemJoin.dec()))`
+    - **ELSE**
       - **BIND** `withdrawAmount = collateralAmount`
       - **BIND** `withdrawAmount18 = collateralAmount * (10 ** (18 - gemJoin.dec()))`
     - **WHEN** `path.length > 0`:
       - **CALL** `ISwapRouter.exactOutput(ExactOutputParams({path: path, recipient: address(this), amountOut: repayAmount, amountInMaximum: type(uint256).max})`
     - **CALL** `dai.approve(daiJoin, repayAmount)`
     - **CALL** `daiJoin.join(cdpManager.urns(cdpId), repayAmount)`
-    - **CALL** `cdpManager.frob(cdpId, 0, -repayAmount)`
-    - **CALL** `cdpManager.frob(cdpId, -withdrawAmount18, 0)`
+    - **CALL** `cdpManager.frob(cdpId, -withdrawAmount18, dart)`
     - **CALL** `cdpManager.flux(cdpId, address(this), withdrawAmount18)`
     - **CALL** `gemJoin.exit(address(this), withdrawAmount)`
-    - **BIND READ** `underlyingCollateral = gemJoin.gem()`
-    - **CALL** `underlyingCollateral.approve(address(comet), type(uint256).max)`
-    - **CALL** `comet.supplyTo(user, underlying, underlying.balanceOf(address(this)))`
+    - **WHEN** `withdrawAmount != 0`:
+      - **BIND READ** `underlyingCollateral = gemJoin.gem()`
+      - **CALL** `underlyingCollateral.approve(address(comet), type(uint256).max)`
+      - **CALL** `comet.supplyTo(user, underlyingCollateral, underlyingCollateral.balanceOf(address(this)))`
+
+### Get Maker CDP Debt Function
+
+This internal helper function calculates the total unnormalized debt remaining in a vault.
+
+#### Inputs
+
+ - `vat: VatLike`: The address of the core vault engine for Maker.
+ - `ilk: bytes32`: The collateral type for the vault.
+ - `urn: address`: The address of the vault.
+
+#### Function Spec
+
+`function getVaultDebt(VatLike vat, bytes32 ilk, address urn) internal returns (uint256)`
+  - **BIND READ** `rate = vat.ilks(ilk)`
+  - **BIND READ** `art = vat.urns(ilk, urn)`
+  - **BIND READ** `daiInUrn = vat.dai(urn)`
+  - **BIND** `rad = art * rate - daiInUrn`
+  - **BIND** `wad = rad / 10**27`
+  - **BIND** `wad * 10**27 < rad ? wad + 1 : wad`
+  - **RETURN** `wad`
+
+### Get CDP Wipe Dart Function
+
+This internal helper function calculates the normalized amount to decrease a vault's debt by.
+
+#### Inputs
+
+ - `vat: VatLike`: The address of the core vault engine for Maker.
+ - `amount: uint256`: The actual unnormalized amount to decrease the debt by.
+ - `ilk: bytes32`: The collateral type for the vault.
+ - `urn: address`: The address of the vault.
+
+#### Function Spec
+
+`function getVaultDebt(VatLike vat, uint256 amount, address urn, bytes32 ilk) internal returns (int256)`
+  - **BIND READ** `rate = vat.ilks(ilk)`
+  - **BIND READ** `art = vat.urns(ilk, urn)`
+  - **BIND** `dart = amount * 10**27 / rate`
+  - **BIND** `dart = dart <= art ? -dart : -art`
+  - **RETURN** `dart`
     
 ### Sweep Function
 

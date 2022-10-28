@@ -65,6 +65,8 @@ contract Playground is Script, Test, MainnetConstants {
             cETH,
             weth,
             aaveV2LendingPool,
+            cdpManager,
+            daiJoin,
             pool_DAI_USDC,
             swapRouter,
             sweepee

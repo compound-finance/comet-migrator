@@ -7,6 +7,9 @@ import "forge-std/Test.sol";
 import "./MainnetConstantsV2.t.sol";
 
 contract Positor is Test, MainnetConstants {
+    // Units used in Maker contracts
+    uint256 internal constant RAY = 10**27;
+
     // XXX change name to `PositCompoundV2`?
     struct Posit {
         address borrower;
@@ -18,6 +21,11 @@ contract Positor is Test, MainnetConstants {
         address borrower;
         CometMigratorV2.AaveV2Collateral[] collateral;
         CometMigratorV2.AaveV2Borrow[] borrows;
+    }
+
+    struct PositCdp {
+        address borrower;
+        CometMigratorV2.CDPPosition[] positions;
     }
 
     // Note: We need this because `deal` is currently incompatible with aTokens
@@ -40,6 +48,10 @@ contract Positor is Test, MainnetConstants {
 
     function positAaveV2(PositAaveV2 memory posit_) public {
         setupAaveV2MigratorBorrow(posit_.borrower, posit_.collateral, posit_.borrows);
+    }
+
+    function positCdp(PositCdp memory posit_) public returns (uint256[] memory) {
+        return setupCdpBorrows(posit_.borrower, posit_.positions);
     }
 
     function setupCompoundV2MigratorBorrow(address borrower, CometMigratorV2.CompoundV2Collateral[] memory collateral, CometMigratorV2.CompoundV2Borrow[] memory borrows) internal returns (CometMigratorV2) {
@@ -118,6 +130,39 @@ contract Positor is Test, MainnetConstants {
         require(aToken.balanceOf(borrower) == amount, "invalid aToken balance");
     }
 
+    function setupCdpBorrows(address borrower, CometMigratorV2.CDPPosition[] memory cdpPositions) internal returns (uint256[] memory) {
+        uint256[] memory cdpIds = new uint256[](cdpPositions.length);
+        for (uint8 i = 0; i < cdpPositions.length; i++) {
+            CometMigratorV2.CDPPosition memory position = cdpPositions[i];
+            GemJoinLike gemJoin = position.gemJoin;
+            bytes32 ilk = position.gemJoin.ilk();
+            VatLike vat = VatLike(cdpManager.vat());
+
+            // Open new CDP for borrower
+            uint256 cdpId = cdpManager.open(ilk, borrower);
+            cdpIds[i] = cdpId;
+            // Borrower allows this contract to manage the CDP
+            vm.prank(borrower);
+            cdpManager.cdpAllow(cdpId, address(this), 1);
+            // Deposit collateral and borrow DAI
+            IERC20NonStandard collateral = IERC20NonStandard(gemJoin.gem());
+            deal(address(collateral), address(this), position.collateralAmount);
+            collateral.approve(address(gemJoin), position.collateralAmount);
+            address urn = cdpManager.urns(cdpId);
+            gemJoin.join(urn, position.collateralAmount);
+            cdpManager.frob(cdpId, int256(convertTo18(gemJoin, position.collateralAmount)), getDrawDart(vat, urn, ilk, position.borrowAmount));
+            cdpManager.move(cdpId, address(this), position.borrowAmount * RAY);
+            vat.hope(address(daiJoin));
+            daiJoin.exit(address(this), position.borrowAmount);
+            // Transfer borrowed DAI to borrower
+            dai.transfer(borrower, position.borrowAmount);
+        }
+
+        require(dai.balanceOf(address(this)) == 0, "migrator should not own DAI");
+
+        return cdpIds;
+    }
+
     function deployCometMigrator() internal returns (CometMigratorV2) {
         return new CometMigratorV2(
             comet,
@@ -125,6 +170,8 @@ contract Positor is Test, MainnetConstants {
             cETH,
             weth,
             aaveV2LendingPool,
+            cdpManager,
+            daiJoin,
             pool_DAI_USDC,
             swapRouter,
             sweepee
@@ -133,5 +180,35 @@ contract Positor is Test, MainnetConstants {
 
     function amountToTokens(uint256 amount, CTokenLike cToken) internal returns (uint256) {
         return ( 1e18 * amount ) / cToken.exchangeRateCurrent();
+    }
+
+    function convertTo18(GemJoinLike gemJoin, uint256 amount) internal returns (uint256 wad)
+    {
+        // For those collaterals that have less than 18 decimals precision we need to do the conversion before
+        // passing to frob function
+        // Adapters will automatically handle the difference of precision
+        wad = amount * (10 ** (18 - gemJoin.dec()));
+    }
+
+    // Adapted from https://github.com/makerdao/dss-proxy-actions/blob/master/src/DssProxyActions.sol#L161
+    function getDrawDart(
+        VatLike vat,
+        address urn,
+        bytes32 ilk,
+        uint256 wad
+    ) internal returns (int256 dart) {
+        // Updates stability fee rate
+        uint256 rate = jug.drip(ilk);
+
+        // Gets DAI balance of the urn in the vat
+        uint256 dai = vat.dai(urn);
+
+        // If there was already enough DAI in the vat balance, just exits it without adding more debt
+        if (dai < wad * RAY) {
+            // Calculates the needed dart so together with the existing dai in the vat is enough to exit wad amount of DAI tokens
+            dart = int256(((wad * RAY) - dai) / rate);
+            // This is needed due to lack of precision. It might need to sum an extra dart wei (for the given DAI wad amount)
+            dart = uint256(dart) * rate < wad * RAY ? dart + 1 : dart;
+        }
     }
 }
