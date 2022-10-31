@@ -348,11 +348,12 @@
   resolved "https://registry.yarnpkg.com/@bcoe/v8-coverage/-/v8-coverage-0.2.3.tgz#75a2e8b51cb758a7553d6804a5932d7aace75c39"
   integrity sha512-0hYQ8SB4Db5zvZB4axdMHGwEaQjkZzFjQiN9LVYvIFB2nSUHW9tYpxWriPrWDASIxiaXax83REcLxuSdnGPZtw==
 
-"@compound-finance/comet-extension@^0.0.2":
-  version "0.0.2"
-  resolved "https://registry.yarnpkg.com/@compound-finance/comet-extension/-/comet-extension-0.0.2.tgz#545cfe1d25a131a08e4fac82b881de87118fda3d"
-  integrity sha512-shvqr8DmdC9Woyn4NgFQM+IzzsvbH4qKl+4iGS7SbPKvSV+IGCM1Y6rw2bQ8WRdGyVuM3F+kQSc3/u4YwccXug==
+"@compound-finance/comet-extension@^0.0.5":
+  version "0.0.5"
+  resolved "https://registry.yarnpkg.com/@compound-finance/comet-extension/-/comet-extension-0.0.5.tgz#6d752af83260dec0d12a9b4c2987e93ae833e3a9"
+  integrity sha512-2L7vAsHYstl+Qn8zzzTkYFOocbs+odEKCnSq4zmCuNyKcOrYl9dQ70xnsc5AOGvSTAu9vZv9kdnC6ajO0Bussw==
   dependencies:
+    "@ethersproject/abi" "^5.7.0"
     "@ethersproject/providers" "^5.7.1"
 
 "@esbuild-plugins/node-globals-polyfill@^0.1.1":
