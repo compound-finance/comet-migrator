@@ -3,23 +3,29 @@ import '../styles/main.scss';
 import { CometState, RPC } from '@compound-finance/comet-extension';
 import { Contract } from '@ethersproject/contracts';
 import { JsonRpcProvider } from '@ethersproject/providers';
-import { useEffect, useMemo, useReducer, useState } from 'react';
-import { hasPendingTransaction, useTransactionTracker } from './lib/useTransactionTracker';
+import { ReactNode, useEffect, useMemo, useReducer, useState } from 'react';
+import {
+  hasAwaitingConfirmationTransaction,
+  hasPendingTransaction,
+  useTransactionTracker
+} from './lib/useTransactionTracker';
 
 import ERC20 from '../abis/ERC20';
 import Comet from '../abis/Comet';
 import Comptroller from '../abis/Comptroller';
 import Oracle from '../abis/Oracle';
 
-import { CircleCheckmark, CircleExclamation } from './components/Icons';
+import { CircleExclamation } from './components/Icons';
 
 import { formatTokenBalance, getRiskLevelAndPercentage, maybeBigIntFromString } from './helpers/numbers';
 
 import { CTokenSym, Network, NetworkConfig, getNetworkById, getNetworkConfig } from './Network';
+import { ApproveModalProps } from './types';
+import ApproveModal from './components/ApproveModal';
 
 const MAX_UINT256 = BigInt('115792089237316195423570985008687907853269984665640564039457584007913129639935');
 const FACTOR_PRECISION = 18;
-const PRICE_PRECISION = 6;
+const PRICE_PRECISION = 8;
 
 interface AppProps {
   rpc?: RPC;
@@ -91,6 +97,14 @@ function getDocument(f: (document: Document) => void) {
   }
 }
 
+function migratorTrxKey(migratorAddress: string): string {
+  return `migrate_${migratorAddress}`;
+}
+
+function tokenApproveTrxKey(tokenAddress: string, approveAddress: string): string {
+  return `approve_${tokenAddress}_${approveAddress}`;
+}
+
 enum StateType {
   Loading = 'loading',
   Hydrated = 'hydrated'
@@ -109,6 +123,7 @@ interface CTokenState {
   repayAmount: string | 'max';
   transfer: string | 'max';
   underlyingDecimals: number;
+  underlyingName: string;
 }
 
 interface MigratorStateData<Network> {
@@ -122,6 +137,7 @@ type MigratorStateHydrated = { type: StateType.Hydrated; data: MigratorStateData
 type MigratorState = MigratorStateLoading | MigratorStateHydrated;
 
 enum ActionType {
+  ClearRepayAndTransferAmounts = 'clear-amounts',
   SetAccountState = 'set-account-state',
   SetError = 'set-error',
   SetRepayAmount = 'set-repay-amount',
@@ -155,11 +171,44 @@ type ActionSetTransferForCToken = {
     transfer: string;
   };
 };
+type ActionClearRepayAndTransferAmounts = {
+  type: ActionType.ClearRepayAndTransferAmounts;
+};
 
-type Action = ActionSetAccountState | ActionSetError | ActionSetRepayAmount | ActionSetTransferForCToken;
+type Action =
+  | ActionClearRepayAndTransferAmounts
+  | ActionSetAccountState
+  | ActionSetError
+  | ActionSetRepayAmount
+  | ActionSetTransferForCToken;
 
 function reducer(state: MigratorState, action: Action): MigratorState {
   switch (action.type) {
+    case ActionType.ClearRepayAndTransferAmounts: {
+      if (state.type !== StateType.Hydrated) return state;
+
+      const cTokenCopy: Map<CTokenSym<Network>, CTokenState> = new Map(
+        Array.from(state.data.cTokens).map(([sym, tokenState]) => {
+          return [
+            sym,
+            {
+              ...tokenState,
+              repayAmount: '',
+              transfer: ''
+            }
+          ];
+        })
+      );
+
+      return {
+        type: StateType.Hydrated,
+        data: {
+          ...state.data,
+          error: null,
+          cTokens: cTokenCopy
+        }
+      };
+    }
     case ActionType.SetAccountState: {
       return {
         type: StateType.Hydrated,
@@ -218,6 +267,9 @@ export function App<N extends Network>({ rpc, web3, account, networkConfig }: Ap
   const { cTokenNames } = networkConfig;
   const [state, dispatch] = useReducer(reducer, initialState);
   const [cometState, setCometState] = useState<CometState>([StateType.Loading, undefined]);
+  const [approveModal, setApproveModal] = useState<Omit<ApproveModalProps, 'transactionTracker'> | undefined>(
+    undefined
+  );
   const { tracker, trackTransaction } = useTransactionTracker(web3);
 
   useEffect(() => {
@@ -231,8 +283,7 @@ export function App<N extends Network>({ rpc, web3, account, networkConfig }: Ap
             document.body.classList.add(`theme--${theme.toLowerCase()}`);
           });
         },
-        setCometState: ({cometState: cometStateNew}) => {
-          console.log("Setting comet state", cometStateNew);
+        setCometState: ({ cometState: cometStateNew }) => {
           setCometState(cometStateNew);
         }
       });
@@ -260,26 +311,16 @@ export function App<N extends Network>({ rpc, web3, account, networkConfig }: Ap
   const comet = useMemo(() => new Contract(networkConfig.rootsV3.comet, Comet, signer), [signer]);
   const comptroller = useMemo(() => new Contract(networkConfig.comptrollerAddress, Comptroller, signer), []);
   const oraclePromise = useMemo(async () => {
-    const oracleAddres = await comptroller.oracle();
-    return new Contract(oracleAddres, Oracle, signer);
+    const oracleAddress = await comptroller.oracle();
+    return new Contract(oracleAddress, Oracle, signer);
   }, [comptroller]);
 
   async function setTokenApproval(tokenSym: CTokenSym<Network>) {
-    console.log('setting allowance');
-    await trackTransaction(cTokenCtxs.get(tokenSym)!.approve(migrator.address, MAX_UINT256));
-    console.log('setting allowance');
-  }
-
-  async function enableMigrator() {
-    console.log('enabling migrator');
-    await trackTransaction(comet.allow(migrator.address, true));
-    console.log('enabled migrator');
-  }
-
-  async function disableMigrator() {
-    console.log('disabling migrator');
-    await trackTransaction(comet.allow(migrator.address, false));
-    console.log('disabling migrator');
+    const tokenContract = cTokenCtxs.get(tokenSym)!;
+    await trackTransaction(
+      tokenApproveTrxKey(tokenContract.address, migrator.address),
+      tokenContract.approve(migrator.address, MAX_UINT256)
+    );
   }
 
   useAsyncEffect(async () => {
@@ -295,6 +336,9 @@ export function App<N extends Network>({ rpc, web3, account, networkConfig }: Ap
             ('underlying' in cTokenCtx
               ? Number(await new Contract(await cTokenCtx.underlying(), ERC20, web3).decimals())
               : 18);
+          const underlyingName: string =
+            maybeTokenState?.underlyingName ??
+            ('underlying' in cTokenCtx ? await new Contract(await cTokenCtx.underlying(), ERC20, web3).name() : '');
           const balance: bigint = (await cTokenCtx.balanceOf(account)).toBigInt();
           const borrowBalance = (await cTokenCtx.callStatic.borrowBalanceCurrent(account)).toBigInt();
           const exchangeRate: bigint = (await cTokenCtx.callStatic.exchangeRateCurrent()).toBigInt();
@@ -303,11 +347,11 @@ export function App<N extends Network>({ rpc, web3, account, networkConfig }: Ap
           const collateralFactor: bigint =
             maybeTokenState?.collateralFactor ?? (await comptroller.markets(cTokenCtx.address))[1].toBigInt();
           const decimals: number = maybeTokenState?.decimals ?? Number(await cTokenCtx.decimals());
-          const repayAmount: string = maybeTokenState?.repayAmount ?? '0.0000';
+          const repayAmount: string = maybeTokenState?.repayAmount ?? '';
           const transfer: string = maybeTokenState?.transfer ?? '0.0000';
           const oracle = await oraclePromise;
           const priceSymbol = sym === 'cWBTC' ? 'BTC' : sym.slice(1);
-          const price: bigint = (await oracle.price(priceSymbol)).toBigInt();
+          const price: bigint = (await oracle.price(priceSymbol)).toBigInt() * 100n; // Scale up to match V3 price precision of 1e8
 
           return [
             sym,
@@ -322,6 +366,7 @@ export function App<N extends Network>({ rpc, web3, account, networkConfig }: Ap
               exchangeRate,
               price,
               underlyingDecimals,
+              underlyingName,
               repayAmount,
               transfer
             }
@@ -339,93 +384,10 @@ export function App<N extends Network>({ rpc, web3, account, networkConfig }: Ap
     });
   }, [timer, tracker, account, networkConfig.network, cTokenCtxs]);
 
-  function validateForm(): { borrowAmount: bigint; collateral: Collateral[] } | string {
-    if (state.type === StateType.Loading) {
-      return '';
-    }
-    const cUSDC = state.data.cTokens.get('cUSDC' as CTokenSym<Network>);
-
-    if (!cUSDC) {
-      return '';
-    }
-
-    let borrowAmount = cUSDC.borrowBalance;
-    if (!state.data.migratorEnabled) {
-      return '';
-    }
-    if (!borrowAmount) {
-      return '';
-    }
-    let repayAmount = parseNumber(cUSDC.repayAmount, n => amountToWei(n, cUSDC.underlyingDecimals));
-    if (repayAmount === null) {
-      return 'Invalid repay amount';
-    }
-    if (repayAmount !== MAX_UINT256 && repayAmount > borrowAmount) {
-      return 'Too much repay';
-    }
-
-    let collateral: Collateral[] = [];
-    for (let [
-      sym,
-      { address, balance, balanceUnderlying, underlyingDecimals, transfer, exchangeRate }
-    ] of state.data.cTokens.entries()) {
-      if (transfer === 'max') {
-        collateral.push({
-          cToken: address,
-          amount: balance
-        });
-      } else {
-        if (balanceUnderlying && Number(transfer) > balanceUnderlying) {
-          return `Exceeded collateral amount for ${sym}`;
-        }
-        let transferAmount = parseNumber(transfer, n =>
-          amountToWei((n * 1e18) / Number(exchangeRate), underlyingDecimals!)
-        );
-        if (transferAmount === null) {
-          return `Invalid collateral amount ${sym}: ${transfer}`;
-        } else {
-          if (transferAmount > 0n) {
-            collateral.push({
-              cToken: address,
-              amount: transferAmount
-            });
-          }
-        }
-      }
-    }
-    return {
-      borrowAmount: repayAmount,
-      collateral
-    };
-  }
-
-  let migrateParams = state.data.error ?? validateForm();
-
-  async function migrate() {
-    console.log('migrate', state, migrateParams);
-    if (typeof migrateParams !== 'string') {
-      try {
-        await trackTransaction(migrator.migrate(migrateParams.collateral, migrateParams.borrowAmount));
-      } catch (e) {
-        if ('code' in (e as any) && (e as any).code === 'UNPREDICTABLE_GAS_LIMIT') {
-          dispatch({
-            type: ActionType.SetError,
-            payload: {
-              error: 'Migration will fail if sent, e.g. due to collateral factors. Please adjust parameters.'
-            }
-          });
-        }
-      }
-    }
-  }
-
   if (state.type === StateType.Loading || cometState[0] !== StateType.Hydrated) {
     return (
       <div className="page migrator">
         <div className="container">
-          <div className="masthead L1">
-            <h1 className="L0 heading heading--emphasized">Compound V2 Migration Tool (USDC)</h1>
-          </div>
           <div className="migrator__content">
             <div className="migrator__balances">
               <div className="panel L4">
@@ -469,211 +431,12 @@ export function App<N extends Network>({ rpc, web3, account, networkConfig }: Ap
     );
   }
 
-  const cTokensWithBorrowBalances = Array.from(state.data.cTokens.entries()).filter(([, tokenState]) => {
-    return tokenState.borrowBalance > 0n;
+  const cTokensWithBorrowBalances = Array.from(state.data.cTokens.entries()).filter(([sym, tokenState]) => {
+    return tokenState.borrowBalance > 0n && sym === 'cUSDC';
   });
   const collateralWithBalances = Array.from(state.data.cTokens.entries()).filter(([, tokenState]) => {
     return tokenState.balance > 0n;
   });
-
-  let borrowEl;
-  if (cTokensWithBorrowBalances.length === 0) {
-    borrowEl = (
-      <div className="asset-row asset-row--active L3">
-        <p className="L2 text-color--1">Any borrow balances in Compound V2 will appear here.</p>
-      </div>
-    );
-  } else {
-    borrowEl = cTokensWithBorrowBalances.map(([sym, tokenState]) => {
-      let repayAmount: string;
-      let repayAmountDollarValue: string;
-      let errorTitle: string | undefined;
-      let errorDescription: string | undefined;
-
-      if (tokenState.repayAmount === 'max') {
-        repayAmount = formatTokenBalance(tokenState.underlyingDecimals, tokenState.borrowBalance);
-        repayAmountDollarValue = formatTokenBalance(
-          tokenState.underlyingDecimals + PRICE_PRECISION,
-          tokenState.borrowBalance * tokenState.price,
-          false,
-          true
-        );
-      } else {
-        const maybeRepayAmount = maybeBigIntFromString(tokenState.repayAmount, tokenState.underlyingDecimals);
-
-        if (maybeRepayAmount === undefined) {
-          repayAmount = tokenState.repayAmount;
-          repayAmountDollarValue = '$0.00';
-        } else {
-          repayAmount = tokenState.repayAmount;
-          repayAmountDollarValue = formatTokenBalance(
-            tokenState.underlyingDecimals + PRICE_PRECISION,
-            maybeRepayAmount * tokenState.price,
-            false,
-            true
-          );
-        }
-      }
-
-      return (
-        <div className="migrator__input-view" key={sym}>
-          <div className="migrator__input-view__content">
-            <div className="migrator__input-view__left">
-              <div className="migrator__input-view__header">
-                <div className={`asset asset--${sym.slice(1)}`}></div>
-                <label className="L2 label text-color--1">USDC</label>
-              </div>
-              <input
-                placeholder="0.0000"
-                value={repayAmount}
-                onChange={e =>
-                  dispatch({ type: ActionType.SetRepayAmount, payload: { symbol: sym, repayAmount: e.target.value } })
-                }
-                type="text"
-                inputMode="decimal"
-                disabled={sym !== 'cUSDC'}
-              />
-              <p className="meta text-color--2" style={{ marginTop: '0.75rem' }}>
-                {repayAmountDollarValue}
-              </p>
-            </div>
-            <div className="migrator__input-view__right">
-              <button
-                className="button button--small"
-                disabled={sym !== 'cUSDC'}
-                onClick={() =>
-                  dispatch({ type: ActionType.SetRepayAmount, payload: { symbol: sym, repayAmount: 'max' } })
-                }
-              >
-                Max
-              </button>
-              <p className="meta text-color--2" style={{ marginTop: '0.75rem' }}>
-                <span style={{ fontWeight: '500' }}>V2 balance:</span>{' '}
-                {formatTokenBalance(tokenState.underlyingDecimals, tokenState.borrowBalance, false)}
-              </p>
-              <p className="meta text-color--2">
-                {formatTokenBalance(
-                  tokenState.underlyingDecimals + PRICE_PRECISION,
-                  tokenState.borrowBalance * tokenState.price,
-                  false,
-                  true
-                )}
-              </p>
-            </div>
-          </div>
-          {/* {true && (
-            <div className="migrator__input-view__error">
-              <CircleExclamation />
-              <p className="meta">
-                <span style={{ fontWeight: '500' }}>Supply cap exceeded</span> There is $29.15 of wBTC capacity
-                remaining.
-              </p>
-            </div>
-          )} */}
-        </div>
-      );
-    });
-  }
-
-  let collateralEl;
-  if (collateralWithBalances.length === 0) {
-    collateralEl = (
-      <div className="asset-row asset-row--active L3">
-        <p className="L2 text-color--1">Any collateral balances in Compound V2 will appear here.</p>
-      </div>
-    );
-  } else {
-    collateralEl = collateralWithBalances.map(([sym, tokenState]) => {
-      let transfer: string;
-      let transferDollarValue: string;
-
-      if (tokenState.transfer === 'max') {
-        transfer = formatTokenBalance(tokenState.underlyingDecimals, tokenState.balanceUnderlying);
-        transferDollarValue = formatTokenBalance(
-          tokenState.underlyingDecimals + PRICE_PRECISION,
-          tokenState.balanceUnderlying * tokenState.price,
-          false,
-          true
-        );
-      } else {
-        const maybeTransfer = maybeBigIntFromString(tokenState.transfer, tokenState.underlyingDecimals);
-
-        if (maybeTransfer === undefined) {
-          transfer = tokenState.transfer;
-          transferDollarValue = '$0.00';
-        } else {
-          transfer = tokenState.transfer;
-          transferDollarValue = formatTokenBalance(
-            tokenState.underlyingDecimals + PRICE_PRECISION,
-            maybeTransfer * tokenState.price,
-            false,
-            true
-          );
-        }
-      }
-      return (
-        <div className="migrator__input-view" key={sym}>
-          <div className="migrator__input-view__content">
-            <div className="migrator__input-view__left">
-              <div className="migrator__input-view__header">
-                <div className={`asset asset--${sym.slice(1)}`}></div>
-                <label className="L2 label text-color--1">USDC</label>
-              </div>
-              <input
-                placeholder="0.0000"
-                value={transfer}
-                onChange={e =>
-                  dispatch({
-                    type: ActionType.SetTransferForCToken,
-                    payload: { symbol: sym, transfer: e.target.value }
-                  })
-                }
-                type="text"
-                inputMode="decimal"
-                disabled={tokenState.allowance === 0n}
-              />
-              <p className="meta text-color--2" style={{ marginTop: '0.75rem' }}>
-                {transferDollarValue}
-              </p>
-            </div>
-            <div className="migrator__input-view__right">
-              {tokenState.allowance === 0n ? (
-                <button
-                  className="button button--small"
-                  disabled={hasPendingTransaction(tracker)}
-                  onClick={() => setTokenApproval(sym)}
-                >
-                  Enable
-                </button>
-              ) : (
-                <button
-                  className="button button--small"
-                  onClick={() =>
-                    dispatch({ type: ActionType.SetTransferForCToken, payload: { symbol: sym, transfer: 'max' } })
-                  }
-                >
-                  Max
-                </button>
-              )}
-              <p className="meta text-color--2" style={{ marginTop: '0.75rem' }}>
-                <span style={{ fontWeight: '500' }}>V2 balance:</span>{' '}
-                {formatTokenBalance(tokenState.underlyingDecimals, tokenState.balanceUnderlying, false)}
-              </p>
-              <p className="meta text-color--2">
-                {formatTokenBalance(
-                  tokenState.underlyingDecimals + PRICE_PRECISION,
-                  tokenState.balanceUnderlying * tokenState.price,
-                  false,
-                  true
-                )}
-              </p>
-            </div>
-          </div>
-        </div>
-      );
-    });
-  }
-
   const cTokens = Array.from(state.data.cTokens.entries());
   const v2BorrowValue = cTokens.reduce((acc, [, { borrowBalance, underlyingDecimals, price, repayAmount }]) => {
     const maybeRepayAmount =
@@ -756,8 +519,10 @@ export function App<N extends Network>({ rpc, web3, account, networkConfig }: Ap
           : maybeCToken !== undefined && maybeTransfer > maybeCToken.balanceUnderlying
           ? maybeCToken.balanceUnderlying
           : maybeTransfer;
+
       const dollarValue = ((balance + transferBigInt) * price) / BigInt(10 ** decimals);
       const capacity = (dollarValue * collateralFactor) / BigInt(10 ** FACTOR_PRECISION);
+
       return acc + capacity;
     },
     BigInt(0)
@@ -802,22 +567,350 @@ export function App<N extends Network>({ rpc, web3, account, networkConfig }: Ap
   const v3LiquidationPoint = (v3CollateralValue * BigInt(Math.min(100, v3RiskPercentage))) / 100n;
   const displayV3LiquidationPoint = formatTokenBalance(PRICE_PRECISION, v3LiquidationPoint, false, true);
 
+  function validateForm(): { borrowAmount: bigint; collateral: Collateral[] } | string | undefined {
+    if (state.type === StateType.Loading || !state.data.migratorEnabled) {
+      return undefined;
+    }
+
+    const cUSDC = state.data.cTokens.get('cUSDC' as CTokenSym<Network>);
+    if (!cUSDC) {
+      return undefined;
+    }
+
+    const borrowAmount = cUSDC.borrowBalance;
+    if (!borrowAmount) {
+      return undefined;
+    }
+
+    const repayAmount = parseNumber(cUSDC.repayAmount, n => amountToWei(n, cUSDC.underlyingDecimals));
+    if (repayAmount === null) {
+      return undefined;
+    }
+    if (repayAmount !== MAX_UINT256 && repayAmount > borrowAmount) {
+      return undefined;
+    }
+
+    let collateral: Collateral[] = [];
+    for (let [
+      ,
+      { address, balance, balanceUnderlying, underlyingDecimals, transfer, exchangeRate }
+    ] of state.data.cTokens.entries()) {
+      if (transfer === 'max') {
+        collateral.push({
+          cToken: address,
+          amount: balance
+        });
+      } else {
+        if (balanceUnderlying && Number(transfer) > balanceUnderlying) {
+          return undefined;
+        }
+        const transferAmount = parseNumber(transfer, n =>
+          amountToWei((n * 1e18) / Number(exchangeRate), underlyingDecimals!)
+        );
+        if (transferAmount === null) {
+          return undefined;
+        } else {
+          if (transferAmount > 0n) {
+            collateral.push({
+              cToken: address,
+              amount: transferAmount
+            });
+          }
+        }
+      }
+    }
+
+    if (v2BorrowValue > v2BorrowCapacity || v3BorrowValue > v3BorrowCapacityValue) {
+      return 'Insufficient Collateral';
+    }
+
+    if (!hasMigratePosition) {
+      return;
+    }
+
+    return {
+      borrowAmount: repayAmount,
+      collateral
+    };
+  }
+
+  let migrateParams = state.data.error ?? validateForm();
+
+  async function migrate() {
+    if (migrateParams !== undefined && typeof migrateParams !== 'string') {
+      try {
+        await trackTransaction(
+          migratorTrxKey(migrator.address),
+          migrator.migrate(migrateParams.collateral, migrateParams.borrowAmount),
+          () => {
+            dispatch({ type: ActionType.ClearRepayAndTransferAmounts });
+          }
+        );
+      } catch (e) {
+        if ('code' in (e as any) && (e as any).code === 'UNPREDICTABLE_GAS_LIMIT') {
+          dispatch({
+            type: ActionType.SetError,
+            payload: {
+              error: 'Migration will fail if sent, e.g. due to collateral factors. Please adjust parameters.'
+            }
+          });
+        }
+      }
+    }
+  }
+
+  let borrowEl;
+  if (cTokensWithBorrowBalances.length > 0) {
+    borrowEl = cTokensWithBorrowBalances.map(([sym, tokenState]) => {
+      let repayAmount: string;
+      let repayAmountDollarValue: string;
+      let errorTitle: string | undefined;
+      let errorDescription: string | undefined;
+      const disabled = sym !== 'cUSDC';
+
+      if (tokenState.repayAmount === 'max') {
+        repayAmount = formatTokenBalance(tokenState.underlyingDecimals, tokenState.borrowBalance);
+        repayAmountDollarValue = formatTokenBalance(
+          tokenState.underlyingDecimals + PRICE_PRECISION,
+          tokenState.borrowBalance * tokenState.price,
+          false,
+          true
+        );
+      } else {
+        const maybeRepayAmount = maybeBigIntFromString(tokenState.repayAmount, tokenState.underlyingDecimals);
+
+        if (maybeRepayAmount === undefined) {
+          repayAmount = tokenState.repayAmount;
+          repayAmountDollarValue = '$0.00';
+        } else {
+          repayAmount = tokenState.repayAmount;
+          repayAmountDollarValue = formatTokenBalance(
+            tokenState.underlyingDecimals + PRICE_PRECISION,
+            maybeRepayAmount * tokenState.price,
+            false,
+            true
+          );
+
+          if (maybeRepayAmount > tokenState.borrowBalance) {
+            errorTitle = 'Amount Exceeds Borrow Balance.';
+            errorDescription = `Value must be less than or equal to ${formatTokenBalance(
+              tokenState.underlyingDecimals,
+              tokenState.borrowBalance,
+              false
+            )}`;
+          }
+        }
+      }
+
+      return (
+        <div className="migrator__input-view" key={sym}>
+          <div className="migrator__input-view__content">
+            <div className="migrator__input-view__left">
+              <div className="migrator__input-view__header">
+                <div className={`asset asset--${sym.slice(1)}`}></div>
+                <label className="L2 label text-color--1">USDC</label>
+              </div>
+              <div className="migrator__input-view__holder">
+                <input
+                  placeholder="0.0000"
+                  value={repayAmount}
+                  onChange={e =>
+                    dispatch({ type: ActionType.SetRepayAmount, payload: { symbol: sym, repayAmount: e.target.value } })
+                  }
+                  type="text"
+                  inputMode="decimal"
+                  disabled={disabled}
+                />
+                {tokenState.repayAmount === '' && !disabled && (
+                  <div className="migrator__input-view__placeholder text-color--2">
+                    <span className="text-color--1">0</span>.0000
+                  </div>
+                )}
+              </div>
+              <p className="meta text-color--2" style={{ marginTop: '0.75rem' }}>
+                {repayAmountDollarValue}
+              </p>
+            </div>
+            <div className="migrator__input-view__right">
+              <button
+                className="button button--small"
+                disabled={disabled || tokenState.repayAmount === 'max'}
+                onClick={() =>
+                  dispatch({ type: ActionType.SetRepayAmount, payload: { symbol: sym, repayAmount: 'max' } })
+                }
+              >
+                Max
+              </button>
+              <p className="meta text-color--2" style={{ marginTop: '0.75rem' }}>
+                <span style={{ fontWeight: '500' }}>V2 balance:</span>{' '}
+                {formatTokenBalance(tokenState.underlyingDecimals, tokenState.borrowBalance, false)}
+              </p>
+              <p className="meta text-color--2">
+                {formatTokenBalance(
+                  tokenState.underlyingDecimals + PRICE_PRECISION,
+                  tokenState.borrowBalance * tokenState.price,
+                  false,
+                  true
+                )}
+              </p>
+            </div>
+          </div>
+          {!!errorTitle && <InputViewError title={errorTitle} description={errorDescription} />}
+        </div>
+      );
+    });
+  }
+
+  let collateralEl;
+  if (collateralWithBalances.length === 0) {
+    collateralEl = (
+      <div className="asset-row asset-row--active L3">
+        <p className="L2 text-color--1">Any collateral balances in Compound V2 will appear here.</p>
+      </div>
+    );
+  } else {
+    collateralEl = collateralWithBalances.map(([sym, tokenState]) => {
+      let transfer: string;
+      let transferDollarValue: string;
+      let errorTitle: string | undefined;
+      let errorDescription: string | undefined;
+      const disabled = tokenState.allowance === 0n;
+      const tokenSymbol = sym.slice(1);
+
+      if (tokenState.transfer === 'max') {
+        transfer = formatTokenBalance(tokenState.underlyingDecimals, tokenState.balanceUnderlying);
+        transferDollarValue = formatTokenBalance(
+          tokenState.underlyingDecimals + PRICE_PRECISION,
+          tokenState.balanceUnderlying * tokenState.price,
+          false,
+          true
+        );
+      } else {
+        const maybeTransfer = maybeBigIntFromString(tokenState.transfer, tokenState.underlyingDecimals);
+
+        if (maybeTransfer === undefined) {
+          transfer = tokenState.transfer;
+          transferDollarValue = '$0.00';
+        } else {
+          transfer = tokenState.transfer;
+          transferDollarValue = formatTokenBalance(
+            tokenState.underlyingDecimals + PRICE_PRECISION,
+            maybeTransfer * tokenState.price,
+            false,
+            true
+          );
+
+          if (maybeTransfer > tokenState.balanceUnderlying) {
+            errorTitle = 'Amount Exceeds Balance.';
+            errorDescription = `Value must be less than or equal to ${formatTokenBalance(
+              tokenState.underlyingDecimals,
+              tokenState.balanceUnderlying,
+              false
+            )}`;
+          }
+        }
+      }
+
+      const key = tokenApproveTrxKey(tokenState.address, migrator.address);
+
+      return (
+        <div className="migrator__input-view" key={key}>
+          <div className="migrator__input-view__content">
+            <div className="migrator__input-view__left">
+              <div className="migrator__input-view__header">
+                <div className={`asset asset--${tokenSymbol}`}></div>
+                <label className="L2 label text-color--1">{tokenSymbol}</label>
+              </div>
+              <div className="migrator__input-view__holder">
+                <input
+                  placeholder="0.0000"
+                  value={transfer}
+                  onChange={e =>
+                    dispatch({
+                      type: ActionType.SetTransferForCToken,
+                      payload: { symbol: sym, transfer: e.target.value }
+                    })
+                  }
+                  type="text"
+                  inputMode="decimal"
+                  disabled={disabled}
+                />
+                {tokenState.transfer === '' && !disabled && (
+                  <div className="migrator__input-view__placeholder text-color--2">
+                    <span className="text-color--1">0</span>.0000
+                  </div>
+                )}
+              </div>
+              <p className="meta text-color--2" style={{ marginTop: '0.75rem' }}>
+                {transferDollarValue}
+              </p>
+            </div>
+            <div className="migrator__input-view__right">
+              {disabled ? (
+                <button
+                  className="button button--small"
+                  disabled={hasPendingTransaction(tracker, key)}
+                  onClick={() => {
+                    setApproveModal({
+                      asset: {
+                        name: tokenState.underlyingName,
+                        symbol: tokenSymbol
+                      },
+                      transactionKey: key,
+                      onActionClicked: (_asset, _descption) => setTokenApproval(sym),
+                      onRequestClose: () => setApproveModal(undefined)
+                    });
+                  }}
+                >
+                  Enable
+                </button>
+              ) : (
+                <button
+                  className="button button--small"
+                  disabled={tokenState.transfer === 'max'}
+                  onClick={() =>
+                    dispatch({ type: ActionType.SetTransferForCToken, payload: { symbol: sym, transfer: 'max' } })
+                  }
+                >
+                  Max
+                </button>
+              )}
+              <p className="meta text-color--2" style={{ marginTop: '0.75rem' }}>
+                <span style={{ fontWeight: '500' }}>V2 balance:</span>{' '}
+                {formatTokenBalance(tokenState.underlyingDecimals, tokenState.balanceUnderlying, false)}
+              </p>
+              <p className="meta text-color--2">
+                {formatTokenBalance(
+                  tokenState.underlyingDecimals + PRICE_PRECISION,
+                  tokenState.balanceUnderlying * tokenState.price,
+                  false,
+                  true
+                )}
+              </p>
+            </div>
+          </div>
+          {!!errorTitle && <InputViewError title={errorTitle} description={errorDescription} />}
+        </div>
+      );
+    });
+  }
+
+  let migrateButtonText: ReactNode;
+
+  if (hasAwaitingConfirmationTransaction(tracker, migratorTrxKey(migrator.address))) {
+    migrateButtonText = 'Waiting For Confirmation';
+  } else if (hasPendingTransaction(tracker)) {
+    migrateButtonText = 'Transaction Pending...';
+  } else if (typeof migrateParams === 'string') {
+    migrateButtonText = migrateParams;
+  } else {
+    migrateButtonText = 'Migrate Balances';
+  }
+
   return (
     <div className="page migrator">
+      {!!approveModal && <ApproveModal {...approveModal} transactionTracker={tracker} />}
       <div className="container">
-        <div className="masthead L1">
-          <h1 className="L0 heading heading--emphasized">Compound V2 Migration Tool (USDC)</h1>
-          {state.data.migratorEnabled ? (
-            <button disabled={hasPendingTransaction(tracker)} className="button button--large button--supply" onClick={disableMigrator}>
-              <CircleCheckmark />
-              <label>Enabled</label>
-            </button>
-          ) : (
-            <button disabled={hasPendingTransaction(tracker)} className="button button--large button--supply" onClick={enableMigrator}>
-              Enable
-            </button>
-          )}
-        </div>
         <div className="migrator__content">
           <div className="migrator__balances">
             <div className="panel L4">
@@ -830,14 +923,23 @@ export function App<N extends Network>({ rpc, web3, account, networkConfig }: Ap
                 entering you into an earning position in Compound V3.
               </p>
 
-              <div className="migrator__balances__section">
-                <label className="L1 label text-color--2 migrator__balances__section__header">Borrowing</label>
-                {borrowEl}
-              </div>
-              <div className="migrator__balances__section">
-                <label className="L1 label text-color--2 migrator__balances__section__header">Supplying</label>
-                {collateralEl}
-              </div>
+              {borrowEl === undefined ? (
+                <div className="migrator__balances__alert">
+                  <CircleExclamation className="svg--icon--2" />
+                  <p className="meta text-color--2">No balances to show.</p>
+                </div>
+              ) : (
+                <>
+                  <div className="migrator__balances__section">
+                    <label className="L1 label text-color--2 migrator__balances__section__header">Borrowing</label>
+                    {borrowEl}
+                  </div>
+                  <div className="migrator__balances__section">
+                    <label className="L1 label text-color--2 migrator__balances__section__header">Supplying</label>
+                    {collateralEl}
+                  </div>
+                </>
+              )}
             </div>
           </div>
           <div className="migrator__summary">
@@ -874,10 +976,6 @@ export function App<N extends Network>({ rpc, web3, account, networkConfig }: Ap
                     <p className="meta text-color--2">Available to Borrow</p>
                     <p className="body body--link">{displayV2AvailableToBorrow}</p>
                   </div>
-                  {/* <div>
-                    <p className="meta text-color--2">Net APY</p>
-                    <p className="body body--link">-2.94%</p>
-                  </div> */}
                 </div>
                 <div className="migrator__summary__section__row">
                   <div>
@@ -943,8 +1041,17 @@ export function App<N extends Network>({ rpc, web3, account, networkConfig }: Ap
                   </div>
                 </div>
               </div>
-              <button className="button button--x-large" disabled={typeof migrateParams === 'string' || hasPendingTransaction(tracker)} onClick={migrate}>
-                Migrate Balances
+              <button
+                className="button button--x-large"
+                disabled={
+                  migrateParams === undefined ||
+                  typeof migrateParams === 'string' ||
+                  hasPendingTransaction(tracker) ||
+                  hasAwaitingConfirmationTransaction(tracker, migratorTrxKey(migrator.address))
+                }
+                onClick={migrate}
+              >
+                {migrateButtonText}
               </button>
             </div>
           </div>
@@ -986,6 +1093,17 @@ export default ({ rpc, web3 }: AppProps) => {
   } else {
     return <div>Loading...</div>;
   }
+};
+
+const InputViewError = ({ title, description }: { title: string; description?: string }) => {
+  return (
+    <div className="migrator__input-view__error">
+      <CircleExclamation />
+      <p className="meta">
+        <span style={{ fontWeight: '500' }}>{title}</span> {description}
+      </p>
+    </div>
+  );
 };
 
 const LoadingAsset = () => {

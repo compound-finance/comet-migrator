@@ -12,6 +12,10 @@ html {
   padding: 0 1.25rem;
   position: relative;
   max-width: 74em;
+
+  @media only screen and (min-width: $device--md) {
+    padding: 0;
+  }
 }
 
 // @media (min-width: $device--sm) {

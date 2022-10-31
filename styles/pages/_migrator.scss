@@ -35,6 +35,18 @@
         margin-bottom: 1.25rem;
       }
     }
+
+    &__alert {
+      background-color: var(--ui--foreground--2);
+      border-radius: 0.25rem;
+      display: flex;
+      margin-top: 1.25rem;
+      padding: 1rem;
+
+      .svg {
+        margin-right: 0.5rem;
+      }
+    }
   }
 
   &__summary {
@@ -126,18 +138,41 @@
       }
     }
 
-    input {
-      background: transparent;
-      border: none;
-      caret-color: var(--icon--supply);
-      color: var(--text--1);
+    &__holder {
+      position: relative;
+    }
+
+    @mixin input-text-styles {
       font-family: 'Haas Grot Disp R';
       font-style: normal;
       font-weight: 600;
       font-size: 17px;
       line-height: 20px;
+    }
+
+    &__placeholder {
+      position: absolute;
+      padding: 1px 0px;
+      pointer-events: none;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      @include input-text-styles();
+    }
+
+    input {
+      background: transparent;
+      border: none;
+      caret-color: var(--icon--supply);
+      color: var(--text--1);
+      @include input-text-styles();
       margin-top: 1rem;
       outline: none;
+      padding-left: 0;
+
+      &::placeholder {
+        color: var(--text--3);
+      }
 
       &:disabled {
         color: var(--text--3);
