@@ -16,6 +16,12 @@ contract CometMigratorV2Test is Positor {
         uint256 flashAmount,
         uint256 flashAmountWithFee);
 
+    event Sweep(
+        address indexed sweeper,
+        address indexed recipient,
+        address indexed asset,
+        uint256 amount);
+
     address public constant borrower = address(0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266);
 
     /* ===== Migrator V1 Tests ===== */
@@ -1210,6 +1216,10 @@ contract CometMigratorV2Test is Positor {
 
         deal(address(cUNI), address(migrator), 300e8);
 
+        // Check event
+        vm.expectEmit(true, false, false, true);
+        emit Sweep(address(this), migrator.sweepee(), address(cUNI), 300e8);
+
         assertEq(cUNI.balanceOf(address(migrator)), 300e8, "cUNI given to migrator");
         migrator.sweep(IERC20NonStandard(address(cUNI)));
         assertEq(cUNI.balanceOf(address(migrator)), 0e8, "cUNI in migrator after sweep");
@@ -1229,6 +1239,10 @@ contract CometMigratorV2Test is Positor {
         preflightChecks();
 
         uint256 sweepeeEthPre = sweepee.balance;
+
+        // Check event
+        vm.expectEmit(true, false, false, true);
+        emit Sweep(address(this), migrator.sweepee(), address(0), 1 ether);
 
         payable(address(migrator)).transfer(1 ether);
         assertEq(address(migrator).balance, 1 ether, "original eth for migrator");
@@ -1252,6 +1266,10 @@ contract CometMigratorV2Test is Positor {
         uint256 usdtPre = usdt.balanceOf(sweepee);
 
         deal(address(usdt), address(migrator), 300e6);
+
+        // Check event
+        vm.expectEmit(true, false, false, true);
+        emit Sweep(address(this), migrator.sweepee(), address(usdt), 300e6);
 
         assertEq(usdt.balanceOf(address(migrator)), 300e6, "USDT given to migrator");
         migrator.sweep(IERC20NonStandard(address(usdt)));

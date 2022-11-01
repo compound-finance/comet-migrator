@@ -403,6 +403,8 @@ Sends any tokens in this contract to the sweepee address. This contract should n
 
   - **REQUIRE** `inMigration == 0`
   - **WHEN** `token == 0x0000000000000000000000000000000000000000`:
-	- **EXEC** `sweepee.send(address(this).balance)`
+    - **EXEC** `sweepee.send(address(this).balance)`
+    - **EMIT** `Sweep(msg.sender, sweepee, address(0), address(this).balance)`
   - **ELSE**
-	- **CALL** `token.transfer(sweepee, token.balanceOf(address(this)))`
+    - **CALL** `token.transfer(sweepee, token.balanceOf(address(this)))`
+    - **EMIT** `Sweep(msg.sender, sweepee, address(token), token.balanceOf(address(this)))`
