@@ -348,7 +348,7 @@ contract CometMigratorV2 is IUniswapV3FlashCallback {
       }
 
       // **CALL** `underlying.approve(address(comet), type(uint256).max)`
-      underlying.approve(address(comet), type(uint256).max);
+      underlying.approve(address(comet), underlyingAmount);
 
       // **CALL** `comet.supplyTo(user, underlying, underlying.balanceOf(address(this)))`
       comet.supplyTo(
@@ -424,7 +424,7 @@ contract CometMigratorV2 is IUniswapV3FlashCallback {
       aaveV2LendingPool.withdraw(address(underlyingCollateral), aTokenAmount, address(this));
 
       // **CALL** `underlyingCollateral.approve(address(comet), type(uint256).max)`
-      underlyingCollateral.approve(address(comet), type(uint256).max);
+      underlyingCollateral.approve(address(comet), aTokenAmount);
 
       // **CALL** `comet.supplyTo(user, underlyingCollateral, underlyingCollateral.balanceOf(address(this)))`
       comet.supplyTo(
