@@ -235,18 +235,14 @@ contract CometMigratorV2 is IUniswapV3FlashCallback {
     // **BIND** `flashAmountWithFee = flashAmount + isUniswapLiquidityPoolToken0 ? fee0 : fee1`
     uint256 flashAmountWithFee = migrationData.flashAmount + ( isUniswapLiquidityPoolToken0 ? fee0 : fee1 );
 
-    uint256 baseTokenUsed = 0;
-
     // **EXEC** `migrateCompoundV2Position(user, compoundV2Position)`
-    baseTokenUsed += migrateCompoundV2Position(migrationData.user, migrationData.compoundV2Position);
+    migrateCompoundV2Position(migrationData.user, migrationData.compoundV2Position);
 
     // **EXEC** `migrateAaveV2Position(user, aaveV2Position)`
-    baseTokenUsed += migrateAaveV2Position(migrationData.user, migrationData.aaveV2Position);
-
-    uint256 baseTokenRemaining = migrationData.flashAmount - baseTokenUsed;
+    migrateAaveV2Position(migrationData.user, migrationData.aaveV2Position);
 
     // **CALL** `comet.withdrawFrom(user, address(this), baseToken, flashAmountWithFee - baseToken.balanceOf(address(this)))`
-    comet.withdrawFrom(migrationData.user, address(this), address(baseToken), flashAmountWithFee - baseTokenRemaining);
+    comet.withdrawFrom(migrationData.user, address(this), address(baseToken), flashAmountWithFee - baseToken.balanceOf(address(this)));
 
     // **CALL** `baseToken.transfer(address(uniswapLiquidityPool), flashAmountWithFee)`
     // Note: No need to check transfer success here because Uniswap should revert on an unsuccessful transfer
@@ -261,9 +257,7 @@ contract CometMigratorV2 is IUniswapV3FlashCallback {
    * @param user Alias for the `msg.sender` of the original `migrate` call.
    * @param position Structure containing the user’s Compound II collateral and borrow positions to migrate to Compound III.
    **/
-  function migrateCompoundV2Position(address user, CompoundV2Position memory position) internal returns (uint256) {
-    uint256 baseTokenUsed = 0;
-
+  function migrateCompoundV2Position(address user, CompoundV2Position memory position) internal {
     // **FOREACH** `(cToken, borrowAmount): CompoundV2Borrow, path: bytes` in `position`:
     for (uint i = 0; i < position.borrows.length; i++) {
       CompoundV2Borrow memory borrow = position.borrows[i];
@@ -290,10 +284,7 @@ contract CometMigratorV2 is IUniswapV3FlashCallback {
               deadline: block.timestamp
           })
         );
-        baseTokenUsed += amountIn;
       }
-
-      IERC20NonStandard underlying;
 
       // **WHEN** `cToken == cETH`
       if (borrow.cToken == cETH) {
@@ -304,25 +295,17 @@ contract CometMigratorV2 is IUniswapV3FlashCallback {
 
         // **CALL** `cToken.repayBorrowBehalf{value: repayAmount}(user)
         cToken.repayBorrowBehalf{ value: repayAmount }(user);
-
-        underlying = weth;
       } else {
         CErc20 cToken = CErc20(address(borrow.cToken));
 
-        underlying = IERC20NonStandard(cToken.underlying());
-
         // **CALL** `cToken.underlying().approve(address(cToken), repayAmount)`
-        IERC20NonStandard(underlying).approve(address(borrow.cToken), repayAmount);
+        IERC20NonStandard(cToken.underlying()).approve(address(borrow.cToken), repayAmount);
 
         // **CALL** `cToken.repayBorrowBehalf(user, repayAmount)`
         uint256 err = cToken.repayBorrowBehalf(user, repayAmount);
         if (err != 0) {
           revert CompoundV2Error(0, err);
         }
-      }
-
-      if (underlying == baseToken) {
-        baseTokenUsed += repayAmount;
       }
     }
 
@@ -374,8 +357,6 @@ contract CometMigratorV2 is IUniswapV3FlashCallback {
         underlyingAmount
       );
     }
-
-    return baseTokenUsed;
   }
 
   /**
@@ -383,9 +364,7 @@ contract CometMigratorV2 is IUniswapV3FlashCallback {
    * @param user Alias for the `msg.sender` of the original `migrate` call.
    * @param position Structure containing the user’s Aave v2 collateral and borrow positions to migrate to Compound III.
    **/
-  function migrateAaveV2Position(address user, AaveV2Position memory position) internal returns (uint256) {
-    uint256 baseTokenUsed;
-
+  function migrateAaveV2Position(address user, AaveV2Position memory position) internal {
     // **FOREACH** `(aDebtToken, borrowAmount): AaveV2Borrow, path: bytes` in `position`:
     for (uint i = 0; i < position.borrows.length; i++) {
       AaveV2Borrow memory borrow = position.borrows[i];
@@ -410,7 +389,6 @@ contract CometMigratorV2 is IUniswapV3FlashCallback {
               deadline: block.timestamp
           })
         );
-        baseTokenUsed += amountIn;
       }
 
       // **BIND READ** `underlyingDebt = aDebtToken.UNDERLYING_ASSET_ADDRESS()`
@@ -424,10 +402,6 @@ contract CometMigratorV2 is IUniswapV3FlashCallback {
 
       // **CALL** `aaveV2LendingPool.repay(underlyingDebt, repayAmount, rateMode, user)`
       aaveV2LendingPool.repay(address(underlyingDebt), repayAmount, rateMode, user);
-
-      if (underlyingDebt == baseToken) {
-        baseTokenUsed += repayAmount;
-      }
     }
 
     // **FOREACH** `(aToken, amount): AaveV2Collateral` in `position.collateral`:
@@ -459,8 +433,6 @@ contract CometMigratorV2 is IUniswapV3FlashCallback {
         aTokenAmount
       );
     }
-
-    return baseTokenUsed;
   }
 
   /**
