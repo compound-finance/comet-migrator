@@ -168,7 +168,7 @@ contract CometMigratorV2 is IUniswapV3FlashCallback {
   /**
    * @notice This is the core function of this contract, migrating a position from Compound II to Compound III. We use a flash loan from Uniswap to provide liquidity to move the position.
    * @param compoundV2Position Structure containing the user’s Compound II collateral and borrow positions to migrate to Compound III. See notes below.
-   * @param aaveV2Position Structure containing the user’s Compound II collateral and borrow positions to migrate to Compound III. See notes below.
+   * @param aaveV2Position Structure containing the user’s Aave v2 collateral and borrow positions to migrate to Compound III. See notes below.
    * @param flashAmount Amount of base asset to borrow from the Uniswap flash loan to facilitate the migration. See notes below.
    * @dev **N.B.** Collateral requirements may be different in Compound II and Compound III. This may lead to a migration failing or being less collateralized after the migration. There are fees associated with the flash loan, which may affect position or cause migration to fail.
    * @dev Note: each `collateral` market must be supported in Compound III.
