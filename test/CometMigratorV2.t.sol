@@ -75,6 +75,8 @@ contract CometMigratorV2Test is Positor {
         // Check v3 balances
         assertApproxEqRel(comet.collateralBalanceOf(borrower, address(uni)), 199e18, 0.01e18, "v3 collateral balance");
         assertEq(comet.borrowBalanceOf(borrower), 600e6 * 1.0001, "v3 borrow balance");
+
+        postflightChecks();
     }
 
     function testMigrateSimpleEthPosition() public {
@@ -132,6 +134,8 @@ contract CometMigratorV2Test is Positor {
         // Check v3 balances
         assertApproxEqRel(comet.collateralBalanceOf(borrower, address(weth)), 0.6e18, 0.01e18, "v3 collateral balance");
         assertEq(comet.borrowBalanceOf(borrower), 600e6 * 1.0001, "v3 borrow balance");
+
+        postflightChecks();
     }
 
     function testMigrateSimpleUniPosition_SecondAsset() public {
@@ -193,6 +197,8 @@ contract CometMigratorV2Test is Positor {
         // Check v3 balances
         assertApproxEqRel(comet.collateralBalanceOf(borrower, address(uni)), 199e18, 0.01e18, "v3 collateral balance");
         assertEq(comet.borrowBalanceOf(borrower), 600e6 * 1.0001, "v3 borrow balance");
+
+        postflightChecks();
     }
 
     function testMigrateSimpleUniPositionMaxCollateral() public {
@@ -248,6 +254,8 @@ contract CometMigratorV2Test is Positor {
         // Check v3 balances
         assertApproxEqRel(comet.collateralBalanceOf(borrower, address(uni)), 300e18, 0.01e18, "v3 collateral balance");
         assertEq(comet.borrowBalanceOf(borrower), 700e6 * 1.0001, "v3 borrow balance");
+
+        postflightChecks();
     }
 
     function testMigrateSimpleUniPositionMaxCollateralMaxBorrow() public {
@@ -303,6 +311,8 @@ contract CometMigratorV2Test is Positor {
         // Check v3 balances
         assertApproxEqRel(comet.collateralBalanceOf(borrower, address(uni)), 300e18, 0.01e18, "v3 collateral balance");
         assertEq(comet.borrowBalanceOf(borrower), 700e6 * 1.0001, "v3 borrow balance");
+
+        postflightChecks();
     }
 
     function testMigrateSimpleDualPosition_OneAsset() public {
@@ -364,6 +374,8 @@ contract CometMigratorV2Test is Positor {
         // Check v3 balances
         assertApproxEqRel(comet.collateralBalanceOf(borrower, address(uni)), 199e18, 0.01e18, "v3 collateral balance");
         assertEq(comet.borrowBalanceOf(borrower), 600e6 * 1.0001, "v3 borrow balance");
+
+        postflightChecks();
     }
 
     function testMigrateSimpleDualPosition_BothAssets() public {
@@ -434,6 +446,8 @@ contract CometMigratorV2Test is Positor {
         assertApproxEqRel(comet.collateralBalanceOf(borrower, address(uni)), 199e18, 0.01e18, "v3 collateral balance");
         assertApproxEqRel(comet.collateralBalanceOf(borrower, address(weth)), 0.6e18, 0.01e18, "v3 collateral balance");
         assertEq(comet.borrowBalanceOf(borrower), 1200e6 * 1.0001, "v3 borrow balance");
+
+        postflightChecks();
     }
 
     function testMigrateSimpleUniPosition_NoApproval() public {
@@ -487,6 +501,8 @@ contract CometMigratorV2Test is Positor {
         // Check v3 balances
         assertEq(comet.collateralBalanceOf(borrower, address(uni)), 0, "v3 collateral balance");
         assertEq(comet.borrowBalanceOf(borrower), 0, "v3 borrow balance");
+
+        postflightChecks();
     }
 
     function testMigrateSimpleEthPosition_NoApproval() public {
@@ -540,6 +556,8 @@ contract CometMigratorV2Test is Positor {
         // Check v3 balances
         assertEq(comet.collateralBalanceOf(borrower, address(weth)), 0, "v3 collateral balance");
         assertEq(comet.borrowBalanceOf(borrower), 0, "v3 borrow balance");
+
+        postflightChecks();
     }
 
     function testMigrateSimpleUniPosition_InsufficientCollateral() public {
@@ -593,6 +611,8 @@ contract CometMigratorV2Test is Positor {
         // Check v3 balances
         assertEq(comet.collateralBalanceOf(borrower, address(uni)), 0, "v3 collateral balance");
         assertEq(comet.borrowBalanceOf(borrower), 0, "v3 borrow balance");
+
+        postflightChecks();
     }
 
     function testMigrateSimpleEthPosition_InsufficientCollateral() public {
@@ -646,6 +666,8 @@ contract CometMigratorV2Test is Positor {
         // Check v3 balances
         assertEq(comet.collateralBalanceOf(borrower, address(weth)), 0, "v3 collateral balance");
         assertEq(comet.borrowBalanceOf(borrower), 0, "v3 borrow balance");
+
+        postflightChecks();
     }
 
     function testMigrateSimpleUniPosition_NoCometApproval() public {
@@ -697,6 +719,8 @@ contract CometMigratorV2Test is Positor {
         // Check v3 balances
         assertEq(comet.collateralBalanceOf(borrower, address(uni)), 0, "v3 collateral balance");
         assertEq(comet.borrowBalanceOf(borrower), 0, "v3 borrow balance");
+
+        postflightChecks();
     }
 
     function testMigrateSimpleUniPosition_InsufficientLiquidity() public {
@@ -750,6 +774,8 @@ contract CometMigratorV2Test is Positor {
         // Check v3 balances
         assertEq(comet.collateralBalanceOf(borrower, address(uni)), 0, "v3 collateral balance");
         assertEq(comet.borrowBalanceOf(borrower), 0, "v3 borrow balance");
+
+        postflightChecks();
     }
 
     function testMigrateSimpleUniPosition_ExcessiveRepay() public {
@@ -803,6 +829,8 @@ contract CometMigratorV2Test is Positor {
         // Check v3 balances
         assertEq(comet.collateralBalanceOf(borrower, address(uni)), 0, "v3 collateral balance");
         assertEq(comet.borrowBalanceOf(borrower), 0, "v3 borrow balance");
+
+        postflightChecks();
     }
 
     function testMigrateSimpleUniPosition_UnlistedCollateral() public {
@@ -855,6 +883,8 @@ contract CometMigratorV2Test is Positor {
         // Check v3 balances
         assertEq(comet.collateralBalanceOf(borrower, address(uni)), 0, "v3 collateral balance");
         assertEq(comet.borrowBalanceOf(borrower), 0, "v3 borrow balance");
+
+        postflightChecks();
     }
 
     function testMigrateSimpleUniPosition_NoTokenCollateral() public {
@@ -907,6 +937,8 @@ contract CometMigratorV2Test is Positor {
         // Check v3 balances
         assertEq(comet.collateralBalanceOf(borrower, address(uni)), 0, "v3 collateral balance");
         assertEq(comet.borrowBalanceOf(borrower), 0, "v3 borrow balance");
+
+        postflightChecks();
     }
 
     function testMigrateSimpleUniPosition_NoMovement() public {
@@ -948,6 +980,8 @@ contract CometMigratorV2Test is Positor {
         // Check v3 balances
         assertEq(comet.collateralBalanceOf(borrower, address(uni)), 0, "v3 collateral balance");
         assertEq(comet.borrowBalanceOf(borrower), 0, "v3 borrow balance");
+
+        postflightChecks();
     }
 
     function testMigrateSimpleDualPosition_HalfAndHalf() public {
@@ -1058,6 +1092,8 @@ contract CometMigratorV2Test is Positor {
         assertApproxEqRel(comet.collateralBalanceOf(borrower, address(uni)), 199e18, 0.01e18, "v3 collateral balance");
         assertApproxEqRel(comet.collateralBalanceOf(borrower, address(weth)), 0.6e18, 0.01e18, "v3 collateral balance");
         assertEq(comet.borrowBalanceOf(borrower), 1200e6 * 1.0001, "v3 borrow balance");
+
+        postflightChecks();
     }
 
     function testMigrateSimpleDualPosition_NoCollateralSecondTime() public {
@@ -1159,6 +1195,8 @@ contract CometMigratorV2Test is Positor {
         assertApproxEqRel(comet.collateralBalanceOf(borrower, address(uni)), 199e18, 0.01e18, "v3 collateral balance");
         assertApproxEqRel(comet.collateralBalanceOf(borrower, address(weth)), 0.6e18, 0.01e18, "v3 collateral balance");
         assertEq(comet.borrowBalanceOf(borrower), 1400e6 * 1.0001, "v3 borrow balance");
+
+        postflightChecks();
     }
 
     function testReentrancyOne_CallingCallbackDirectly() public {
@@ -1192,6 +1230,8 @@ contract CometMigratorV2Test is Positor {
         // Check v3 balances
         assertEq(comet.collateralBalanceOf(borrower, address(weth)), 0, "v3 collateral balance");
         assertEq(comet.borrowBalanceOf(borrower), 0, "v3 borrow balance");
+
+        postflightChecks();
     }
 
     function testSweepCToken() public {
@@ -1214,6 +1254,8 @@ contract CometMigratorV2Test is Positor {
         migrator.sweep(IERC20NonStandard(address(cUNI)));
         assertEq(cUNI.balanceOf(address(migrator)), 0e8, "cUNI in migrator after sweep");
         assertEq(cUNI.balanceOf(sweepee) - cUNIPre, 300e8, "cUNI swept to sweepee");
+
+        postflightChecks();
     }
 
     function testSweepEth() public {
@@ -1235,6 +1277,8 @@ contract CometMigratorV2Test is Positor {
         migrator.sweep(IERC20NonStandard(0x0000000000000000000000000000000000000000));
         assertEq(address(migrator).balance, 0 ether, "post-sweep eth for migrator");
         assertEq(sweepee.balance - sweepeeEthPre, 1 ether, "post-sweep eth for sweepee");
+
+        postflightChecks();
     }
 
     function testSweepUsdt_nonStandardErc20() public {
@@ -1468,6 +1512,8 @@ contract CometMigratorV2Test is Positor {
         // Check v3 balances
         assertApproxEqRel(comet.collateralBalanceOf(borrower, address(uni)), 199e18, 0.01e18, "v3 collateral balance");
         assertEq(comet.borrowBalanceOf(borrower), 350e6 * 1.0001, "v3 borrow balance");
+
+        postflightChecks();
     }
 
     function testMigrateSingleCompoundV2Borrow_allDai() public {
@@ -1523,6 +1569,8 @@ contract CometMigratorV2Test is Positor {
         assertApproxEqRel(comet.collateralBalanceOf(borrower, address(uni)), 199e18, 0.01e18, "v3 collateral balance");
         // Approximate assertion because of slippage from DAI to USDC
         assertApproxEqRel(comet.borrowBalanceOf(borrower), 350e6 * 1.0001, 0.01e18, "v3 borrow balance");
+
+        postflightChecks();
     }
 
     function testMigrateSingleCompoundV2Borrow_nonStandardErc20_allUsdt() public {
@@ -1578,6 +1626,8 @@ contract CometMigratorV2Test is Positor {
         assertApproxEqRel(comet.collateralBalanceOf(borrower, address(uni)), 199e18, 0.01e18, "v3 collateral balance");
         // Approximate assertion because of slippage from USDT to USDC
         assertApproxEqRel(comet.borrowBalanceOf(borrower), 350e6 * 1.0001, 0.01e18, "v3 borrow balance");
+
+        postflightChecks();
     }
 
     function testMigrateSingleCompoundV2Borrow_allEth() public {
@@ -1633,6 +1683,8 @@ contract CometMigratorV2Test is Positor {
         assertApproxEqRel(comet.collateralBalanceOf(borrower, address(uni)), 398e18, 0.01e18, "v3 collateral balance");
         // Approximate assertion because of slippage from USDC to WETH
         assertApproxEqRel(comet.borrowBalanceOf(borrower), 1472e6 * 1.0001, 0.01e18, "v3 borrow balance");
+
+        postflightChecks();
     }
 
     function testMigrateSingleCompoundV2Borrow_someEth() public {
@@ -1693,6 +1745,8 @@ contract CometMigratorV2Test is Positor {
         assertApproxEqRel(comet.collateralBalanceOf(borrower, address(uni)), 398e18, 0.01e18, "v3 collateral balance");
         // Approximate assertion because of slippage from USDC to WETH
         assertApproxEqRel(comet.borrowBalanceOf(borrower), 736e6 * 1.0001, 0.01e18, "v3 borrow balance");
+
+        postflightChecks();
     }
 
     function testMigrateSingleCompoundV2Borrow_nonStableBorrow_allUni() public {
@@ -1746,6 +1800,8 @@ contract CometMigratorV2Test is Positor {
         assertApproxEqRel(comet.collateralBalanceOf(borrower, address(uni)), 300e18, 0.01e18, "v3 collateral balance");
         // Approximate assertion because of slippage from UNI to USDC
         assertApproxEqRel(comet.borrowBalanceOf(borrower), 588e6 * 1.0001, 0.01e18, "v3 borrow balance");
+
+        postflightChecks();
     }
 
     function testMigrateCompoundV2Position_usdcCollateralAndBorrow() public {
@@ -1797,6 +1853,8 @@ contract CometMigratorV2Test is Positor {
         // Check v3 balances
         assertApproxEqRel(comet.balanceOf(borrower), 700e6 - (350e6 * 1.0001), 0.001e18, "v3 supply balance");
         assertEq(comet.borrowBalanceOf(borrower), 0, "v3 borrow balance");
+
+        postflightChecks();
     }
 
     function testMigrateCompoundV2Borrow_multihopSwapPath() public {
@@ -1852,6 +1910,8 @@ contract CometMigratorV2Test is Positor {
         assertApproxEqRel(comet.collateralBalanceOf(borrower, address(uni)), 199e18, 0.01e18, "v3 collateral balance");
         // Approximate assertion because of slippage from DAI to USDC
         assertApproxEqRel(comet.borrowBalanceOf(borrower), 350e6 * 1.0001, 0.01e18, "v3 borrow balance");
+
+        postflightChecks();
     }
 
     function testMigrateDualCompoundV2Borrow_allUsdcAndDai() public {
@@ -1915,6 +1975,8 @@ contract CometMigratorV2Test is Positor {
         assertApproxEqRel(comet.collateralBalanceOf(borrower, address(uni)), 398e18, 0.01e18, "v3 collateral balance");
         // Approximate assertion because of slippage from DAI to USDC
         assertApproxEqRel(comet.borrowBalanceOf(borrower), 700e6 * 1.0001, 0.01e18, "v3 borrow balance");
+
+        postflightChecks();
     }
 
     function testMigrateSingleCompoundV2Borrow_lowFlashEstimate_withNoSwap() public {
@@ -1965,6 +2027,8 @@ contract CometMigratorV2Test is Positor {
         // Check v3 balances
         assertEq(comet.collateralBalanceOf(borrower, address(uni)), 0, "v3 collateral balance");
         assertEq(comet.borrowBalanceOf(borrower), 0, "v3 borrow balance");
+
+        postflightChecks();
     }
 
     function testMigrateDualCompoundV2Borrow_lowFlashEstimate_withSwap() public {
@@ -2024,6 +2088,8 @@ contract CometMigratorV2Test is Positor {
         // Check v3 balances
         assertEq(comet.collateralBalanceOf(borrower, address(uni)), 0, "v3 collateral balance");
         assertEq(comet.borrowBalanceOf(borrower), 0, "v3 borrow balance");
+
+        postflightChecks();
     }
 
     function testMigrateSingleCompoundV2Borrow_highFlashEstimate() public {
@@ -2078,6 +2144,8 @@ contract CometMigratorV2Test is Positor {
         assertApproxEqRel(comet.collateralBalanceOf(borrower, address(uni)), 199e18, 0.01e18, "v3 collateral balance");
         // v3 borrow includes the interest paid on the larger flash loan
         assertEq(comet.borrowBalanceOf(borrower), 350e6 + 35000e6 * 0.0001, "v3 borrow balance");
+
+        postflightChecks();
     }
 
     function testMigrateCompoundV2Borrow_invalidInput() public {
@@ -2128,6 +2196,8 @@ contract CometMigratorV2Test is Positor {
         // Check v3 balances
         assertEq(comet.collateralBalanceOf(borrower, address(uni)), 0, "v3 collateral balance");
         assertEq(comet.borrowBalanceOf(borrower), 0, "v3 borrow balance");
+
+        postflightChecks();
     }
 
     function testMigrateCompoundV2Borrow_invalidSwapPath() public {
@@ -2183,6 +2253,8 @@ contract CometMigratorV2Test is Positor {
         // Check v3 balances
         assertEq(comet.collateralBalanceOf(borrower, address(uni)), 0, "v3 collateral balance");
         assertEq(comet.borrowBalanceOf(borrower), 0, "v3 borrow balance");
+
+        postflightChecks();
     }
 
     function testMigrateCompoundV2Borrow_swapFromHighSlippagePool_revertsWhenNotEnoughFlashLoan() public {
@@ -2235,6 +2307,8 @@ contract CometMigratorV2Test is Positor {
         // Check v3 balances
         assertEq(comet.collateralBalanceOf(borrower, address(uni)), 0, "v3 collateral balance");
         assertEq(comet.borrowBalanceOf(borrower), 0, "v3 borrow balance");
+
+        postflightChecks();
     }
 
     function testMigrateCompoundV2Borrow_swapFromHighSlippagePool_doesNotRevertWhenEnoughFlashLoan() public {
@@ -2291,6 +2365,8 @@ contract CometMigratorV2Test is Positor {
         assertApproxEqRel(comet.collateralBalanceOf(borrower, address(uni)), 199e18, 0.01e18, "v3 collateral balance");
         // Approximate assertion because of high slippage from DAI to USDC
         assertApproxEqRel(comet.borrowBalanceOf(borrower), 350e6 * 1.0001, 0.5e18 /* 50% approximation */, "v3 borrow balance");
+
+        postflightChecks();
     }
 
     function testMigrateCompoundV2Borrow_insufficientCollateralToBorrowFromCompoundV3() public {
@@ -2341,6 +2417,8 @@ contract CometMigratorV2Test is Positor {
         // Check v3 balances
         assertEq(comet.collateralBalanceOf(borrower, address(uni)), 0e18, "v3 collateral balance");
         assertEq(comet.borrowBalanceOf(borrower), 0e6, "v3 borrow balance");
+
+        postflightChecks();
     }
 
     /* ===== Migrate from Aave v2 ===== */
@@ -2383,6 +2461,8 @@ contract CometMigratorV2Test is Positor {
         // Check v3 balances
         assertEq(comet.collateralBalanceOf(borrower, address(uni)), 300e18, "v3 collateral balance");
         assertEq(comet.borrowBalanceOf(borrower), 0e6, "v3 borrow balance");
+
+        postflightChecks();
     }
 
     function testMigrateSingleAaveV2Borrow_uniCollateral_variableDebtUsdc_migrateSome() public {
@@ -2441,6 +2521,8 @@ contract CometMigratorV2Test is Positor {
         // Check v3 balances
         assertEq(comet.collateralBalanceOf(borrower, address(uni)), 199e18, "v3 collateral balance");
         assertEq(comet.borrowBalanceOf(borrower), 600e6 * 1.0001, "v3 borrow balance");
+
+        postflightChecks();
     }
 
     function testMigrateSingleAaveV2Borrow_uniCollateral_stableDebtUsdc_migrateSome() public {
@@ -2499,6 +2581,8 @@ contract CometMigratorV2Test is Positor {
         // Check v3 balances
         assertEq(comet.collateralBalanceOf(borrower, address(uni)), 199e18, "v3 collateral balance");
         assertEq(comet.borrowBalanceOf(borrower), 600e6 * 1.0001, "v3 borrow balance");
+
+        postflightChecks();
     }
 
     function testMigrateSingleAaveV2Borrow_uniCollateral_variableDebtUsdc_migrateAll() public {
@@ -2555,6 +2639,8 @@ contract CometMigratorV2Test is Positor {
         // Check v3 balances
         assertEq(comet.collateralBalanceOf(borrower, address(uni)), 300e18, "v3 collateral balance");
         assertEq(comet.borrowBalanceOf(borrower), 700e6 + 710e6 * 0.0001, "v3 borrow balance");
+
+        postflightChecks();
     }
 
     function testMigrateSingleAaveV2Borrow_uniCollateral_stableDebtUsdc_migrateAll() public {
@@ -2611,6 +2697,8 @@ contract CometMigratorV2Test is Positor {
         // Check v3 balances
         assertEq(comet.collateralBalanceOf(borrower, address(uni)), 300e18, "v3 collateral balance");
         assertEq(comet.borrowBalanceOf(borrower), 700e6 + 710e6 * 0.0001, "v3 borrow balance");
+
+        postflightChecks();
     }
 
     function testMigrateSingleAaveV2Borrow_wethCollateral_variableDebtUsdc_migrateSome() public {
@@ -2669,6 +2757,8 @@ contract CometMigratorV2Test is Positor {
         // Check v3 balances
         assertEq(comet.collateralBalanceOf(borrower, address(weth)), 0.6e18, "v3 collateral balance");
         assertEq(comet.borrowBalanceOf(borrower), 600e6 * 1.0001, "v3 borrow balance");
+
+        postflightChecks();
     }
 
     function testMigrateSingleAaveV2Borrow_wethCollateral_stableDebtUsdc_migrateSome() public {
@@ -2727,6 +2817,8 @@ contract CometMigratorV2Test is Positor {
         // Check v3 balances
         assertEq(comet.collateralBalanceOf(borrower, address(weth)), 0.6e18, "v3 collateral balance");
         assertEq(comet.borrowBalanceOf(borrower), 600e6 * 1.0001, "v3 borrow balance");
+
+        postflightChecks();
     }
 
     function testMigrateSingleAaveV2Borrow_wethCollateral_variableDebtUsdc_migrateAll() public {
@@ -2783,6 +2875,8 @@ contract CometMigratorV2Test is Positor {
         // Check v3 balances
         assertEq(comet.collateralBalanceOf(borrower, address(weth)), 1e18, "v3 collateral balance");
         assertEq(comet.borrowBalanceOf(borrower), 700e6 + 710e6 * 0.0001, "v3 borrow balance");
+
+        postflightChecks();
     }
 
     function testMigrateSingleAaveV2Borrow_wethCollateral_stableDebtUsdc_migrateAll() public {
@@ -2839,6 +2933,8 @@ contract CometMigratorV2Test is Positor {
         // Check v3 balances
         assertEq(comet.collateralBalanceOf(borrower, address(weth)), 1e18, "v3 collateral balance");
         assertEq(comet.borrowBalanceOf(borrower), 700e6 + 710e6 * 0.0001, "v3 borrow balance");
+
+        postflightChecks();
     }
 
     function testMigrateSingleAaveV2Borrow_variableDebtDai() public {
@@ -2900,6 +2996,8 @@ contract CometMigratorV2Test is Positor {
         assertEq(comet.collateralBalanceOf(borrower, address(uni)), 199e18, "v3 collateral balance");
         // Approximate assertion because of slippage from DAI to USDC
         assertApproxEqRel(comet.borrowBalanceOf(borrower), 600e6 + 610e6 * 0.0001, 0.01e18, "v3 borrow balance");
+
+        postflightChecks();
     }
 
     function testMigrateSingleAaveV2Borrow_stableDebtDai() public {
@@ -2961,6 +3059,8 @@ contract CometMigratorV2Test is Positor {
         assertEq(comet.collateralBalanceOf(borrower, address(uni)), 199e18, "v3 collateral balance");
         // Approximate assertion because of slippage from DAI to USDC
         assertApproxEqRel(comet.borrowBalanceOf(borrower), 600e6 + 610e6 * 0.0001, 0.01e18, "v3 borrow balance");
+
+        postflightChecks();
     }
 
     function testMigrateSingleAaveV2Borrow_nonStandardErc20_variableDebtUsdt() public {
@@ -3020,6 +3120,8 @@ contract CometMigratorV2Test is Positor {
         assertEq(comet.collateralBalanceOf(borrower, address(uni)), 300e18, "v3 collateral balance");
         // Approximate assertion because of slippage from USDT to USDC
         assertApproxEqRel(comet.borrowBalanceOf(borrower), 700e6 + 710e6 * 0.0001, 0.01e18, "v3 borrow balance");
+
+        postflightChecks();
     }
 
     function testMigrateSingleAaveV2Borrow_nonStableBorrow_variableDebtUni() public {
@@ -3078,6 +3180,8 @@ contract CometMigratorV2Test is Positor {
         assertEq(comet.collateralBalanceOf(borrower, address(uni)), 300e18, "v3 collateral balance");
         // Approximate assertion because of slippage from USDT to USDC
         assertApproxEqRel(comet.borrowBalanceOf(borrower), 588e6 * 1.0001, 0.01e18, "v3 borrow balance");
+
+        postflightChecks();
     }
 
     function testMigrateDualAaveV2Borrow_variableDebtUsdcAndDai() public {
@@ -3142,6 +3246,8 @@ contract CometMigratorV2Test is Positor {
         assertEq(comet.collateralBalanceOf(borrower, address(uni)), 398e18, "v3 collateral balance");
         // Approximate assertion because of slippage from DAI to USDC
         assertApproxEqRel(comet.borrowBalanceOf(borrower), 700e6 + 710e6 * 0.0001, 0.01e18, "v3 borrow balance");
+
+        postflightChecks();
     }
 
     function testMigrateDualAaveV2Borrow_variableAndStableDebtUsdcAndDai() public {
@@ -3206,6 +3312,8 @@ contract CometMigratorV2Test is Positor {
         assertEq(comet.collateralBalanceOf(borrower, address(uni)), 398e18, "v3 collateral balance");
         // Approximate assertion because of slippage from DAI to USDC
         assertApproxEqRel(comet.borrowBalanceOf(borrower), 700e6 + 710e6 * 0.0001, 0.01e18, "v3 borrow balance");
+
+        postflightChecks();
     }
 
     function testMigrateDualAaveV2CollateralAndBorrow() public {
@@ -3269,6 +3377,8 @@ contract CometMigratorV2Test is Positor {
         assertEq(comet.collateralBalanceOf(borrower, address(weth)), 1e18, "v3 collateral balance");
         // Approximate assertion because of slippage from DAI to USDC
         assertApproxEqRel(comet.borrowBalanceOf(borrower), 700e6 + 710e6 * 0.0001, 0.01e18, "v3 borrow balance");
+
+        postflightChecks();
     }
 
     function testMigrateAaveV2_invalidInput() public {
@@ -3319,6 +3429,8 @@ contract CometMigratorV2Test is Positor {
         // Check v3 balances
         assertEq(comet.collateralBalanceOf(borrower, address(uni)), 0e18, "v3 collateral balance");
         assertEq(comet.borrowBalanceOf(borrower), 0e6, "v3 borrow balance");
+
+        postflightChecks();
     }
 
     function testMigrateAaveV2_invalidSwapPath() public {
@@ -3374,6 +3486,8 @@ contract CometMigratorV2Test is Positor {
         // Check v3 balances
         assertEq(comet.collateralBalanceOf(borrower, address(uni)), 0e18, "v3 collateral balance");
         assertEq(comet.borrowBalanceOf(borrower), 0e6, "v3 borrow balance");
+
+        postflightChecks();
     }
 
     function testMigrateAaveV2_noApproval() public {
@@ -3412,6 +3526,8 @@ contract CometMigratorV2Test is Positor {
         // Check v3 balances
         assertEq(comet.collateralBalanceOf(borrower, address(uni)), 0e18, "v3 collateral balance");
         assertEq(comet.borrowBalanceOf(borrower), 0e6, "v3 borrow balance");
+
+        postflightChecks();
     }
 
     function testMigrateAaveV2Borrow_insufficientCollateralToBorrowFromCompoundV3() public {
@@ -3466,6 +3582,8 @@ contract CometMigratorV2Test is Positor {
         // Check v3 balances
         assertEq(comet.collateralBalanceOf(borrower, address(uni)), 0e18, "v3 collateral balance");
         assertEq(comet.borrowBalanceOf(borrower), 0e6, "v3 borrow balance");
+
+        postflightChecks();
     }
 
     /* ===== Migrate from multiple sources ===== */
@@ -3594,14 +3712,15 @@ contract CometMigratorV2Test is Positor {
         assertApproxEqRel(comet.collateralBalanceOf(borrower, address(weth)), 2e18, 0.005e18, "v3 collateral balance");
         // Approximate assertion because of slippage from DAI to USDC
         assertApproxEqRel(comet.borrowBalanceOf(borrower), 2100e6 + 2110e6 * 0.0001, 0.01e18, "v3 borrow balance");
+
+        postflightChecks();
     }
 
     // XXX More general tests:
     // XXX Low flash estimate for Aave, CDP
     // XXX Test migrating WETH base position (requires cWETHv3 to be deployed first)
     // XXX migrate to an account with existing Comet borrow already
-
-    // XXX Error cases:
+    // XXX tests with USDC already in contract in beginning
 
     function preflightChecks() internal {
         require(comet.collateralBalanceOf(borrower, address(uni)) == 0, "no starting uni collateral balance");
@@ -3609,6 +3728,25 @@ contract CometMigratorV2Test is Positor {
         require(comet.borrowBalanceOf(borrower) == 0, "no starting v3 borrow balance");
         migrator.sweep(IERC20NonStandard(0x0000000000000000000000000000000000000000));
         require(address(migrator).balance == 0, "no starting v3 eth");
+    }
+
+    function postflightChecks() internal {
+        require(address(migrator).balance == 0, "no ending eth in migrator");
+        require(weth.balanceOf(address(migrator)) == 0, "no ending weth in migrator");
+        require(usdc.balanceOf(address(migrator)) == 0, "no ending usdc in migrator");
+        require(uni.balanceOf(address(migrator)) == 0, "no ending uni in migrator");
+        require(dai.balanceOf(address(migrator)) == 0, "no ending dai in migrator");
+        require(usdt.balanceOf(address(migrator)) == 0, "no ending usdt in migrator");
+
+        require(cUNI.balanceOf(address(migrator)) == 0, "no ending cUNI in migrator");
+        require(cUSDC.balanceOf(address(migrator)) == 0, "no ending cUSDC in migrator");
+        require(cDAI.balanceOf(address(migrator)) == 0, "no ending cDAI in migrator");
+        require(cUSDT.balanceOf(address(migrator)) == 0, "no ending cUSDT in migrator");
+        require(cETH.balanceOf(address(migrator)) == 0, "no ending cETH in migrator");
+
+        require(aUNI.balanceOf(address(migrator)) == 0, "no ending aUNI in migrator");
+        require(aUSDC.balanceOf(address(migrator)) == 0, "no ending aUSDC in migrator");
+        require(aWETH.balanceOf(address(migrator)) == 0, "no ending aWETH in migrator");
     }
 
     // Note: Path should be reversed if doing an exact output swap
