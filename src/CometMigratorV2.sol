@@ -331,7 +331,8 @@ contract CometMigratorV2 is IUniswapV3FlashCallback {
         revert CompoundV2Error(1 + i, err);
       }
 
-      uint256 underlyingAmount = collateral.cToken.exchangeRateCurrent() * cTokenAmount / 1e18;
+      // Note: Safe to use `exchangeRateStored` as `accrue` is already called in `redeem`
+      uint256 underlyingAmount = collateral.cToken.exchangeRateStored() * cTokenAmount / 1e18;
 
       IERC20NonStandard underlying;
 
