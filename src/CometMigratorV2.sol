@@ -23,6 +23,7 @@ contract CometMigratorV2 is IUniswapV3FlashCallback {
   error InvalidConfiguration(uint256 loc);
   error InvalidCallback(uint256 loc);
   error InvalidInputs(uint256 loc);
+  error ERC20TransferFailure(uint256 loc);
 
   /** Events **/
   event Migrated(
@@ -245,8 +246,9 @@ contract CometMigratorV2 is IUniswapV3FlashCallback {
     comet.withdrawFrom(migrationData.user, address(this), address(baseToken), flashAmountWithFee - baseToken.balanceOf(address(this)));
 
     // **CALL** `baseToken.transfer(address(uniswapLiquidityPool), flashAmountWithFee)`
-    // Note: No need to check transfer success here because Uniswap should revert on an unsuccessful transfer
-    doTransferOut(baseToken, address(uniswapLiquidityPool), flashAmountWithFee);
+    if (!doTransferOut(baseToken, address(uniswapLiquidityPool), flashAmountWithFee)) {
+      revert ERC20TransferFailure(0);
+    }
 
     // **EMIT** `Migrated(user, compoundV2Position, aaveV2Position, cdpPositions, flashAmount, flashAmountWithFee)`
     emit Migrated(migrationData.user, migrationData.compoundV2Position, migrationData.aaveV2Position, migrationData.flashAmount, flashAmountWithFee);
