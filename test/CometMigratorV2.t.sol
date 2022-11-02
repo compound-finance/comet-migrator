@@ -4259,6 +4259,32 @@ contract CometMigratorV2Test is Positor {
         assertEq(usdc.balanceOf(address(migrator)), 1000e6, "Amount of USDC remaining in migrator");
     }
 
+    function testMigrate_largeFlashWithNoPositionsMigrated() public {
+        preflightChecks();
+
+        // Need to supply some collateral to Comet on behalf of the borrower (after preflight checks)
+        deal(address(uni), address(this), 300e18);
+        uni.approve(address(comet), 300e18);
+        comet.supplyTo(borrower, address(uni), 300e18);
+
+        // Migrate
+        uint256 flashEstimate = 1_000_000e6;
+        vm.startPrank(borrower);
+        comet.allow(address(migrator), true);
+
+        // Check event
+        vm.expectEmit(true, false, false, true);
+        emit Migrated(borrower, EMPTY_COMPOUND_V2_POSITION, EMPTY_AAVE_V2_POSITION, flashEstimate, 1_000_000e6 * 1.0001);
+
+        migrator.migrate(EMPTY_COMPOUND_V2_POSITION, EMPTY_AAVE_V2_POSITION, flashEstimate);
+
+        // Check v3 balances
+        assertEq(comet.collateralBalanceOf(borrower, address(uni)), 300e18, "v3 collateral balance");
+        assertEq(comet.borrowBalanceOf(borrower), 1_000_000e6 * 0.0001, "v3 borrow balance");
+
+        postflightChecks();
+    }
+
     // XXX More general tests:
     // XXX Low flash estimate for Aave, CDP
     // XXX Test migrating WETH base position (requires cWETHv3 to be deployed first)
