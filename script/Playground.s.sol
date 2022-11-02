@@ -32,7 +32,7 @@ contract Playground is Script, Test, MainnetConstants {
 
         console.log("Wrapping WETH");
         weth.deposit{value: 50 ether}();
-        require(weth.balanceOf(caller) == 51 ether, "invalid weth balance");
+        require(weth.balanceOf(caller) == 50 ether, "invalid weth balance");
         console.log("Wrapped WETH");
 
         console.log("Trading WETH for UNI");
