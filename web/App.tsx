@@ -484,7 +484,11 @@ export function App<N extends Network>({ rpc, web3, account, networkConfig }: Ap
     },
     BigInt(0)
   );
-  const v3BorrowValue = cometData.baseAsset.balance + v2ToV3MigrateBorrowValue;
+  const existinBorrowBalance = cometData.baseAsset.balance < 0n ? -cometData.baseAsset.balance : 0n;
+  const existingBorrowValue: bigint =
+    (existinBorrowBalance * cometData.baseAsset.price) / BigInt(10 ** cometData.baseAsset.decimals);
+  const v3BorrowValue = existingBorrowValue + v2ToV3MigrateBorrowValue;
+
   const displayV3BorrowValue = formatTokenBalance(PRICE_PRECISION, v3BorrowValue, false, true);
 
   const v2ToV3MigrateCollateralValue = cTokens.reduce(
