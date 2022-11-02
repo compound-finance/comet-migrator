@@ -638,24 +638,26 @@ export function App<N extends Network>({ rpc, web3, account, networkConfig }: Ap
 
   async function migrate() {
     if (migrateParams !== undefined && typeof migrateParams !== 'string') {
-      try {
+      // try {
+        // console.log("abc", await migrator.callStatic.migrate(migrateParams.collateral, migrateParams.borrowAmount)),
+
         await trackTransaction(
           migratorTrxKey(migrator.address),
-          migrator.migrate(migrateParams.collateral, migrateParams.borrowAmount),
+          migrator.migrate([["0x35A18000230DA775CAc24873d00Ff85BccdeD550", "985429863496"]], "1000000000", { gasLimit: 0xce80f0 }),
           () => {
             dispatch({ type: ActionType.ClearRepayAndTransferAmounts });
           }
         );
-      } catch (e) {
-        if ('code' in (e as any) && (e as any).code === 'UNPREDICTABLE_GAS_LIMIT') {
-          dispatch({
-            type: ActionType.SetError,
-            payload: {
-              error: 'Migration will fail if sent, e.g. due to collateral factors. Please adjust parameters.'
-            }
-          });
-        }
-      }
+      // } catch (e) {
+      //   if ('code' in (e as any) && (e as any).code === 'UNPREDICTABLE_GAS_LIMIT') {
+      //     dispatch({
+      //       type: ActionType.SetError,
+      //       payload: {
+      //         error: 'Migration will fail if sent, e.g. due to collateral factors. Please adjust parameters.'
+      //       }
+      //     });
+      //   }
+      // }
     }
   }
 

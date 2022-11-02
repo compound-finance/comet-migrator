@@ -92,7 +92,7 @@ contract CometMigrator is IUniswapV3FlashCallback {
     borrowCToken = borrowCToken_;
 
     // **WRITE IMMUTABLE** `borrowToken = borrowCToken_.underlying()`
-    borrowToken = IERC20(borrowCToken_.underlying());
+    borrowToken = borrowCToken_.underlying();
 
     // **WRITE IMMUTABLE** `cETH = cETH_`
     cETH = cETH_;
@@ -222,7 +222,7 @@ contract CometMigrator is IUniswapV3FlashCallback {
         underlying = weth;
       } else {
         // **BIND** `underlying = cToken.underlying()`
-        underlying = IERC20(CErc20(address(collateral.cToken)).underlying());
+        underlying = CErc20(address(collateral.cToken)).underlying();
       }
 
       // **CALL** `underlying.approve(address(comet), type(uint256).max)`

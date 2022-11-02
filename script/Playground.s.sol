@@ -2,9 +2,9 @@
 pragma solidity ^0.8.13;
 
 import "forge-std/Script.sol";
-import "../src/CometMigratorV2.sol";
+import "../src/CometMigrator.sol";
 import "forge-std/Test.sol";
-import "../test/MainnetConstantsV2.t.sol";
+import "../test/MainnetConstants.t.sol";
 import "forge-std/console2.sol";
 
 contract Playground is Script, Test, MainnetConstants {
@@ -12,11 +12,15 @@ contract Playground is Script, Test, MainnetConstants {
 
     function setUp() public {}
 
+    function amountToTokens(uint256 amount, CTokenLike cToken) internal returns (uint256) {
+        return ( 1e18 * amount ) / cToken.exchangeRateCurrent();
+    }
+
     function run() public {
         vm.startBroadcast();
 
         console.log("Deploying Comet Migrator");
-        CometMigratorV2 migrator = deployCometMigrator();
+        CometMigrator migrator = deployCometMigrator();
         console.log("Deployed Comet Migrator", address(migrator));
 
         string memory fileAddress = ".env.playground.local";
@@ -28,11 +32,11 @@ contract Playground is Script, Test, MainnetConstants {
 
         console.log("Wrapping WETH");
         weth.deposit{value: 50 ether}();
-        require(weth.balanceOf(caller) == 50 ether, "invalid weth balance");
+        require(weth.balanceOf(caller) == 51 ether, "invalid weth balance");
         console.log("Wrapped WETH");
 
         console.log("Trading WETH for UNI");
-        uint256 uniBalance = swap(weth, uni, 3000, caller, 10 ether);
+        uint256 uniBalance = swap(weth, uni, 3000, caller, 20 ether);
         require(uni.balanceOf(caller) == uniBalance, "invalid uni balance [0]");
         require(uni.balanceOf(caller) > 0, "invalid uni balance [1]");
         console.log("Traded WETH for UNI", uniBalance);
@@ -55,23 +59,32 @@ contract Playground is Script, Test, MainnetConstants {
         require(usdc.balanceOf(caller) == 10000000000, "incorrect borrow");
         console.log("Borrowed USDC");
 
+        console.log("Migrating");
+        CometMigrator.Collateral[] memory collateral = new CometMigrator.Collateral[](1);
+        uint256 migrateAmount = amountToTokens(200e18, cUNI);
+        collateral[0] = CometMigrator.Collateral({
+            cToken: cUNI,
+            amount: migrateAmount
+        });
+        cUNI.approve(address(migrator), type(uint256).max);
+        comet.allow(address(migrator), true);
+        migrator.migrate(collateral, 1000e6);
+
         console.log("Proceed.");
     }
 
-    function deployCometMigrator() internal returns (CometMigratorV2) {
-        return new CometMigratorV2(
+    function deployCometMigrator() internal returns (CometMigrator) {
+        return new CometMigrator(
             comet,
-            usdc,
+            cUSDC,
             cETH,
             weth,
-            aaveV2LendingPool,
             pool_DAI_USDC,
-            swapRouter,
             sweepee
         );
     }
 
-    function swap(IERC20NonStandard token0, IERC20NonStandard token1, uint24 poolFee, address recipient, uint256 amountIn) internal returns (uint256) {
+    function swap(IERC20 token0, IERC20 token1, uint24 poolFee, address recipient, uint256 amountIn) internal returns (uint256) {
         // Approve the router to spend token0
         token0.approve(address(swapRouter), type(uint256).max);
 
