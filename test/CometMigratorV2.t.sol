@@ -4195,6 +4195,70 @@ contract CometMigratorV2Test is Positor {
         postflightChecks();
     }
 
+    /* ===== General tests ===== */
+
+    // XXX We could floor to 0 or calculate the exact amount to prevent this
+    function testMigrate_revertsIfTooMuchStartingBaseTokenInMigrator() public {
+        // Posit
+        CometMigratorV2.AaveV2Collateral[] memory initialCollateral = new CometMigratorV2.AaveV2Collateral[](1);
+        initialCollateral[0] = CometMigratorV2.AaveV2Collateral({
+            aToken: aUNI,
+            amount: 300e18 // ~ $5 * 300 = ~$1500 75% collateral factor = $1000
+        });
+        CometMigratorV2.AaveV2Borrow[] memory initialBorrows = new CometMigratorV2.AaveV2Borrow[](1);
+        initialBorrows[0] = CometMigratorV2.AaveV2Borrow({
+            aDebtToken: variableDebtDAI,
+            amount: 350e18
+        });
+        positAaveV2(PositAaveV2({
+            borrower: borrower,
+            collateral: initialCollateral,
+            borrows: initialBorrows
+        }));
+
+        preflightChecks();
+
+        // Add some tokens to the migrator
+        deal(address(uni), address(migrator), 100e18);
+        deal(address(usdc), address(migrator), 1000e6); // this should cause the migrate to revert
+
+        // Migrate
+	    CometMigratorV2.AaveV2Collateral[] memory collateralToMigrate = new CometMigratorV2.AaveV2Collateral[](1);
+        collateralToMigrate[0] = CometMigratorV2.AaveV2Collateral({
+            aToken: aUNI,
+            amount: type(uint256).max
+        });
+        CometMigratorV2.AaveV2Borrow[] memory borrowsToMigrate = new CometMigratorV2.AaveV2Borrow[](1);
+        borrowsToMigrate[0] = CometMigratorV2.AaveV2Borrow({
+            aDebtToken: variableDebtDAI,
+            amount: type(uint256).max
+        });
+        bytes[] memory paths = array1(swapPath(address(dai), 500, address(usdc)));
+        CometMigratorV2.AaveV2Position memory aaveV2Position = CometMigratorV2.AaveV2Position({
+            collateral: collateralToMigrate,
+            borrows: borrowsToMigrate,
+            paths: paths
+        });
+        uint256 flashEstimate = 360e6; // We overestimate slightly to account for slippage
+
+        vm.startPrank(borrower);
+        aUNI.approve(address(migrator), type(uint256).max);
+        comet.allow(address(migrator), true);
+        vm.expectRevert(stdError.arithmeticError);
+        migrator.migrate(EMPTY_COMPOUND_V2_POSITION, aaveV2Position, flashEstimate);
+
+        // Check Aave v2 balances
+        assertEq(aUNI.balanceOf(borrower), 300e18, "Amount of aUNI should have been migrated");
+        assertEq(variableDebtDAI.balanceOf(borrower), 350e18, "Remainder of tokens");
+
+        // Check v3 balances
+        assertEq(comet.collateralBalanceOf(borrower, address(uni)), 0e18, "v3 collateral balance");
+        assertEq(comet.borrowBalanceOf(borrower), 0e6, "v3 borrow balance");
+
+        // Check that migrator still has the USDC
+        assertEq(usdc.balanceOf(address(migrator)), 1000e6, "Amount of USDC remaining in migrator");
+    }
+
     // XXX More general tests:
     // XXX Low flash estimate for Aave, CDP
     // XXX Test migrating WETH base position (requires cWETHv3 to be deployed first)
