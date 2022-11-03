@@ -534,7 +534,7 @@ export function App<N extends Network>({ rpc, web3, account, networkConfig }: Ap
   const displayV3BorrowCapacity = formatTokenBalance(PRICE_PRECISION, v3BorrowCapacityValue, false, true);
 
   const v3LiquidationCapacityValue = cometData.collateralAssets.reduce(
-    (acc, { balance, liquidationFactor, decimals, price, symbol }) => {
+    (acc, { balance, liquidateCollateralFactor, decimals, price, symbol }) => {
       const maybeCToken = cTokens.find(([sym]) => sym.slice(1) === symbol)?.[1];
       const maybeTransfer =
         maybeCToken === undefined
@@ -549,7 +549,7 @@ export function App<N extends Network>({ rpc, web3, account, networkConfig }: Ap
           ? maybeCToken.balanceUnderlying
           : maybeTransfer;
       const dollarValue = ((balance + transferBigInt) * price) / BigInt(10 ** decimals);
-      const capacity = (dollarValue * liquidationFactor) / BigInt(10 ** FACTOR_PRECISION);
+      const capacity = (dollarValue * liquidateCollateralFactor) / BigInt(10 ** FACTOR_PRECISION);
       return acc + capacity;
     },
     BigInt(0)
