@@ -308,7 +308,6 @@ export function App<N extends Network>({ rpc, web3, account, networkConfig }: Ap
   const migrator = useMemo(() => new Contract(networkConfig.migratorAddress, networkConfig.migratorAbi, signer), [
     signer
   ]);
-  console.log('MIGRATOR-----', migrator.address);
   const comet = useMemo(() => new Contract(networkConfig.rootsV3.comet, Comet, signer), [signer]);
   const comptroller = useMemo(() => new Contract(networkConfig.comptrollerAddress, Comptroller, signer), []);
   const oraclePromise = useMemo(async () => {
