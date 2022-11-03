@@ -2,9 +2,9 @@
 pragma solidity ^0.8.13;
 
 import "forge-std/Script.sol";
-import "../src/CometMigrator.sol";
+import "../src/CometMigratorV2.sol";
 import "forge-std/Test.sol";
-import "../test/MainnetConstants.t.sol";
+import "../test/MainnetConstantsV2.t.sol";
 import "forge-std/console2.sol";
 
 contract Playground is Script, Test, MainnetConstants {
@@ -16,7 +16,7 @@ contract Playground is Script, Test, MainnetConstants {
         vm.startBroadcast();
 
         console.log("Deploying Comet Migrator");
-        CometMigrator migrator = deployCometMigrator();
+        CometMigratorV2 migrator = deployCometMigrator();
         console.log("Deployed Comet Migrator", address(migrator));
 
         string memory fileAddress = ".env.playground.local";
@@ -58,28 +58,20 @@ contract Playground is Script, Test, MainnetConstants {
         console.log("Proceed.");
     }
 
-    function deployCometMigrator() internal returns (CometMigrator) {
-        return new CometMigrator(
+    function deployCometMigrator() internal returns (CometMigratorV2) {
+        return new CometMigratorV2(
             comet,
-            cUSDC,
+            usdc,
             cETH,
             weth,
+            aaveV2LendingPool,
             pool_DAI_USDC,
+            swapRouter,
             sweepee
         );
-        // return new CometMigratorV2(
-        //     comet,
-        //     usdc,
-        //     cETH,
-        //     weth,
-        //     aaveV2LendingPool,
-        //     pool_DAI_USDC,
-        //     swapRouter,
-        //     sweepee
-        // );
     }
 
-    function swap(IERC20 token0, IERC20 token1, uint24 poolFee, address recipient, uint256 amountIn) internal returns (uint256) {
+    function swap(IERC20NonStandard token0, IERC20NonStandard token1, uint24 poolFee, address recipient, uint256 amountIn) internal returns (uint256) {
         // Approve the router to spend token0
         token0.approve(address(swapRouter), type(uint256).max);
 

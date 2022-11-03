@@ -48,8 +48,16 @@ For development, we will use a fork of mainnet, as opposed to developing on a te
 
 Starting the playground (i.e. running Anvil to fork main-net and deploying the necessary contracts):
 
+**Migrator v1**
+
 ```
-yarn forge:playground
+yarn playground:v1
+```
+
+**Migrator v2**
+
+```
+yarn playground:v2
 ```
 
 Next, we'll need to make sure MetaMask is set-up to talk to this network. Follow [these steps](https://metamask.zendesk.com/hc/en-us/articles/360043227612-How-to-add-a-custom-network-RPC) to add a custom network `http://localhost:8545`.
