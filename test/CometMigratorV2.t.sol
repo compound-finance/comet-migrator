@@ -4464,9 +4464,9 @@ contract CometMigratorV2Test is Positor {
         assertNoAssetsInMigrator();
     }
 
-    // Note: This currently reverts because we are using `balanceOf` to supply collateral to Comet. This means if we have a
-    // USDC (base token) collateral position that we want to move, it will supply not just the collateral, but also the flashed
-    // amount. This means that there wouldn't be enough to repay a USDC borrow later on.
+    // Note: This used to revert before https://github.com/compound-finance/comet-migrator/pull/55 because we were using `balanceOf`
+    // to supply collateral to Comet. This meant that if we have a USDC (base token) collateral position that we want to move, it will
+    // supply not just the collateral, but also the flashed amount. This means that there wouldn't be enough to repay a USDC borrow later on.
     function testMigrateCompoundV2AaveV2_collateralTokenIsAlsoBorrowTokenShouldNotRevert() public {
         // Posit Compound v2
         CometMigratorV2.CompoundV2Collateral[] memory initialCompoundCollateral = new CometMigratorV2.CompoundV2Collateral[](1);
