@@ -48,6 +48,12 @@ For development, we will use a fork of mainnet, as opposed to developing on a te
 
 Starting the playground (i.e. running Anvil to fork main-net and deploying the necessary contracts):
 
+**Use Mainnet Deployment**
+
+```
+yarn playground:mainnet
+```
+
 **Migrator v1**
 
 ```

@@ -2,6 +2,7 @@
 pragma solidity ^0.8.13;
 
 import "forge-std/Script.sol";
+import "../src/CometMigrator.sol";
 import "forge-std/Test.sol";
 import "../test/MainnetConstants.t.sol";
 import "forge-std/console2.sol";
@@ -14,9 +15,16 @@ contract Playground is Script, Test, MainnetConstants {
     function run() public {
         vm.startBroadcast();
 
+        console.log("Deploying Comet Migrator");
+        CometMigrator migrator = deployCometMigrator();
+        console.log("Deployed Comet Migrator", address(migrator));
+
         string memory fileAddress = ".env.playground.local";
-        vm.writeFile(fileAddress, "");
-        console.log("Cleared", fileAddress);
+        vm.writeFile(fileAddress,
+            string.concat(
+                string.concat("VITE_MAINNET_EXT_ADDRESS=", vm.toString(address(migrator)))));
+
+        console.log("Wrote", fileAddress);
 
         console.log("Wrapping WETH");
         weth.deposit{value: 50 ether}();
@@ -48,6 +56,17 @@ contract Playground is Script, Test, MainnetConstants {
         console.log("Borrowed USDC");
 
         console.log("Proceed.");
+    }
+
+    function deployCometMigrator() internal returns (CometMigrator) {
+        return new CometMigrator(
+            comet,
+            cUSDC,
+            cETH,
+            weth,
+            pool_DAI_USDC,
+            sweepee
+        );
     }
 
     function swap(IERC20 token0, IERC20 token1, uint24 poolFee, address recipient, uint256 amountIn) internal returns (uint256) {
