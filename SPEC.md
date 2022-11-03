@@ -250,7 +250,7 @@ This function may only be called during a migration command. We check that the c
  * `compoundV2Position: CompoundV2Position`: Structure containing the user’s Compound II collateral and borrow positions to migrate to Compound III. Array of collateral to transfer into Compound III.
  * `aaveV2Position: AaveV2Position`: Structure containing the user’s Aave V2 collateral and borrow positions to migrate to Compound III.
  * `cdpPositions: CDPPosition[]`: List of structures that each represent a single CDP’s collateral and borrow position to migrate to Compound III.
- * `underlying: IERC20` - The underlying of a cToken, or `weth` in the case of `cETH`.
+ * `underlying: IERC20`: The underlying of a cToken, or `weth` in the case of `cETH`.
 
 #### Function Spec
 
@@ -263,7 +263,8 @@ This function may only be called during a migration command. We check that the c
   - **EXEC** `migrateCompoundV2Position(user, compoundV2Position)`
   - **EXEC** `migrateAaveV2Position(user, aaveV2Position)`
   - **EXEC** `migrateCdpPositions(user, cdpPositions)`
-  - **CALL** `comet.withdrawFrom(user, address(this), baseToken, flashAmountWithFee - baseToken.balanceOf(address(this)))`
+  - **WHEN** `baseToken.balanceOf(address(this)) < flashAmountWithFee`:
+    - **CALL** `comet.withdrawFrom(user, address(this), baseToken, flashAmountWithFee - baseToken.balanceOf(address(this)))`
   - **CALL** `baseToken.transfer(address(uniswapLiquidityPool), flashAmountWithFee)`
   - **EMIT** `Migrated(user, compoundV2Position, aaveV2Position, cdpPositions, flashAmount, flashAmountWithFee)`
 

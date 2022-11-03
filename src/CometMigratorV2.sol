@@ -242,8 +242,12 @@ contract CometMigratorV2 is IUniswapV3FlashCallback {
     // **EXEC** `migrateAaveV2Position(user, aaveV2Position)`
     migrateAaveV2Position(migrationData.user, migrationData.aaveV2Position);
 
-    // **CALL** `comet.withdrawFrom(user, address(this), baseToken, flashAmountWithFee - baseToken.balanceOf(address(this)))`
-    comet.withdrawFrom(migrationData.user, address(this), address(baseToken), flashAmountWithFee - baseToken.balanceOf(address(this)));
+    // **WHEN** `baseToken.balanceOf(address(this)) < flashAmountWithFee`:
+    uint256 baseTokenBalance = baseToken.balanceOf(address(this));
+    if (baseTokenBalance < flashAmountWithFee) {
+      // **CALL** `comet.withdrawFrom(user, address(this), baseToken, flashAmountWithFee - baseToken.balanceOf(address(this)))`
+      comet.withdrawFrom(migrationData.user, address(this), address(baseToken), flashAmountWithFee - baseTokenBalance);
+    }
 
     // **CALL** `baseToken.transfer(address(uniswapLiquidityPool), flashAmountWithFee)`
     if (!doTransferOut(baseToken, address(uniswapLiquidityPool), flashAmountWithFee)) {
