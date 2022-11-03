@@ -15,6 +15,7 @@ interface CTokenLike {
   function borrowBalanceCurrent(address account) external returns (uint);
   function approve(address spender, uint256 amount) external returns (bool);
   function exchangeRateCurrent() external returns (uint);
+  function exchangeRateStored() external view returns (uint);
 }
 
 interface CErc20 is CTokenLike {

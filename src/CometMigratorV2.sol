@@ -325,28 +325,35 @@ contract CometMigratorV2 is IUniswapV3FlashCallback {
     for (uint i = 0; i < position.collateral.length; i++) {
       CompoundV2Collateral memory collateral = position.collateral[i];
 
-      // **CALL** `cToken.transferFrom(user, address(this), amount == type(uint256).max ? cToken.balanceOf(user) : amount)`
+      // **BIND** `cTokenAmount = amount == type(uint256).max ? cToken.balanceOf(user) : amount)`
+      uint256 cTokenAmount = collateral.amount == type(uint256).max ? collateral.cToken.balanceOf(user) : collateral.amount;
+
+      // **CALL** `cToken.transferFrom(user, address(this), cTokenAmount)`
       bool transferSuccess = collateral.cToken.transferFrom(
         user,
         address(this),
-        collateral.amount == type(uint256).max ? collateral.cToken.balanceOf(user) : collateral.amount
+        cTokenAmount
       );
       if (!transferSuccess) {
         revert CTokenTransferFailure();
       }
 
-      // **CALL** `cToken.redeem(cToken.balanceOf(address(this)))`
-      uint256 err = collateral.cToken.redeem(collateral.cToken.balanceOf(address(this)));
+      // **CALL** `cToken.redeem(cTokenAmount)`
+      uint256 err = collateral.cToken.redeem(cTokenAmount);
       if (err != 0) {
         revert CompoundV2Error(1 + i, err);
       }
+
+      // Note: Safe to use `exchangeRateStored` since `accrue` is already called in `redeem`
+      // **BIND** `underlyingCollateralAmount = collateral.cToken.exchangeRateStored() * cTokenAmount / 1e18`
+      uint256 underlyingCollateralAmount = collateral.cToken.exchangeRateStored() * cTokenAmount / 1e18;
 
       IERC20NonStandard underlying;
 
       // **WHEN** `cToken == cETH`:
       if (collateral.cToken == cETH) {
-        // **CALL** `weth.deposit{value: address(this).balance}()`
-        weth.deposit{value: address(this).balance}();
+        // **CALL** `weth.deposit{value: underlyingCollateralAmount}()`
+        weth.deposit{value: underlyingCollateralAmount}();
 
         // **BIND** `underlying = weth`
         underlying = weth;
@@ -355,14 +362,14 @@ contract CometMigratorV2 is IUniswapV3FlashCallback {
         underlying = IERC20NonStandard(CErc20(address(collateral.cToken)).underlying());
       }
 
-      // **CALL** `underlying.approve(address(comet), type(uint256).max)`
-      underlying.approve(address(comet), type(uint256).max);
+      // **CALL** `underlying.approve(address(comet), underlyingCollateralAmount)`
+      underlying.approve(address(comet), underlyingCollateralAmount);
 
-      // **CALL** `comet.supplyTo(user, underlying, underlying.balanceOf(address(this)))`
+      // **CALL** `comet.supplyTo(user, underlying, underlyingCollateralAmount)`
       comet.supplyTo(
         user,
         address(underlying),
-        underlying.balanceOf(address(this))
+        underlyingCollateralAmount
       );
     }
   }
@@ -416,27 +423,30 @@ contract CometMigratorV2 is IUniswapV3FlashCallback {
     for (uint i = 0; i < position.collateral.length; i++) {
       AaveV2Collateral memory collateral = position.collateral[i];
 
-      // **CALL** `aToken.transferFrom(user, address(this), amount == type(uint256).max ? aToken.balanceOf(user) : amount)`
+      // **BIND** `aTokenAmount = amount == type(uint256).max ? aToken.balanceOf(user) : amount)`
+      uint256 aTokenAmount = collateral.amount == type(uint256).max ? collateral.aToken.balanceOf(user) : collateral.amount;
+
+      // **CALL** `aToken.transferFrom(user, address(this), aTokenAmount)`
       collateral.aToken.transferFrom(
         user,
         address(this),
-        collateral.amount == type(uint256).max ? collateral.aToken.balanceOf(user) : collateral.amount
+        aTokenAmount
       );
 
       // **BIND READ** `underlyingCollateral = aToken.UNDERLYING_ASSET_ADDRESS()`
       IERC20NonStandard underlyingCollateral = IERC20NonStandard(collateral.aToken.UNDERLYING_ASSET_ADDRESS());
 
-      // **CALL** `aaveV2LendingPool.withdraw(underlyingCollateral, aToken.balanceOf(address(this)), address(this))`
-      aaveV2LendingPool.withdraw(address(underlyingCollateral), collateral.aToken.balanceOf(address(this)), address(this));
+      // **CALL** `aaveV2LendingPool.withdraw(underlyingCollateral, aTokenAmount, address(this))`
+      aaveV2LendingPool.withdraw(address(underlyingCollateral), aTokenAmount, address(this));
 
-      // **CALL** `underlyingCollateral.approve(address(comet), type(uint256).max)`
-      underlyingCollateral.approve(address(comet), type(uint256).max);
+      // **CALL** `underlyingCollateral.approve(address(comet), aTokenAmount)`
+      underlyingCollateral.approve(address(comet), aTokenAmount);
 
-      // **CALL** `comet.supplyTo(user, underlyingCollateral, underlyingCollateral.balanceOf(address(this)))`
+      // **CALL** `comet.supplyTo(user, underlyingCollateral, aTokenAmount)`
       comet.supplyTo(
         user,
         address(underlyingCollateral),
-        underlyingCollateral.balanceOf(address(this))
+        aTokenAmount
       );
     }
   }

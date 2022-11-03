@@ -2118,7 +2118,7 @@ contract CometMigratorV2Test is Positor {
     }
 
     // Note: In the case of a front-run, the tokens in the migrator will go to the front-runner instead of the user.
-    function testMigrateSingleCompoundV2Borrow_sweepsCollateralAndBaseTokensInMigratorToUser() public {
+    function testMigrateSingleCompoundV2Borrow_doesNotSweepCollateralButSweepsBaseTokensInMigratorToUser() public {
         // Posit
         CometMigratorV2.CompoundV2Collateral[] memory initialCollateral = new CometMigratorV2.CompoundV2Collateral[](1);
         initialCollateral[0] = CometMigratorV2.CompoundV2Collateral({
@@ -2171,11 +2171,13 @@ contract CometMigratorV2Test is Positor {
         assertEq(cDAI.borrowBalanceCurrent(borrower), 0e18, "Remainder of tokens");
 
         // Check v3 balances
-        assertApproxEqRel(comet.collateralBalanceOf(borrower, address(uni)), 300e18 + 100e18, 0.01e18, "v3 collateral balance");
+        assertApproxEqRel(comet.collateralBalanceOf(borrower, address(uni)), 300e18, 0.01e18, "v3 collateral balance");
         // Approximate assertion because of slippage from DAI to USDC
         assertApproxEqRel(comet.borrowBalanceOf(borrower), 350e6 + 360e6 * 0.0001 - 100e6, 0.01e18, "v3 borrow balance");
 
-        assertNoAssetsInMigrator();
+        // Check that tokens are still in migrator
+        assertEq(uni.balanceOf(address(migrator)), 100e18);
+        assertEq(usdc.balanceOf(address(migrator)), 0e6);
     }
 
     function testMigrateSingleCompoundV2Borrow_doesNotSweepNonBaseBorrowTokenInMigratorToUser() public {
@@ -3648,7 +3650,7 @@ contract CometMigratorV2Test is Positor {
     }
 
     // Note: In the case of a front-run, the tokens in the migrator will go to the front-runner instead of the user.
-    function testMigrateSingleAaveV2Borrow_sweepsCollateralAndBaseTokensInMigratorToUser() public {
+    function testMigrateSingleAaveV2Borrow_doesNotSweepCollateralButSweepsBaseTokensInMigratorToUser() public {
         // Posit
         CometMigratorV2.AaveV2Collateral[] memory initialCollateral = new CometMigratorV2.AaveV2Collateral[](1);
         initialCollateral[0] = CometMigratorV2.AaveV2Collateral({
@@ -3705,11 +3707,13 @@ contract CometMigratorV2Test is Positor {
         assertEq(variableDebtDAI.balanceOf(borrower), 0e6, "Remainder of tokens");
 
         // Check v3 balances
-        assertEq(comet.collateralBalanceOf(borrower, address(uni)), 300e18 + 100e18, "v3 collateral balance");
+        assertEq(comet.collateralBalanceOf(borrower, address(uni)), 300e18, "v3 collateral balance");
         // Approximate assertion because of slippage from DAI to USDC
         assertApproxEqRel(comet.borrowBalanceOf(borrower), 350e6 + 360e6 * 0.0001 - 100e6, 0.01e18, "v3 borrow balance");
 
-        assertNoAssetsInMigrator();
+        // Check that tokens are still in migrator
+        assertEq(uni.balanceOf(address(migrator)), 100e18);
+        assertEq(usdc.balanceOf(address(migrator)), 0e6);
     }
 
     function testMigrateSingleAaveV2Borrow_doesNotSweepNonBaseBorrowTokenInMigratorToUser() public {
@@ -4460,7 +4464,6 @@ contract CometMigratorV2Test is Positor {
         assertNoAssetsInMigrator();
     }
 
-    // XXX fix this bug
     // Note: This currently reverts because we are using `balanceOf` to supply collateral to Comet. This means if we have a
     // USDC (base token) collateral position that we want to move, it will supply not just the collateral, but also the flashed
     // amount. This means that there wouldn't be enough to repay a USDC borrow later on.
@@ -4534,7 +4537,7 @@ contract CometMigratorV2Test is Positor {
 
         // Check v3 balances
         assertEq(comet.collateralBalanceOf(borrower, address(uni)), 300e18, "v3 collateral balance");
-        assertEq(comet.borrowBalanceOf(borrower), 500e6 * 1.0001 - 300e6, "v3 borrow balance");
+        assertApproxEqAbs(comet.borrowBalanceOf(borrower), 500e6 * 1.0001 - 300e6, 2, "v3 borrow balance");
 
         assertNoAssetsInMigrator();
     }
