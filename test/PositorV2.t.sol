@@ -28,6 +28,7 @@ contract Positor is Test, MainnetConstants {
     constructor() {
         aTokenHolders[aUNI] = aHolderUni;
         aTokenHolders[aWETH] = aHolderWeth;
+        aTokenHolders[aUSDC] = aHolderUsdc;
 
         console.log("Deploying Comet Migrator");
         migrator = deployCometMigrator();

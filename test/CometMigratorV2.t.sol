@@ -4376,6 +4376,79 @@ contract CometMigratorV2Test is Positor {
         assertNoAssetsInMigrator();
     }
 
+    // Note: In this test, we migrate only the collateral of type base asset (USDC) while taking out a flash loan. We expect the base asset
+    // collateral to be properly migrated to Compound III, with some amount taken off to repay the flash loan interest. We expect the migrator to
+    // not retain any of the user's base asset.
+    function testMigrate_onlyBaseAssetCollateral_withFlashLoan() public {
+        // Posit Compound v2
+        CometMigratorV2.CompoundV2Collateral[] memory initialCompoundCollateral = new CometMigratorV2.CompoundV2Collateral[](1);
+        initialCompoundCollateral[0] = CometMigratorV2.CompoundV2Collateral({
+            cToken: cUSDC,
+            amount: 300e6 // ~ $5 * 300 = ~$1500 75% collateral factor = $1,125
+        });
+        CometMigratorV2.CompoundV2Borrow[] memory noCompoundBorrows = new CometMigratorV2.CompoundV2Borrow[](0);
+        posit(Posit({
+            borrower: borrower,
+            collateral: initialCompoundCollateral,
+            borrows: noCompoundBorrows
+        }));
+
+        // Posit Aave v2
+        CometMigratorV2.AaveV2Collateral[] memory initialAaveCollateral = new CometMigratorV2.AaveV2Collateral[](1);
+        initialAaveCollateral[0] = CometMigratorV2.AaveV2Collateral({
+            aToken: aUSDC,
+            amount: 300e6 // ~ $5 * 300 = ~$1500 75% collateral factor = $1000
+        });
+        CometMigratorV2.AaveV2Borrow[] memory noAaveBorrows = new CometMigratorV2.AaveV2Borrow[](0);
+        positAaveV2(PositAaveV2({
+            borrower: borrower,
+            collateral: initialAaveCollateral,
+            borrows: noAaveBorrows
+        }));
+
+        preflightChecks();
+
+        // Migrate
+        CometMigratorV2.CompoundV2Collateral[] memory collateralToMigrate = new CometMigratorV2.CompoundV2Collateral[](1);
+        collateralToMigrate[0] = CometMigratorV2.CompoundV2Collateral({
+            cToken: cUSDC,
+            amount: type(uint256).max
+        });
+        CometMigratorV2.CompoundV2Position memory compoundV2Position = CometMigratorV2.CompoundV2Position({
+            collateral: collateralToMigrate,
+            borrows: noCompoundBorrows,
+            paths: new bytes[](0)
+        });
+        CometMigratorV2.AaveV2Position memory aaveV2Position = CometMigratorV2.AaveV2Position({
+            collateral: initialAaveCollateral,
+            borrows: noAaveBorrows,
+            paths: new bytes[](0)
+        });
+        uint256 flashEstimate = 350e6; // will supply this into Comet as well
+        vm.startPrank(borrower);
+        cUSDC.approve(address(migrator), type(uint256).max);
+        aUSDC.approve(address(migrator), type(uint256).max);
+        comet.allow(address(migrator), true);
+
+        // Check event
+        vm.expectEmit(true, false, false, true);
+        emit Migrated(borrower, compoundV2Position, aaveV2Position, flashEstimate, 350e6 * 1.0001);
+
+        migrator.migrate(compoundV2Position, aaveV2Position, flashEstimate);
+
+        // Check Compound v2 balances
+        assertEq(cUSDC.balanceOf(borrower), 0, "Remainder of tokens");
+
+        // Check Aave v2 balances
+        assertEq(aUSDC.balanceOf(borrower), 0, "Remainder of tokens");
+
+        // Check v3 balances
+        // USDC collateral is migrated with a bit taken away to pay the flash loan interest
+        assertApproxEqAbs(comet.balanceOf(borrower), 300e6 + 300e6 - 350e6 * 0.0001, 4, "v3 borrow balance");
+
+        assertNoAssetsInMigrator();
+    }
+
     // XXX Other possible tests:
     // - Low flash estimate for CDP
     // - Test migrating WETH base position (requires cWETHv3 to be deployed first)
