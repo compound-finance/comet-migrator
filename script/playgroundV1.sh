@@ -18,8 +18,8 @@ function cleanup {
 
 trap cleanup EXIT
 
-echo "Running v2 playground script..."
-forge script script/PlaygroundV2.s.sol --rpc-url "$ETH_RPC_URL" --private-key "$ETH_PRIVATE_KEY" --broadcast --etherscan-api-key "$ETHERSCAN_KEY" -vvvv $@
+echo "Running v1 playground script..."
+forge script script/PlaygroundV1.s.sol --rpc-url "$ETH_RPC_URL" --private-key "$ETH_PRIVATE_KEY" --broadcast --etherscan-api-key "$ETHERSCAN_KEY" -vvvv $@
 echo "Pitter patter."
 
 yarn web:dev --mode playground

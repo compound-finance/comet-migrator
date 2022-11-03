@@ -12,7 +12,8 @@
     "forge:build": "forge build",
     "forge:test": "script/test.sh",
     "forge:lint": "solhint '{src,script,test}/**/*.sol'",
-    "playground:v1": "script/playground.sh",
+    "playground:mainnet": "script/playground.sh",
+    "playground:v1": "script/playgroundV1.sh",
     "playground:v2": "script/playgroundV2.sh"
   },
   "dependencies": {
