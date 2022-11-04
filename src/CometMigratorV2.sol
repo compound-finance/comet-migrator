@@ -33,6 +33,12 @@ contract CometMigratorV2 is IUniswapV3FlashCallback {
     uint256 flashAmount,
     uint256 flashAmountWithFee);
 
+  event Sweep(
+    address indexed sweeper,
+    address indexed recipient,
+    address indexed asset,
+    uint256 amount);
+
   /// @notice Represents an entire Compound II position (collateral + borrows) to migrate.
   struct CompoundV2Position {
     CompoundV2Collateral[] collateral;
@@ -472,14 +478,22 @@ contract CometMigratorV2 is IUniswapV3FlashCallback {
     // **WHEN** `token == 0x0000000000000000000000000000000000000000`:
     if (token == IERC20NonStandard(0x0000000000000000000000000000000000000000)) {
       // **EXEC** `sweepee.send(address(this).balance)`
-      if (!sweepee.send(address(this).balance)) {
+      uint256 amount = address(this).balance;
+      if (!sweepee.send(amount)) {
         revert SweepFailure(0);
       }
+
+      // **EMIT** `Sweep(msg.sender, sweepee, address(0), address(this).balance)`
+      emit Sweep(msg.sender, sweepee, address(0), amount);
     } else {
       // **CALL** `token.transfer(sweepee, token.balanceOf(address(this)))`
-      if (!doTransferOut(token, sweepee, token.balanceOf(address(this)))) {
+      uint256 amount = token.balanceOf(address(this));
+      if (!doTransferOut(token, sweepee, amount)) {
         revert SweepFailure(1);
       }
+
+      // **EMIT** `Sweep(msg.sender, sweepee, address(token), token.balanceOf(address(this)))`
+      emit Sweep(msg.sender, sweepee, address(token), amount);
     }
   }
 
