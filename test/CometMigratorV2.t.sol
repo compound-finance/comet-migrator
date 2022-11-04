@@ -4194,8 +4194,7 @@ contract CometMigratorV2Test is Positor {
 
     /* ===== General tests ===== */
 
-    // XXX Behavior to be fixed in a future PR where we floor to 0 to prevent the revert
-    function testMigrate_revertsIfTooMuchStartingBaseTokenInMigrator() public {
+    function testMigrate_userBorrowCoveredByExistingBaseTokenInMigrator() public {
         // Posit
         CometMigratorV2.AaveV2Collateral[] memory initialCollateral = new CometMigratorV2.AaveV2Collateral[](1);
         initialCollateral[0] = CometMigratorV2.AaveV2Collateral({
@@ -4204,8 +4203,8 @@ contract CometMigratorV2Test is Positor {
         });
         CometMigratorV2.AaveV2Borrow[] memory initialBorrows = new CometMigratorV2.AaveV2Borrow[](1);
         initialBorrows[0] = CometMigratorV2.AaveV2Borrow({
-            aDebtToken: variableDebtDAI,
-            amount: 350e18
+            aDebtToken: variableDebtUSDC,
+            amount: 350e6
         });
         positAaveV2(PositAaveV2({
             borrower: borrower,
@@ -4216,44 +4215,38 @@ contract CometMigratorV2Test is Positor {
         preflightChecks();
 
         // Add some tokens to the migrator
-        deal(address(uni), address(migrator), 100e18);
-        deal(address(usdc), address(migrator), 1000e6); // this should cause the migrate to revert
+        uint256 migratorUSDCPre = 1000e6;
+        deal(address(usdc), address(migrator), migratorUSDCPre);
 
         // Migrate
-	    CometMigratorV2.AaveV2Collateral[] memory collateralToMigrate = new CometMigratorV2.AaveV2Collateral[](1);
-        collateralToMigrate[0] = CometMigratorV2.AaveV2Collateral({
-            aToken: aUNI,
-            amount: type(uint256).max
-        });
-        CometMigratorV2.AaveV2Borrow[] memory borrowsToMigrate = new CometMigratorV2.AaveV2Borrow[](1);
-        borrowsToMigrate[0] = CometMigratorV2.AaveV2Borrow({
-            aDebtToken: variableDebtDAI,
-            amount: type(uint256).max
-        });
         bytes[] memory paths = array1(swapPath(address(dai), 500, address(usdc)));
         CometMigratorV2.AaveV2Position memory aaveV2Position = CometMigratorV2.AaveV2Position({
-            collateral: collateralToMigrate,
-            borrows: borrowsToMigrate,
+            collateral: initialCollateral,
+            borrows: initialBorrows,
             paths: paths
         });
-        uint256 flashEstimate = 360e6; // We overestimate slightly to account for slippage
+        uint256 flashEstimate = 350e6;
 
         vm.startPrank(borrower);
         aUNI.approve(address(migrator), type(uint256).max);
         comet.allow(address(migrator), true);
-        vm.expectRevert(stdError.arithmeticError);
+
+        // Check event
+        vm.expectEmit(true, false, false, true);
+        emit Migrated(borrower, EMPTY_COMPOUND_V2_POSITION, aaveV2Position, flashEstimate, 350e6 * 1.0001);
+
         migrator.migrate(EMPTY_COMPOUND_V2_POSITION, aaveV2Position, flashEstimate);
 
         // Check Aave v2 balances
-        assertEq(aUNI.balanceOf(borrower), 300e18, "Amount of aUNI should have been migrated");
-        assertEq(variableDebtDAI.balanceOf(borrower), 350e18, "Remainder of tokens");
+        assertEq(aUNI.balanceOf(borrower), 0e18, "Amount of aUNI should have been migrated");
+        assertEq(variableDebtDAI.balanceOf(borrower), 0e18, "Remainder of tokens");
 
         // Check v3 balances
-        assertEq(comet.collateralBalanceOf(borrower, address(uni)), 0e18, "v3 collateral balance");
-        assertEq(comet.borrowBalanceOf(borrower), 0e6, "v3 borrow balance");
+        assertEq(comet.collateralBalanceOf(borrower, address(uni)), 300e18, "v3 collateral balance");
+        assertEq(comet.borrowBalanceOf(borrower), 0e6, "v3 borrow balance"); // user ends up with no borrow in Compound III
 
-        // Check that migrator still has the USDC
-        assertEq(usdc.balanceOf(address(migrator)), 1000e6, "Amount of USDC remaining in migrator");
+        // Check that migrator lost some of the USDC
+        assertApproxEqAbs(usdc.balanceOf(address(migrator)), migratorUSDCPre - 350e6 * 1.0001, 2, "Amount of USDC remaining in migrator");
     }
 
     function testMigrate_largeFlashWithNoPositionsMigrated() public {
