@@ -5,6 +5,14 @@ set_constants
 
 set -exo pipefail
 
+mainnet_deploy_block=15749484
+
+if [ $(($fork_block < $mainnet_deploy_block)) ]
+then
+  echo "Fork block too early, overwriting with block number $mainnet_deploy_block"
+  fork_block=$mainnet_deploy_block
+fi
+
 anvil --mnemonic "$mnemonic" --fork-url "$fork_url" --fork-block-number "$fork_block" --chain-id 1 --port 8545 &
 anvil_pid="$!"
 

@@ -20,7 +20,7 @@ contract Playground is Script, Test, MainnetConstants {
 
         console.log("Wrapping WETH");
         weth.deposit{value: 50 ether}();
-        require(weth.balanceOf(caller) == 50 ether, "invalid weth balance");
+        require(weth.balanceOf(caller) >= 50 ether, "invalid weth balance");
         console.log("Wrapped WETH");
 
         console.log("Trading WETH for UNI");
@@ -43,8 +43,8 @@ contract Playground is Script, Test, MainnetConstants {
         console.log("Entered cUNI market");
 
         console.log("Borrowing USDC");
-        require(cUSDC.borrow(10000000000) == 0, "failed to borrow"); // 100 USDC
-        require(usdc.balanceOf(caller) == 10000000000, "incorrect borrow");
+        require(cUSDC.borrow(1000000000) == 0, "failed to borrow"); // 1000 USDC
+        require(usdc.balanceOf(caller) >= 1000000000, "incorrect borrow");
         console.log("Borrowed USDC");
 
         console.log("Proceed.");

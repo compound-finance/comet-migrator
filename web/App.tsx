@@ -2,26 +2,28 @@ import '../styles/main.scss';
 
 import { CometState, RPC } from '@compound-finance/comet-extension';
 import { Contract } from '@ethersproject/contracts';
-import { JsonRpcProvider } from '@ethersproject/providers';
+import { StaticJsonRpcProvider, JsonRpcProvider } from '@ethersproject/providers';
+import { Contract as MulticallContract, Provider } from 'ethers-multicall';
 import { ReactNode, useEffect, useMemo, useReducer, useState } from 'react';
+
+import Comet from '../abis/Comet';
+import Comptroller from '../abis/Comptroller';
+import CToken from '../abis/CToken';
+import Oracle from '../abis/Oracle';
+
+import ApproveModal from './components/ApproveModal';
+import { CircleExclamation } from './components/Icons';
+
+import { formatTokenBalance, getRiskLevelAndPercentage, maybeBigIntFromString } from './helpers/numbers';
+
 import {
   hasAwaitingConfirmationTransaction,
   hasPendingTransaction,
   useTransactionTracker
 } from './lib/useTransactionTracker';
 
-import ERC20 from '../abis/ERC20';
-import Comet from '../abis/Comet';
-import Comptroller from '../abis/Comptroller';
-import Oracle from '../abis/Oracle';
-
-import { CircleExclamation } from './components/Icons';
-
-import { formatTokenBalance, getRiskLevelAndPercentage, maybeBigIntFromString } from './helpers/numbers';
-
-import { CTokenSym, Network, NetworkConfig, getNetworkById, getNetworkConfig } from './Network';
+import { CTokenSym, Network, NetworkConfig, getIdByNetwork, getNetworkById, getNetworkConfig } from './Network';
 import { ApproveModalProps } from './types';
-import ApproveModal from './components/ApproveModal';
 
 const MAX_UINT256 = BigInt('115792089237316195423570985008687907853269984665640564039457584007913129639935');
 const FACTOR_PRECISION = 18;
@@ -264,7 +266,6 @@ function reducer(state: MigratorState, action: Action): MigratorState {
 const initialState: MigratorState = { type: StateType.Loading, data: { error: null } };
 
 export function App<N extends Network>({ rpc, web3, account, networkConfig }: AppPropsExt<N>) {
-  const { cTokenNames } = networkConfig;
   const [state, dispatch] = useReducer(reducer, initialState);
   const [cometState, setCometState] = useState<CometState>([StateType.Loading, undefined]);
   const [approveModal, setApproveModal] = useState<Omit<ApproveModalProps, 'transactionTracker'> | undefined>(
@@ -298,22 +299,25 @@ export function App<N extends Network>({ rpc, web3, account, networkConfig }: Ap
 
   const cTokenCtxs = useMemo(() => {
     return new Map(
-      networkConfig.cTokenAbi.map(([cTokenName, address, abi]) => [
-        cTokenName,
-        new Contract(address, abi ?? [], signer)
-      ])
+      networkConfig.cTokens.map(({ abi, address, symbol }) => [symbol, new Contract(address, abi ?? [], signer)])
     ) as Map<CTokenSym<Network>, Contract>;
   }, [signer]);
 
   const migrator = useMemo(() => new Contract(networkConfig.migratorAddress, networkConfig.migratorAbi, signer), [
     signer
   ]);
-  const comet = useMemo(() => new Contract(networkConfig.rootsV3.comet, Comet, signer), [signer]);
-  const comptroller = useMemo(() => new Contract(networkConfig.comptrollerAddress, Comptroller, signer), []);
+  const comet = useMemo(() => new MulticallContract(networkConfig.rootsV3.comet, Comet), []);
+  const comptroller = useMemo(() => new Contract(networkConfig.comptrollerAddress, Comptroller, signer), [signer]);
+  const comptrollerRead = useMemo(() => new MulticallContract(networkConfig.comptrollerAddress, Comptroller), []);
   const oraclePromise = useMemo(async () => {
     const oracleAddress = await comptroller.oracle();
-    return new Contract(oracleAddress, Oracle, signer);
-  }, [comptroller]);
+    return new MulticallContract(oracleAddress, Oracle);
+  }, [comptrollerRead]);
+
+  const staticProvider = useMemo(() => new StaticJsonRpcProvider(web3.connection), [web3]);
+  const ethcallProvider = useMemo(() => new Provider(staticProvider, getIdByNetwork(networkConfig.network)), [
+    staticProvider
+  ]);
 
   async function setTokenApproval(tokenSym: CTokenSym<Network>) {
     const tokenContract = cTokenCtxs.get(tokenSym)!;
@@ -324,55 +328,82 @@ export function App<N extends Network>({ rpc, web3, account, networkConfig }: Ap
   }
 
   useAsyncEffect(async () => {
-    const migratorEnabled = (await comet.allowance(account, migrator.address))?.toBigInt() > 0n;
+    const cTokenContracts = networkConfig.cTokens.map(({ address }) => new MulticallContract(address, CToken));
+    const oracle = await oraclePromise;
+
+    const balanceCalls = cTokenContracts.map(cTokenContract => cTokenContract.balanceOf(account));
+    const borrowBalanceCalls = cTokenContracts.map(cTokenContract => cTokenContract.borrowBalanceCurrent(account));
+    const exchangeRateCalls = cTokenContracts.map(cTokenContract => cTokenContract.exchangeRateCurrent());
+    const allowanceCalls = cTokenContracts.map(cTokenContract => cTokenContract.allowance(account, migrator.address));
+    const collateralFactorCalls = cTokenContracts.map(cTokenContract =>
+      comptrollerRead.markets(cTokenContract.address)
+    );
+    const priceCalls = networkConfig.cTokens.map(cToken => {
+      const priceSymbol = cToken.underlyingSymbol === 'WBTC' ? 'BTC' : cToken.underlyingSymbol;
+      return oracle.price(priceSymbol);
+    });
+
+    const numCtokens = networkConfig.cTokens.length;
+
+    const [migratorEnabled, ...combinedCalls] = await ethcallProvider.all([
+      comet.allowance(account, migrator.address),
+      ...balanceCalls,
+      ...borrowBalanceCalls,
+      ...exchangeRateCalls,
+      ...allowanceCalls,
+      ...collateralFactorCalls,
+      ...priceCalls
+    ]);
+
+    const balances = combinedCalls.slice(0, numCtokens).map(balance => balance.toBigInt());
+    const borrowBalances = combinedCalls
+      .slice(numCtokens, numCtokens * 2)
+      .map(borrowBalance => borrowBalance.toBigInt());
+    const exchangeRates = combinedCalls
+      .slice(numCtokens * 2, numCtokens * 3)
+      .map(exchangeRate => exchangeRate.toBigInt());
+    const allowances = combinedCalls.slice(numCtokens * 3, numCtokens * 4).map(allowance => allowance.toBigInt());
+    const collateralFactors = combinedCalls
+      .slice(numCtokens * 4, numCtokens * 5)
+      .map(([, collateralFactor]) => collateralFactor.toBigInt());
+    const prices = combinedCalls.slice(numCtokens * 5, numCtokens * 6).map(price => price.toBigInt() * 100n); // Scale up to match V3 price precision of 1e8
+
     const tokenStates = new Map(
-      await Promise.all(
-        cTokenNames.map<Promise<[CTokenSym<Network>, CTokenState]>>(async sym => {
-          const maybeTokenState = state.type === StateType.Loading ? undefined : state.data.cTokens.get(sym);
-          const cTokenCtx = cTokenCtxs.get(sym) as Contract;
+      networkConfig.cTokens.map((cToken, index) => {
+        const maybeTokenState = state.type === StateType.Loading ? undefined : state.data.cTokens.get(cToken.symbol);
 
-          const underlyingDecimals: number =
-            maybeTokenState?.underlyingDecimals ??
-            ('underlying' in cTokenCtx
-              ? Number(await new Contract(await cTokenCtx.underlying(), ERC20, web3).decimals())
-              : 18);
-          const underlyingName: string =
-            maybeTokenState?.underlyingName ??
-            ('underlying' in cTokenCtx ? await new Contract(await cTokenCtx.underlying(), ERC20, web3).name() : '');
-          const balance: bigint = (await cTokenCtx.balanceOf(account)).toBigInt();
-          const borrowBalance = (await cTokenCtx.callStatic.borrowBalanceCurrent(account)).toBigInt();
-          const exchangeRate: bigint = (await cTokenCtx.callStatic.exchangeRateCurrent()).toBigInt();
-          const balanceUnderlying = (balance * exchangeRate) / 1000000000000000000n;
-          const allowance: bigint = (await cTokenCtx.allowance(account, migrator.address)).toBigInt();
-          const collateralFactor: bigint =
-            maybeTokenState?.collateralFactor ?? (await comptroller.markets(cTokenCtx.address))[1].toBigInt();
-          const decimals: number = maybeTokenState?.decimals ?? Number(await cTokenCtx.decimals());
-          const repayAmount: string = maybeTokenState?.repayAmount ?? '';
-          const transfer: string = maybeTokenState?.transfer ?? '0.0000';
-          const oracle = await oraclePromise;
-          const priceSymbol = sym === 'cWBTC' ? 'BTC' : sym.slice(1);
-          const price: bigint = (await oracle.price(priceSymbol)).toBigInt() * 100n; // Scale up to match V3 price precision of 1e8
+        const underlyingDecimals: number = cToken.underlyingDecimals;
+        const underlyingName: string = cToken.underlyingName;
+        const balance: bigint = balances[index];
+        const borrowBalance = borrowBalances[index];
+        const exchangeRate: bigint = exchangeRates[index];
+        const balanceUnderlying = (balance * exchangeRate) / 1000000000000000000n;
+        const allowance: bigint = allowances[index];
+        const collateralFactor: bigint = collateralFactors[index];
+        const decimals: number = cToken.decimals;
+        const repayAmount: string = maybeTokenState?.repayAmount ?? '';
+        const transfer: string = maybeTokenState?.transfer ?? '';
+        const price: bigint = prices[index];
 
-          return [
-            sym,
-            {
-              address: cTokenCtx.address,
-              allowance,
-              balance,
-              balanceUnderlying,
-              borrowBalance,
-              collateralFactor,
-              decimals,
-              exchangeRate,
-              price,
-              underlyingDecimals,
-              underlyingName,
-              repayAmount,
-              transfer
-            }
-          ];
-        })
-      )
+        return [
+          cToken.symbol,
+          {
+            address: cToken.address,
+            allowance,
+            balance,
+            balanceUnderlying,
+            borrowBalance,
+            collateralFactor,
+            decimals,
+            exchangeRate,
+            price,
+            underlyingDecimals,
+            underlyingName,
+            repayAmount,
+            transfer
+          }
+        ];
+      })
     );
 
     dispatch({
@@ -382,7 +413,7 @@ export function App<N extends Network>({ rpc, web3, account, networkConfig }: Ap
         cTokens: tokenStates
       }
     });
-  }, [timer, tracker, account, networkConfig.network, cTokenCtxs]);
+  }, [timer, tracker, account, networkConfig.network]);
 
   if (state.type === StateType.Loading || cometState[0] !== StateType.Hydrated) {
     return (
