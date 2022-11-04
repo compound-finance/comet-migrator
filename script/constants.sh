@@ -6,6 +6,7 @@ function set_constants() {
   export fork_url="${ETHEREUM_REMOTE_NODE_MAINNET:-https://mainnet-eth.compound.finance/}"
   export mnemonic="panel capable wet impulse ozone asset forget stamp stand long nose talk"
   export fork_block="15542274"
+  export v1_mainnet_deploy_block="15749484"
 
   [ -f ".env" ] && source .env
   [ -f ".env.local" ] && source .env.local
