@@ -2516,6 +2516,60 @@ contract CometMigratorV2Test is Positor {
         assertNoAssetsInMigrator();
     }
 
+    function testMigrateCompoundV2Borrow_revertsFromLowSlippageTolerance() public {
+        // Posit
+        CometMigratorV2.CompoundV2Collateral[] memory initialCollateral = new CometMigratorV2.CompoundV2Collateral[](1);
+        initialCollateral[0] = CometMigratorV2.CompoundV2Collateral({
+            cToken: cUNI,
+            amount: 300e18 // ~ $5 * 300 = ~$1500 75% collateral factor = $1,000
+        });
+        CometMigratorV2.CompoundV2Borrow[] memory initialBorrows = new CometMigratorV2.CompoundV2Borrow[](1);
+        initialBorrows[0] = CometMigratorV2.CompoundV2Borrow({
+            cToken: cDAI,
+            amount: 350e18
+        });
+        posit(Posit({
+            borrower: borrower,
+            collateral: initialCollateral,
+            borrows: initialBorrows
+        }));
+
+        uint256 cUNIPre = cUNI.balanceOf(borrower);
+        preflightChecks();
+
+        // Migrate
+        CometMigratorV2.CompoundV2Collateral[] memory collateralToMigrate = new CometMigratorV2.CompoundV2Collateral[](1);
+        uint256 migrateAmount = amountToTokens(199e18, cUNI);
+        collateralToMigrate[0] = CometMigratorV2.CompoundV2Collateral({
+            cToken: cUNI,
+            amount: migrateAmount
+        });
+        CometMigratorV2.Swap[] memory lowSlippageSwap = array1(swapPath(address(dai), 500, address(usdc)));
+        lowSlippageSwap[0].amountInMaximum = 300e6; // only allow 300e6 USDC to be swapped for 350e18 DAI
+        CometMigratorV2.CompoundV2Position memory compoundV2Position = CometMigratorV2.CompoundV2Position({
+            collateral: collateralToMigrate,
+            borrows: initialBorrows,
+            swaps: lowSlippageSwap
+        });
+        uint256 flashEstimate = 360e6; // We overestimate slightly to account for slippage
+        vm.startPrank(borrower);
+        cUNI.approve(address(migrator), type(uint256).max);
+        comet.allow(address(migrator), true);
+
+        vm.expectRevert(bytes("Too much requested"));
+        migrator.migrate(compoundV2Position, EMPTY_AAVE_V2_POSITION, flashEstimate);
+
+        // Check v2 balances
+        assertEq(cUNI.balanceOf(borrower), cUNIPre, "Amount of cUNI should have been migrated");
+        assertEq(cDAI.borrowBalanceCurrent(borrower), 350e18, "Remainder of tokens");
+
+        // Check v3 balances
+        assertEq(comet.collateralBalanceOf(borrower, address(uni)), 0, "v3 collateral balance");
+        assertEq(comet.borrowBalanceOf(borrower), 0, "v3 borrow balance");
+
+        assertNoAssetsInMigrator();
+    }
+
     function testMigrateCompoundV2Borrow_insufficientCollateralToBorrowFromCompoundV3() public {
         // Posit
         CometMigratorV2.CompoundV2Collateral[] memory initialCollateral = new CometMigratorV2.CompoundV2Collateral[](1);
@@ -3958,6 +4012,54 @@ contract CometMigratorV2Test is Positor {
         // Check Aave v2 balances
         assertEq(aUNI.balanceOf(borrower), aUNIPre, "Amount of aUNI should have been migrated");
         assertEq(variableDebtUSDC.balanceOf(borrower), 700e6, "Remainder of tokens");
+
+        // Check v3 balances
+        assertEq(comet.collateralBalanceOf(borrower, address(uni)), 0e18, "v3 collateral balance");
+        assertEq(comet.borrowBalanceOf(borrower), 0e6, "v3 borrow balance");
+
+        assertNoAssetsInMigrator();
+    }
+
+    function testMigrateAaveV2Borrow_revertsFromLowSlippageTolerance() public {
+        // Posit
+        CometMigratorV2.AaveV2Collateral[] memory initialCollateral = new CometMigratorV2.AaveV2Collateral[](1);
+        initialCollateral[0] = CometMigratorV2.AaveV2Collateral({
+            aToken: aUNI,
+            amount: 300e18 // ~ $5 * 300 = ~$1500 75% collateral factor = $1,000
+        });
+        CometMigratorV2.AaveV2Borrow[] memory initialBorrows = new CometMigratorV2.AaveV2Borrow[](1);
+        initialBorrows[0] = CometMigratorV2.AaveV2Borrow({
+            aDebtToken: variableDebtDAI,
+            amount: 350e18
+        });
+        positAaveV2(PositAaveV2({
+            borrower: borrower,
+            collateral: initialCollateral,
+            borrows: initialBorrows
+        }));
+
+        uint256 aUNIPre = aUNI.balanceOf(borrower);
+        preflightChecks();
+
+        // Migrate
+        CometMigratorV2.Swap[] memory lowSlippageSwap = array1(swapPath(address(dai), 500, address(usdc)));
+        lowSlippageSwap[0].amountInMaximum = 300e6; // only allow 300e6 USDC to be swapped for 350e18 DAI
+        CometMigratorV2.AaveV2Position memory aaveV2Position = CometMigratorV2.AaveV2Position({
+            collateral: initialCollateral,
+            borrows: initialBorrows,
+            swaps: lowSlippageSwap
+        });
+        uint256 flashEstimate = 360e6; // We overestimate slightly to account for slippage
+        vm.startPrank(borrower);
+        aUNI.approve(address(migrator), type(uint256).max);
+        comet.allow(address(migrator), true);
+
+        vm.expectRevert(bytes("Too much requested"));
+        migrator.migrate(EMPTY_COMPOUND_V2_POSITION, aaveV2Position, 600e6);
+
+        // Check Aave v2 balances
+        assertEq(aUNI.balanceOf(borrower), aUNIPre, "Amount of aUNI should have been migrated");
+        assertEq(variableDebtDAI.balanceOf(borrower), 350e18, "Remainder of tokens");
 
         // Check v3 balances
         assertEq(comet.collateralBalanceOf(borrower, address(uni)), 0e18, "v3 collateral balance");
