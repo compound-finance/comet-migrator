@@ -39,9 +39,9 @@ contract CometMigratorV2 is IUniswapV3FlashCallback {
     address indexed asset,
     uint256 amount);
 
-  /// @notice Represents the configuration for a Uniswap swap.
+  /// @notice Represents the configuration for executing a Uniswap swap.
   struct Swap {
-    bytes path;
+    bytes path; // empty path if no swap is required (e.g. repaying USDC borrow)
     uint256 amountInMaximum; // Note: Can be set as `type(uint256).max`
   }
 
@@ -276,7 +276,7 @@ contract CometMigratorV2 is IUniswapV3FlashCallback {
    * @param position Structure containing the user’s Compound II collateral and borrow positions to migrate to Compound III.
    **/
   function migrateCompoundV2Position(address user, CompoundV2Position memory position) internal {
-    // **FOREACH** `(cToken, borrowAmount): CompoundV2Borrow, path: bytes` in `position`:
+    // **FOREACH** `(cToken, borrowAmount): CompoundV2Borrow, swap: Swap` in `position`:
     for (uint i = 0; i < position.borrows.length; i++) {
       CompoundV2Borrow memory borrow = position.borrows[i];
 
@@ -292,7 +292,7 @@ contract CometMigratorV2 is IUniswapV3FlashCallback {
 
       // **WHEN** `swap.path.length > 0`:
       if (position.swaps[i].path.length > 0) {
-        //  **CALL** `ISwapRouter.exactOutput(ExactOutputParams({path: swap.path, recipient: address(this), amountOut: repayAmount, amountInMaximum: swap.amountInMaximum})`
+        // **CALL** `ISwapRouter.exactOutput(ExactOutputParams({path: swap.path, recipient: address(this), amountOut: repayAmount, amountInMaximum: swap.amountInMaximum})`
         uint256 amountIn = swapRouter.exactOutput(
           ISwapRouter.ExactOutputParams({
               path: position.swaps[i].path,
@@ -386,7 +386,7 @@ contract CometMigratorV2 is IUniswapV3FlashCallback {
    * @param position Structure containing the user’s Aave v2 collateral and borrow positions to migrate to Compound III.
    **/
   function migrateAaveV2Position(address user, AaveV2Position memory position) internal {
-    // **FOREACH** `(aDebtToken, borrowAmount): AaveV2Borrow, path: bytes` in `position`:
+    // **FOREACH** `(aDebtToken, borrowAmount): AaveV2Borrow, swap: Swap` in `position`:
     for (uint i = 0; i < position.borrows.length; i++) {
       AaveV2Borrow memory borrow = position.borrows[i];
       uint256 repayAmount;
@@ -400,7 +400,7 @@ contract CometMigratorV2 is IUniswapV3FlashCallback {
       }
       // **WHEN** `swap.path.length > 0`:
       if (position.swaps[i].path.length > 0) {
-        //  **CALL** `ISwapRouter.exactOutput(ExactOutputParams({path: swap.path, recipient: address(this), amountOut: repayAmount, amountInMaximum: swap.amountInMaximum})`
+        // **CALL** `ISwapRouter.exactOutput(ExactOutputParams({path: swap.path, recipient: address(this), amountOut: repayAmount, amountInMaximum: swap.amountInMaximum})`
         uint256 amountIn = swapRouter.exactOutput(
           ISwapRouter.ExactOutputParams({
               path: position.swaps[i].path,

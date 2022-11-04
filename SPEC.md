@@ -33,15 +33,26 @@ Users can specify the following parameters, generally:
 
 ## Structs
 
+### Uniswap Swap
+
+Represents the configuration for executing a Uniswap swap.
+
+```c
+struct Swap {
+  bytes path; // empty path if no swap is required (e.g. repaying USDC borrow)
+  uint256 amountInMaximum; // Note: Can be set as `type(uint256).max`
+}
+```
+
 ### Compound II Positions
 
 Represents a set of positions on Compound II to migrate:
 
 ```c
 struct CompoundV2Position {
-  CompoundV2Collateral[] collateral,
-  CompoundV2Borrow[] borrows,
-  bytes[] paths // empty path if no swap is required (e.g. repaying USDC borrow)
+  CompoundV2Collateral[] collateral;
+  CompoundV2Borrow[] borrows;
+  Swap[] swaps;
 }
 ```
 
@@ -51,8 +62,8 @@ Represents a given amount of collateral to migrate.
 
 ```c
 struct CompoundV2Collateral {
-  CToken cToken,
-  uint256 amount // Note: amount of cToken
+  CToken cToken;
+  uint256 amount; // Note: amount of cToken
 }
 ```
 
@@ -62,8 +73,8 @@ Represents a given amount of borrow to migrate.
 
 ```c
 struct CompoundV2Borrow {
-  CToken cToken,
-  uint256 amount // Note: amount of underlying
+  CToken cToken;
+  uint256 amount; // Note: amount of underlying
 }
 ```
 
@@ -73,9 +84,9 @@ Represents a set of positions on Aave V2 to migrate:
 
 ```c
 struct AaveV2Position {
-  AaveV2Collateral[] collateral,
-  AaveV2Borrow[] borrows,
-  bytes[] paths // empty path if no swap is required (e.g. repaying USDC borrow)
+  AaveV2Collateral[] collateral;
+  AaveV2Borrow[] borrows;
+  Swap[] swaps;
 }
 ```
 
@@ -85,8 +96,8 @@ Represents a given amount of collateral to migrate.
 
 ```c
 struct AaveV2Collateral {
-  AToken aToken,
-  uint256 amount
+  AToken aToken;
+  uint256 amount;
 }
 ```
 
@@ -96,8 +107,8 @@ Represents a given amount of borrow to migrate.
 
 ```c
 struct AaveV2Borrow {
-  ADebtToken aDebtToken, // Note: Aave has two separate debt tokens per asset: stable and variable rate
-  uint256 amount
+  ADebtToken aDebtToken; // Note: Aave has two separate debt tokens per asset: stable and variable rate
+  uint256 amount;
 }
 ```
 
@@ -106,11 +117,11 @@ Represents a CDP position on Maker to migrate:
 
 ```c
 struct CDPPosition {
-  uint256 cdpId,
-  uint256 collateralAmount,
-  uint256 borrowAmount,
-  bytes path, // empty path if no swap is required (e.g. repaying USDC borrow)
-  GemJoin gemJoin // the adapter contract for depositing/withdrawing collateral
+  uint256 cdpId;
+  uint256 collateralAmount;
+  uint256 borrowAmount;
+  Swap swap;
+  GemJoin gemJoin; // the adapter contract for depositing/withdrawing collateral
 }
 ```
 
@@ -222,8 +233,8 @@ Notes:
   - **REQUIRE** `inMigration == 0`
   - **STORE** `inMigration += 1`
   - **BIND** `user = msg.sender`
-  - **REQUIRE** `compoundV2Position.borrows.length == compoundV2Position.paths.length`
-  - **REQUIRE** `aaveV2Position.borrows.length == aaveV2Position.paths.length`
+  - **REQUIRE** `compoundV2Position.borrows.length == compoundV2Position.swaps.length`
+  - **REQUIRE** `aaveV2Position.borrows.length == aaveV2Position.swaps.length`
   - **BIND** `data = abi.encode(MigrationCallbackData{user, flashAmount, compoundV2Position, aaveV2Position, makerPositions})`
   - **CALL** `uniswapLiquidityPool.flash(address(this), isUniswapLiquidityPoolToken0 ? flashAmount : 0, isUniswapLiquidityPoolToken0 ? 0 : flashAmount, data)`
   - **STORE** `inMigration -= 1`
@@ -288,13 +299,13 @@ This internal helper function repays the user’s borrow positions on Compound V
 #### Function Spec
 
 `function migrateCompoundV2Position(address user, CompoundV2Position position) internal`
-  - **FOREACH** `(cToken, borrowAmount): CompoundV2Borrow, path: bytes` in `position`:
+  - **FOREACH** `(cToken, borrowAmount): CompoundV2Borrow, swap: Swap` in `position`:
     - **WHEN** `borrowAmount == type(uint256).max)`:
       - **BIND READ** `repayAmount = cToken.borrowBalanceCurrent(user)`
     - **ELSE**
       - **BIND** `repayAmount = borrowAmount`
-    - **WHEN** `path.length > 0`:
-      - **CALL** `ISwapRouter.exactOutput(ExactOutputParams({path: path, recipient: address(this), amountOut: repayAmount, amountInMaximum: type(uint256).max})`
+    - **WHEN** `swap.path.length > 0`:
+      - **CALL** `ISwapRouter.exactOutput(ExactOutputParams({path: swap.path, recipient: address(this), amountOut: repayAmount, amountInMaximum: swap.amountInMaximum})`
     - **WHEN** `cToken == cETH`
       - **CALL** `weth.withdraw(repayAmount)`
       - **CALL** `cToken.repayBorrowBehalf{value: repayAmount}(user)`
@@ -335,13 +346,13 @@ This internal helper function repays the user’s borrow positions on Aave V2 (e
 #### Function Spec
 
 `function migrateAaveV2Position(address user, AaveV2Position position) internal`
-  - **FOREACH** `(aDebtToken, borrowAmount): AaveV2Borrow, path: bytes` in `position`:
+  - **FOREACH** `(aDebtToken, borrowAmount): AaveV2Borrow, swap: Swap` in `position`:
     - **WHEN** `borrowAmount == type(uint256).max)`:
       - **BIND READ** `repayAmount = aDebtToken.balanceOf(user)`
     - **ELSE**
       - **BIND** `repayAmount = borrowAmount`
-    - **WHEN** `path.length > 0`:
-      - **CALL** `ISwapRouter.exactOutput(ExactOutputParams({path: path, recipient: address(this), amountOut: repayAmount, amountInMaximum: type(uint256).max})`
+    - **WHEN** `swap.path.length > 0`:
+      - **CALL** `ISwapRouter.exactOutput(ExactOutputParams({path: swap.path, recipient: address(this), amountOut: repayAmount, amountInMaximum: swap.amountInMaximum})`
     - **BIND READ** `underlyingDebt = aDebtToken.UNDERLYING_ASSET_ADDRESS()`
     - **BIND READ** `rateMode = aDebtToken.DEBT_TOKEN_REVISION()`
     - **CALL** `underlyingDebt.approve(address(aaveV2LendingPool), repayAmount)`
@@ -375,7 +386,7 @@ This internal helper function repays the user’s borrow positions on Maker (exe
 #### Function Spec
 
 `function migrateCDPPositions(address user, CDPPosition[] positions) internal`
-  - **FOREACH** `(cdpId, borrowAmount, collateralAmount, path, gemJoin): CDPPosition` in `positions`:
+  - **FOREACH** `(cdpId, borrowAmount, collateralAmount, swap, gemJoin): CDPPosition` in `positions`:
     - **WHEN** `borrowAmount == type(uint256).max) || collateralAmount == type(uint256).max`:
       - **BIND READ** `(withdrawAmount18, repayAmount) = cdpManager.vat().urns(cdpManager.ilks(cdpId), cdpManager.urns(cdpId))`
       - **BIND** `withdrawAmount = withdrawAmount18 / (10 ** (18 - gemJoin.dec()))`
@@ -384,8 +395,8 @@ This internal helper function repays the user’s borrow positions on Maker (exe
     - **WHEN** `collateralAmount != type(uint256).max`
       - **BIND** `withdrawAmount = collateralAmount`
       - **BIND** `withdrawAmount18 = collateralAmount * (10 ** (18 - gemJoin.dec()))`
-    - **WHEN** `path.length > 0`:
-      - **CALL** `ISwapRouter.exactOutput(ExactOutputParams({path: path, recipient: address(this), amountOut: repayAmount, amountInMaximum: type(uint256).max})`
+    - **WHEN** `swap.path.length > 0`:
+      - **CALL** `ISwapRouter.exactOutput(ExactOutputParams({path: swap.path, recipient: address(this), amountOut: repayAmount, amountInMaximum: swap.amountInMaximum})`
     - **CALL** `dai.approve(daiJoin, repayAmount)`
     - **CALL** `daiJoin.join(cdpManager.urns(cdpId), repayAmount)`
     - **CALL** `cdpManager.frob(cdpId, 0, -repayAmount)`
