@@ -12,9 +12,9 @@
     "forge:build": "forge build",
     "forge:test": "script/test.sh",
     "forge:lint": "solhint '{src,script,test}/**/*.sol'",
-    "playground:mainnet": "script/playground.sh",
-    "playground:v1": "script/playgroundV1.sh",
-    "playground:v2": "script/playgroundV2.sh"
+    "playground:mainnet": "script/playground.sh mainnet",
+    "playground:v1": "script/playground.sh v1",
+    "playground:v2": "script/playground.sh v2"
   },
   "dependencies": {
     "@compound-finance/comet-extension": "^0.0.5",
@@ -33,6 +33,7 @@
     "comet": "https://github.com/compound-finance/comet.git#c54ccc62e06186bdf237048ac7c9f3ce34d813b4",
     "compound-config": "https://github.com/compound-finance/compound-config.git#0815f079ebe6c7421361b3334f7b8eaab50722b0",
     "compound-styles": "https://github.com/compound-finance/compound-styles.git#f922f4b7fdfaab4f2dc2d65f966397524107ae2d",
+    "ethers-multicall": "^0.2.3",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "rollup-plugin-polyfill-node": "^0.10.2"
