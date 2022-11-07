@@ -5,44 +5,24 @@
 @use 'base/theme';
 @use 'base/typography';
 
-@use 'components/action-input-view';
-@use 'components/action-queue-item';
-@use 'components/alert-banner';
 @use 'components/asset';
-@use 'components/asset-row';
-@use 'components/assets-table';
 @use 'components/button';
-@use 'components/connect-wallet-modal';
-@use 'components/connected-wallet';
 @use 'components/divider';
 @use 'components/dropdown';
-@use 'components/footer';
-@use 'components/go-to-desktop';
-@use 'components/header';
-@use 'components/hero-panel';
 @use 'components/icon-pair';
-@use 'components/interest-rate-model';
 @use 'components/load-spinner';
 @use 'components/logo';
-@use 'components/market-history-panel';
-@use 'components/market-overview-panel';
-@use 'components/market-selector';
 @use 'components/masthead';
 @use 'components/meter';
 @use 'components/modal';
 @use 'components/page';
 @use 'components/panel';
-@use 'components/position-card';
-@use 'components/rewards';
 @use 'components/svg';
 @use 'components/theme-toggle';
 @use 'components/tooltip';
-@use 'components/utilization-meter';
 
-@use 'pages/home';
-@use 'pages/markets';
+@use 'pages/migrator';
 @use 'pages/extensions';
-@use 'pages/app';
 
 #root {
   height: 100vh;
