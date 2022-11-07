@@ -44,4 +44,5 @@ contract MainnetConstants {
 
     CometMigratorV2.CompoundV2Position internal EMPTY_COMPOUND_V2_POSITION;
     CometMigratorV2.AaveV2Position internal EMPTY_AAVE_V2_POSITION;
+    CometMigratorV2.Swap internal EMPTY_SWAP;
 }

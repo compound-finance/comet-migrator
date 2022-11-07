@@ -68,16 +68,8 @@ contract ReentrantToken is LazyToken {
   }
 
   function transferFrom(address, address, uint256) external override returns (bool) {
-    CometMigratorV2.CompoundV2Position memory compoundV2Position = CometMigratorV2.CompoundV2Position({
-        collateral: new CometMigratorV2.CompoundV2Collateral[](0),
-        borrows: new CometMigratorV2.CompoundV2Borrow[](0),
-        paths: new bytes[](0)
-    });
-    CometMigratorV2.AaveV2Position memory aaveV2Position = CometMigratorV2.AaveV2Position({
-        collateral: new CometMigratorV2.AaveV2Collateral[](0),
-        borrows: new CometMigratorV2.AaveV2Borrow[](0),
-        paths: new bytes[](0)
-    });
+    CometMigratorV2.CompoundV2Position memory compoundV2Position;
+    CometMigratorV2.AaveV2Position memory aaveV2Position;
     migrator.migrate(compoundV2Position, aaveV2Position, 0e6);
     return false;
   }

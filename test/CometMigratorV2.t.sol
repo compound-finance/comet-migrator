@@ -62,7 +62,7 @@ contract CometMigratorV2Test is Positor {
         CometMigratorV2.CompoundV2Position memory compoundV2Position = CometMigratorV2.CompoundV2Position({
             collateral: collateralToMigrate,
             borrows: borrowsToMigrate,
-            paths: new bytes[](1)
+            swaps: new CometMigratorV2.Swap[](1)
         });
 
         // Check event
@@ -121,7 +121,7 @@ contract CometMigratorV2Test is Positor {
         CometMigratorV2.CompoundV2Position memory compoundV2Position = CometMigratorV2.CompoundV2Position({
             collateral: collateralToMigrate,
             borrows: borrowsToMigrate,
-            paths: new bytes[](1)
+            swaps: new CometMigratorV2.Swap[](1)
         });
 
         // Check event
@@ -184,7 +184,7 @@ contract CometMigratorV2Test is Positor {
         CometMigratorV2.CompoundV2Position memory compoundV2Position = CometMigratorV2.CompoundV2Position({
             collateral: collateralToMigrate,
             borrows: borrowsToMigrate,
-            paths: new bytes[](1)
+            swaps: new CometMigratorV2.Swap[](1)
         });
 
         // Check event
@@ -241,7 +241,7 @@ contract CometMigratorV2Test is Positor {
         CometMigratorV2.CompoundV2Position memory compoundV2Position = CometMigratorV2.CompoundV2Position({
             collateral: collateralToMigrate,
             borrows: borrowsToMigrate,
-            paths: new bytes[](1)
+            swaps: new CometMigratorV2.Swap[](1)
         });
 
         // Check event
@@ -298,7 +298,7 @@ contract CometMigratorV2Test is Positor {
         CometMigratorV2.CompoundV2Position memory compoundV2Position = CometMigratorV2.CompoundV2Position({
             collateral: collateralToMigrate,
             borrows: borrowsToMigrate,
-            paths: new bytes[](1)
+            swaps: new CometMigratorV2.Swap[](1)
         });
 
         // Check event
@@ -361,7 +361,7 @@ contract CometMigratorV2Test is Positor {
         CometMigratorV2.CompoundV2Position memory compoundV2Position = CometMigratorV2.CompoundV2Position({
             collateral: collateralToMigrate,
             borrows: borrowsToMigrate,
-            paths: new bytes[](1)
+            swaps: new CometMigratorV2.Swap[](1)
         });
 
         // Check event
@@ -430,7 +430,7 @@ contract CometMigratorV2Test is Positor {
         CometMigratorV2.CompoundV2Position memory compoundV2Position = CometMigratorV2.CompoundV2Position({
             collateral: collateralToMigrate,
             borrows: borrowsToMigrate,
-            paths: new bytes[](1)
+            swaps: new CometMigratorV2.Swap[](1)
         });
 
         // Check event
@@ -492,7 +492,7 @@ contract CometMigratorV2Test is Positor {
         CometMigratorV2.CompoundV2Position memory compoundV2Position = CometMigratorV2.CompoundV2Position({
             collateral: collateralToMigrate,
             borrows: borrowsToMigrate,
-            paths: new bytes[](1)
+            swaps: new CometMigratorV2.Swap[](1)
         });
         vm.startPrank(borrower);
         cUNI.approve(address(migrator), 0);
@@ -547,7 +547,7 @@ contract CometMigratorV2Test is Positor {
         CometMigratorV2.CompoundV2Position memory compoundV2Position = CometMigratorV2.CompoundV2Position({
             collateral: collateralToMigrate,
             borrows: borrowsToMigrate,
-            paths: new bytes[](1)
+            swaps: new CometMigratorV2.Swap[](1)
         });
         vm.startPrank(borrower);
         cETH.approve(address(migrator), 0);
@@ -602,7 +602,7 @@ contract CometMigratorV2Test is Positor {
         CometMigratorV2.CompoundV2Position memory compoundV2Position = CometMigratorV2.CompoundV2Position({
             collateral: collateralToMigrate,
             borrows: borrowsToMigrate,
-            paths: new bytes[](1)
+            swaps: new CometMigratorV2.Swap[](1)
         });
         vm.startPrank(borrower);
         cUNI.approve(address(migrator), type(uint256).max);
@@ -657,7 +657,7 @@ contract CometMigratorV2Test is Positor {
         CometMigratorV2.CompoundV2Position memory compoundV2Position = CometMigratorV2.CompoundV2Position({
             collateral: collateralToMigrate,
             borrows: borrowsToMigrate,
-            paths: new bytes[](1)
+            swaps: new CometMigratorV2.Swap[](1)
         });
         vm.startPrank(borrower);
         cETH.approve(address(migrator), type(uint256).max);
@@ -711,7 +711,7 @@ contract CometMigratorV2Test is Positor {
         CometMigratorV2.CompoundV2Position memory compoundV2Position = CometMigratorV2.CompoundV2Position({
             collateral: collateralToMigrate,
             borrows: borrowsToMigrate,
-            paths: new bytes[](1)
+            swaps: new CometMigratorV2.Swap[](1)
         });
         vm.startPrank(borrower);
         cUNI.approve(address(migrator), type(uint256).max);
@@ -765,7 +765,7 @@ contract CometMigratorV2Test is Positor {
         CometMigratorV2.CompoundV2Position memory compoundV2Position = CometMigratorV2.CompoundV2Position({
             collateral: collateralToMigrate,
             borrows: borrowsToMigrate,
-            paths: new bytes[](1)
+            swaps: new CometMigratorV2.Swap[](1)
         });
         vm.startPrank(borrower);
         cUNI.approve(address(migrator), type(uint256).max);
@@ -820,7 +820,7 @@ contract CometMigratorV2Test is Positor {
         CometMigratorV2.CompoundV2Position memory compoundV2Position = CometMigratorV2.CompoundV2Position({
             collateral: collateralToMigrate,
             borrows: borrowsToMigrate,
-            paths: new bytes[](1)
+            swaps: new CometMigratorV2.Swap[](1)
         });
         vm.startPrank(borrower);
         cUNI.approve(address(migrator), type(uint256).max);
@@ -874,7 +874,7 @@ contract CometMigratorV2Test is Positor {
         CometMigratorV2.CompoundV2Position memory compoundV2Position = CometMigratorV2.CompoundV2Position({
             collateral: collateralToMigrate,
             borrows: borrowsToMigrate,
-            paths: new bytes[](1)
+            swaps: new CometMigratorV2.Swap[](1)
         });
         vm.startPrank(borrower);
         cUNI.approve(address(migrator), type(uint256).max);
@@ -928,7 +928,7 @@ contract CometMigratorV2Test is Positor {
         CometMigratorV2.CompoundV2Position memory compoundV2Position = CometMigratorV2.CompoundV2Position({
             collateral: collateralToMigrate,
             borrows: borrowsToMigrate,
-            paths: new bytes[](1)
+            swaps: new CometMigratorV2.Swap[](1)
         });
         vm.startPrank(borrower);
         cUNI.approve(address(migrator), type(uint256).max);
@@ -972,7 +972,7 @@ contract CometMigratorV2Test is Positor {
         CometMigratorV2.CompoundV2Position memory compoundV2Position = CometMigratorV2.CompoundV2Position({
             collateral: new CometMigratorV2.CompoundV2Collateral[](0),
             borrows: new CometMigratorV2.CompoundV2Borrow[](0),
-            paths: new bytes[](0)
+            swaps: new CometMigratorV2.Swap[](0)
         });
         vm.startPrank(borrower);
         cUNI.approve(address(migrator), type(uint256).max);
@@ -1035,7 +1035,7 @@ contract CometMigratorV2Test is Positor {
         CometMigratorV2.CompoundV2Position memory compoundV2Position0 = CometMigratorV2.CompoundV2Position({
             collateral: collateralToMigrate0,
             borrows: borrowsToMigrate0,
-            paths: new bytes[](1)
+            swaps: new CometMigratorV2.Swap[](1)
         });
 
         // Migration 1
@@ -1057,7 +1057,7 @@ contract CometMigratorV2Test is Positor {
         CometMigratorV2.CompoundV2Position memory compoundV2Position1 = CometMigratorV2.CompoundV2Position({
             collateral: collateralToMigrate1,
             borrows: borrowsToMigrate1,
-            paths: new bytes[](1)
+            swaps: new CometMigratorV2.Swap[](1)
         });
 
         vm.startPrank(borrower);
@@ -1148,7 +1148,7 @@ contract CometMigratorV2Test is Positor {
         CometMigratorV2.CompoundV2Position memory compoundV2Position0 = CometMigratorV2.CompoundV2Position({
             collateral: collateralToMigrate0,
             borrows: borrowsToMigrate0,
-            paths: new bytes[](1)
+            swaps: new CometMigratorV2.Swap[](1)
         });
 
         // Migration 1
@@ -1160,7 +1160,7 @@ contract CometMigratorV2Test is Positor {
         CometMigratorV2.CompoundV2Position memory compoundV2Position1 = CometMigratorV2.CompoundV2Position({
             collateral: new CometMigratorV2.CompoundV2Collateral[](0),
             borrows: borrowsToMigrate1,
-            paths: new bytes[](1)
+            swaps: new CometMigratorV2.Swap[](1)
         });
 
         vm.startPrank(borrower);
@@ -1348,7 +1348,7 @@ contract CometMigratorV2Test is Positor {
         CometMigratorV2.CompoundV2Position memory compoundV2Position = CometMigratorV2.CompoundV2Position({
             collateral: collateralToMigrate,
             borrows: new CometMigratorV2.CompoundV2Borrow[](0),
-            paths: new bytes[](0)
+            swaps: new CometMigratorV2.Swap[](0)
         });
         vm.expectRevert(abi.encodeWithSelector(CometMigratorV2.Reentrancy.selector, 0));
         migrator.migrate(compoundV2Position, EMPTY_AAVE_V2_POSITION, 0e6);
@@ -1365,7 +1365,7 @@ contract CometMigratorV2Test is Positor {
         CometMigratorV2.CompoundV2Position memory compoundV2Position = CometMigratorV2.CompoundV2Position({
             collateral: collateralToMigrate,
             borrows: new CometMigratorV2.CompoundV2Borrow[](0),
-            paths: new bytes[](0)
+            swaps: new CometMigratorV2.Swap[](0)
         });
         vm.expectRevert(abi.encodeWithSelector(CometMigratorV2.InvalidCallback.selector, 0));
         migrator.migrate(compoundV2Position, EMPTY_AAVE_V2_POSITION, 0e6);
@@ -1382,7 +1382,7 @@ contract CometMigratorV2Test is Positor {
         CometMigratorV2.CompoundV2Position memory compoundV2Position = CometMigratorV2.CompoundV2Position({
             collateral: collateralToMigrate,
             borrows: new CometMigratorV2.CompoundV2Borrow[](0),
-            paths: new bytes[](0)
+            swaps: new CometMigratorV2.Swap[](0)
         });
         vm.expectRevert(abi.encodeWithSelector(CometMigratorV2.Reentrancy.selector, 2));
         migrator.migrate(compoundV2Position, EMPTY_AAVE_V2_POSITION, 0e6);
@@ -1423,7 +1423,7 @@ contract CometMigratorV2Test is Positor {
         CometMigratorV2.CompoundV2Position memory compoundV2Position = CometMigratorV2.CompoundV2Position({
             collateral: collateralToMigrate,
             borrows: new CometMigratorV2.CompoundV2Borrow[](0),
-            paths: new bytes[](0)
+            swaps: new CometMigratorV2.Swap[](0)
         });
         vm.expectRevert(abi.encodeWithSelector(CometMigratorV2.CompoundV2Error.selector, 1, 10));
         migrator.migrate(compoundV2Position, EMPTY_AAVE_V2_POSITION, 0e6);
@@ -1458,7 +1458,7 @@ contract CometMigratorV2Test is Positor {
         CometMigratorV2.CompoundV2Position memory compoundV2Position = CometMigratorV2.CompoundV2Position({
             collateral: collateralToMigrate,
             borrows: noBorrows,
-            paths: new bytes[](0)
+            swaps: new CometMigratorV2.Swap[](0)
         });
         uint256 flashEstimate = 0e6; // no flash loan needed
         vm.startPrank(borrower);
@@ -1507,11 +1507,11 @@ contract CometMigratorV2Test is Positor {
 
         // Migrate
         CometMigratorV2.CompoundV2Collateral[] memory noCollateral = new CometMigratorV2.CompoundV2Collateral[](0);
-        bytes[] memory paths = array1(swapPath(address(dai), 500, address(usdc)));
+        CometMigratorV2.Swap[] memory swaps = array1(swapPath(address(dai), 500, address(usdc)));
         CometMigratorV2.CompoundV2Position memory compoundV2Position = CometMigratorV2.CompoundV2Position({
             collateral: noCollateral,
             borrows: initialBorrows,
-            paths: paths
+            swaps: swaps
         });
         uint256 flashEstimate = 360e6; // We overestimate slightly to account for slippage
         vm.startPrank(borrower);
@@ -1566,7 +1566,7 @@ contract CometMigratorV2Test is Positor {
         CometMigratorV2.CompoundV2Position memory compoundV2Position = CometMigratorV2.CompoundV2Position({
             collateral: collateralToMigrate,
             borrows: initialBorrows,
-            paths: new bytes[](1)
+            swaps: new CometMigratorV2.Swap[](1)
         });
         uint256 flashEstimate = 350e6; // no need to overestimate
         vm.startPrank(borrower);
@@ -1618,11 +1618,11 @@ contract CometMigratorV2Test is Positor {
             cToken: cUNI,
             amount: migrateAmount
         });
-        bytes[] memory paths = array1(swapPath(address(dai), 500, address(usdc)));
+        CometMigratorV2.Swap[] memory swaps = array1(swapPath(address(dai), 500, address(usdc)));
         CometMigratorV2.CompoundV2Position memory compoundV2Position = CometMigratorV2.CompoundV2Position({
             collateral: collateralToMigrate,
             borrows: initialBorrows,
-            paths: paths
+            swaps: swaps
         });
         uint256 flashEstimate = 360e6; // We overestimate slightly to account for slippage
         vm.startPrank(borrower);
@@ -1675,11 +1675,11 @@ contract CometMigratorV2Test is Positor {
             cToken: cUNI,
             amount: migrateAmount
         });
-        bytes[] memory paths = array1(swapPath(address(usdt), 100, address(usdc)));
+        CometMigratorV2.Swap[] memory swaps = array1(swapPath(address(usdt), 100, address(usdc)));
         CometMigratorV2.CompoundV2Position memory compoundV2Position = CometMigratorV2.CompoundV2Position({
             collateral: collateralToMigrate,
             borrows: initialBorrows,
-            paths: paths
+            swaps: swaps
         });
         uint256 flashEstimate = 360e6; // We overestimate slightly to account for slippage
         vm.startPrank(borrower);
@@ -1732,11 +1732,11 @@ contract CometMigratorV2Test is Positor {
             cToken: cUNI,
             amount: migrateAmount
         });
-        bytes[] memory paths = array1(swapPath(address(weth), 500, address(usdc)));
+        CometMigratorV2.Swap[] memory swaps = array1(swapPath(address(weth), 500, address(usdc)));
         CometMigratorV2.CompoundV2Position memory compoundV2Position = CometMigratorV2.CompoundV2Position({
             collateral: collateralToMigrate,
             borrows: initialBorrows,
-            paths: paths
+            swaps: swaps
         });
         uint256 flashEstimate = 1500e6; // We overestimate slightly to account for slippage
         vm.startPrank(borrower);
@@ -1794,11 +1794,11 @@ contract CometMigratorV2Test is Positor {
             cToken: CErc20(address(cETH)),
             amount: 0.5e18
         });
-        bytes[] memory paths = array1(swapPath(address(weth), 500, address(usdc)));
+        CometMigratorV2.Swap[] memory swaps = array1(swapPath(address(weth), 500, address(usdc)));
         CometMigratorV2.CompoundV2Position memory compoundV2Position = CometMigratorV2.CompoundV2Position({
             collateral: collateralToMigrate,
             borrows: borrowsToMigrate,
-            paths: paths
+            swaps: swaps
         });
         uint256 flashEstimate = 750e6; // We overestimate slightly to account for slippage
         vm.startPrank(borrower);
@@ -1849,11 +1849,11 @@ contract CometMigratorV2Test is Positor {
             cToken: cUNI,
             amount: type(uint256).max
         });
-        bytes[] memory paths = array1(swapPath(address(uni), 3000, address(weth), 500, address(usdc)));
+        CometMigratorV2.Swap[] memory swaps = array1(swapPath(address(uni), 3000, address(weth), 500, address(usdc)));
         CometMigratorV2.CompoundV2Position memory compoundV2Position = CometMigratorV2.CompoundV2Position({
             collateral: collateralToMigrate,
             borrows: initialBorrows,
-            paths: paths
+            swaps: swaps
         });
         uint256 flashEstimate = 600e6; // We overestimate slightly to account for slippage
         vm.startPrank(borrower);
@@ -1907,7 +1907,7 @@ contract CometMigratorV2Test is Positor {
         CometMigratorV2.CompoundV2Position memory compoundV2Position = CometMigratorV2.CompoundV2Position({
             collateral: collateralToMigrate,
             borrows: initialBorrows,
-            paths: new bytes[](1)
+            swaps: new CometMigratorV2.Swap[](1)
         });
         uint256 flashEstimate = 350e6; // no need to overestimate
         vm.startPrank(borrower);
@@ -1959,11 +1959,11 @@ contract CometMigratorV2Test is Positor {
             cToken: cUNI,
             amount: migrateAmount
         });
-        bytes[] memory paths = array1(swapPath(address(dai), 3000, address(weth), 500, address(usdc)));
+        CometMigratorV2.Swap[] memory swaps = array1(swapPath(address(dai), 3000, address(weth), 500, address(usdc)));
         CometMigratorV2.CompoundV2Position memory compoundV2Position = CometMigratorV2.CompoundV2Position({
             collateral: collateralToMigrate,
             borrows: initialBorrows,
-            paths: paths
+            swaps: swaps
         });
         uint256 flashEstimate = 360e6; // We overestimate slightly to account for slippage
         vm.startPrank(borrower);
@@ -2020,14 +2020,14 @@ contract CometMigratorV2Test is Positor {
             cToken: cUNI,
             amount: migrateAmount
         });
-        bytes[] memory paths = array2(
-            "",
+        CometMigratorV2.Swap[] memory swaps = array2(
+            EMPTY_SWAP,
             swapPath(address(dai), 500, address(usdc))
         );
         CometMigratorV2.CompoundV2Position memory compoundV2Position = CometMigratorV2.CompoundV2Position({
             collateral: collateralToMigrate,
             borrows: initialBorrows,
-            paths: paths
+            swaps: swaps
         });
         uint256 flashEstimate = 710e6; // We overestimate slightly to account for slippage
         vm.startPrank(borrower);
@@ -2088,11 +2088,11 @@ contract CometMigratorV2Test is Positor {
             cToken: cUNI,
             amount: migrateAmount
         });
-        bytes[] memory paths = array1(swapPath(address(dai), 500, address(usdc)));
+        CometMigratorV2.Swap[] memory swaps = array1(swapPath(address(dai), 500, address(usdc)));
         CometMigratorV2.CompoundV2Position memory compoundV2Position = CometMigratorV2.CompoundV2Position({
             collateral: collateralToMigrate,
             borrows: initialBorrows,
-            paths: paths
+            swaps: swaps
         });
         uint256 flashEstimate = 360e6; // We overestimate slightly to account for slippage
         vm.startPrank(borrower);
@@ -2149,11 +2149,11 @@ contract CometMigratorV2Test is Positor {
             cToken: cUNI,
             amount: type(uint256).max
         });
-        bytes[] memory paths = array1(swapPath(address(dai), 500, address(usdc)));
+        CometMigratorV2.Swap[] memory swaps = array1(swapPath(address(dai), 500, address(usdc)));
         CometMigratorV2.CompoundV2Position memory compoundV2Position = CometMigratorV2.CompoundV2Position({
             collateral: collateralToMigrate,
             borrows: initialBorrows,
-            paths: paths
+            swaps: swaps
         });
         uint256 flashEstimate = 360e6; // We overestimate slightly to account for slippage
         vm.startPrank(borrower);
@@ -2210,11 +2210,11 @@ contract CometMigratorV2Test is Positor {
             cToken: cUNI,
             amount: type(uint256).max
         });
-        bytes[] memory paths = array1(swapPath(address(dai), 500, address(usdc)));
+        CometMigratorV2.Swap[] memory swaps = array1(swapPath(address(dai), 500, address(usdc)));
         CometMigratorV2.CompoundV2Position memory compoundV2Position = CometMigratorV2.CompoundV2Position({
             collateral: collateralToMigrate,
             borrows: initialBorrows,
-            paths: paths
+            swaps: swaps
         });
         uint256 flashEstimate = 360e6; // We overestimate slightly to account for slippage
         vm.startPrank(borrower);
@@ -2271,7 +2271,7 @@ contract CometMigratorV2Test is Positor {
         CometMigratorV2.CompoundV2Position memory compoundV2Position = CometMigratorV2.CompoundV2Position({
             collateral: collateralToMigrate,
             borrows: initialBorrows,
-            paths: new bytes[](1)
+            swaps: new CometMigratorV2.Swap[](1)
         });
         uint256 flashEstimate = 349e6; // This should be too low to repay borrow
         vm.startPrank(borrower);
@@ -2324,14 +2324,14 @@ contract CometMigratorV2Test is Positor {
             cToken: cUNI,
             amount: migrateAmount
         });
-        bytes[] memory paths = array2(
-            "",
+        CometMigratorV2.Swap[] memory swaps = array2(
+            EMPTY_SWAP,
             swapPath(address(dai), 500, address(usdc))
         );
         CometMigratorV2.CompoundV2Position memory compoundV2Position = CometMigratorV2.CompoundV2Position({
             collateral: collateralToMigrate,
             borrows: initialBorrows,
-            paths: paths
+            swaps: swaps
         });
         uint256 flashEstimate = 700e6; // This should be too little due to slippage
         vm.startPrank(borrower);
@@ -2384,7 +2384,7 @@ contract CometMigratorV2Test is Positor {
         CometMigratorV2.CompoundV2Position memory compoundV2Position = CometMigratorV2.CompoundV2Position({
             collateral: collateralToMigrate,
             borrows: initialBorrows,
-            paths: new bytes[](1)
+            swaps: new CometMigratorV2.Swap[](1)
         });
         uint256 flashEstimate = 35000e6; // Estimate higher by a factor of 100
         vm.startPrank(borrower);
@@ -2440,7 +2440,7 @@ contract CometMigratorV2Test is Positor {
         CometMigratorV2.CompoundV2Position memory compoundV2Position = CometMigratorV2.CompoundV2Position({
             collateral: collateralToMigrate,
             borrows: initialBorrows,
-            paths: new bytes[](0) // empty paths is not valid here
+            swaps: new CometMigratorV2.Swap[](0) // empty paths is not valid here
         });
         uint256 flashEstimate = 360e6;
         vm.startPrank(borrower);
@@ -2489,15 +2489,13 @@ contract CometMigratorV2Test is Positor {
             cToken: cUNI,
             amount: migrateAmount
         });
-        bytes[] memory paths = new bytes[](1);
-        bytes memory invalidSwapPath = abi.encodePacked(
-            address(dai), address(dai) /* should be poolFee here */, address(usdc)
+        CometMigratorV2.Swap[] memory invalidSwaps = array1(
+            swapPath(address(dai), 999999 /* should be a valid poolFee here */, address(usdc))
         );
-        paths[0] = invalidSwapPath;
         CometMigratorV2.CompoundV2Position memory compoundV2Position = CometMigratorV2.CompoundV2Position({
             collateral: collateralToMigrate,
             borrows: initialBorrows,
-            paths: paths
+            swaps: invalidSwaps
         });
         uint256 flashEstimate = 360e6; // We overestimate slightly to account for slippage
         vm.startPrank(borrower);
@@ -2505,6 +2503,60 @@ contract CometMigratorV2Test is Positor {
         comet.allow(address(migrator), true);
 
         vm.expectRevert(); // XXX no revert message
+        migrator.migrate(compoundV2Position, EMPTY_AAVE_V2_POSITION, flashEstimate);
+
+        // Check v2 balances
+        assertEq(cUNI.balanceOf(borrower), cUNIPre, "Amount of cUNI should have been migrated");
+        assertEq(cDAI.borrowBalanceCurrent(borrower), 350e18, "Remainder of tokens");
+
+        // Check v3 balances
+        assertEq(comet.collateralBalanceOf(borrower, address(uni)), 0, "v3 collateral balance");
+        assertEq(comet.borrowBalanceOf(borrower), 0, "v3 borrow balance");
+
+        assertNoAssetsInMigrator();
+    }
+
+    function testMigrateCompoundV2Borrow_revertsFromLowSlippageTolerance() public {
+        // Posit
+        CometMigratorV2.CompoundV2Collateral[] memory initialCollateral = new CometMigratorV2.CompoundV2Collateral[](1);
+        initialCollateral[0] = CometMigratorV2.CompoundV2Collateral({
+            cToken: cUNI,
+            amount: 300e18 // ~ $5 * 300 = ~$1500 75% collateral factor = $1,000
+        });
+        CometMigratorV2.CompoundV2Borrow[] memory initialBorrows = new CometMigratorV2.CompoundV2Borrow[](1);
+        initialBorrows[0] = CometMigratorV2.CompoundV2Borrow({
+            cToken: cDAI,
+            amount: 350e18
+        });
+        posit(Posit({
+            borrower: borrower,
+            collateral: initialCollateral,
+            borrows: initialBorrows
+        }));
+
+        uint256 cUNIPre = cUNI.balanceOf(borrower);
+        preflightChecks();
+
+        // Migrate
+        CometMigratorV2.CompoundV2Collateral[] memory collateralToMigrate = new CometMigratorV2.CompoundV2Collateral[](1);
+        uint256 migrateAmount = amountToTokens(199e18, cUNI);
+        collateralToMigrate[0] = CometMigratorV2.CompoundV2Collateral({
+            cToken: cUNI,
+            amount: migrateAmount
+        });
+        CometMigratorV2.Swap[] memory lowSlippageSwap = array1(swapPath(address(dai), 500, address(usdc)));
+        lowSlippageSwap[0].amountInMaximum = 300e6; // only allow 300e6 USDC to be swapped for 350e18 DAI
+        CometMigratorV2.CompoundV2Position memory compoundV2Position = CometMigratorV2.CompoundV2Position({
+            collateral: collateralToMigrate,
+            borrows: initialBorrows,
+            swaps: lowSlippageSwap
+        });
+        uint256 flashEstimate = 360e6; // We overestimate slightly to account for slippage
+        vm.startPrank(borrower);
+        cUNI.approve(address(migrator), type(uint256).max);
+        comet.allow(address(migrator), true);
+
+        vm.expectRevert(bytes("Too much requested"));
         migrator.migrate(compoundV2Position, EMPTY_AAVE_V2_POSITION, flashEstimate);
 
         // Check v2 balances
@@ -2549,7 +2601,7 @@ contract CometMigratorV2Test is Positor {
         CometMigratorV2.CompoundV2Position memory compoundV2Position = CometMigratorV2.CompoundV2Position({
             collateral: collateralToMigrate,
             borrows: initialBorrows,
-            paths: new bytes[](1)
+            swaps: new CometMigratorV2.Swap[](1)
         });
         uint256 flashEstimate = 350e6; // no need to overestimate
         vm.startPrank(borrower);
@@ -2592,7 +2644,7 @@ contract CometMigratorV2Test is Positor {
         CometMigratorV2.AaveV2Position memory aaveV2Position = CometMigratorV2.AaveV2Position({
             collateral: initialCollateral,
             borrows: noBorrows,
-            paths: new bytes[](0)
+            swaps: new CometMigratorV2.Swap[](0)
         });
 
         // Check event
@@ -2650,7 +2702,7 @@ contract CometMigratorV2Test is Positor {
         CometMigratorV2.AaveV2Position memory aaveV2Position = CometMigratorV2.AaveV2Position({
             collateral: noCollateral,
             borrows: borrowsToMigrate,
-            paths: new bytes[](1)
+            swaps: new CometMigratorV2.Swap[](1)
         });
 
         // Check event
@@ -2709,7 +2761,7 @@ contract CometMigratorV2Test is Positor {
         CometMigratorV2.AaveV2Position memory aaveV2Position = CometMigratorV2.AaveV2Position({
             collateral: collateralToMigrate,
             borrows: borrowsToMigrate,
-            paths: new bytes[](1)
+            swaps: new CometMigratorV2.Swap[](1)
         });
 
         // Check event
@@ -2769,7 +2821,7 @@ contract CometMigratorV2Test is Positor {
         CometMigratorV2.AaveV2Position memory aaveV2Position = CometMigratorV2.AaveV2Position({
             collateral: collateralToMigrate,
             borrows: borrowsToMigrate,
-            paths: new bytes[](1)
+            swaps: new CometMigratorV2.Swap[](1)
         });
 
         // Check event
@@ -2827,7 +2879,7 @@ contract CometMigratorV2Test is Positor {
         CometMigratorV2.AaveV2Position memory aaveV2Position = CometMigratorV2.AaveV2Position({
             collateral: collateralToMigrate,
             borrows: borrowsToMigrate,
-            paths: new bytes[](1)
+            swaps: new CometMigratorV2.Swap[](1)
         });
         uint256 flashEstimate = 710e6; // We overestimate slightly to account for slippage
 
@@ -2885,7 +2937,7 @@ contract CometMigratorV2Test is Positor {
         CometMigratorV2.AaveV2Position memory aaveV2Position = CometMigratorV2.AaveV2Position({
             collateral: collateralToMigrate,
             borrows: borrowsToMigrate,
-            paths: new bytes[](1)
+            swaps: new CometMigratorV2.Swap[](1)
         });
         uint256 flashEstimate = 710e6; // We overestimate slightly to account for slippage
 
@@ -2945,7 +2997,7 @@ contract CometMigratorV2Test is Positor {
         CometMigratorV2.AaveV2Position memory aaveV2Position = CometMigratorV2.AaveV2Position({
             collateral: collateralToMigrate,
             borrows: borrowsToMigrate,
-            paths: new bytes[](1)
+            swaps: new CometMigratorV2.Swap[](1)
         });
 
         // Check event
@@ -3005,7 +3057,7 @@ contract CometMigratorV2Test is Positor {
         CometMigratorV2.AaveV2Position memory aaveV2Position = CometMigratorV2.AaveV2Position({
             collateral: collateralToMigrate,
             borrows: borrowsToMigrate,
-            paths: new bytes[](1)
+            swaps: new CometMigratorV2.Swap[](1)
         });
 
         // Check event
@@ -3063,7 +3115,7 @@ contract CometMigratorV2Test is Positor {
         CometMigratorV2.AaveV2Position memory aaveV2Position = CometMigratorV2.AaveV2Position({
             collateral: collateralToMigrate,
             borrows: borrowsToMigrate,
-            paths: new bytes[](1)
+            swaps: new CometMigratorV2.Swap[](1)
         });
         uint256 flashEstimate = 710e6; // We overestimate slightly to account for slippage
 
@@ -3121,7 +3173,7 @@ contract CometMigratorV2Test is Positor {
         CometMigratorV2.AaveV2Position memory aaveV2Position = CometMigratorV2.AaveV2Position({
             collateral: collateralToMigrate,
             borrows: borrowsToMigrate,
-            paths: new bytes[](1)
+            swaps: new CometMigratorV2.Swap[](1)
         });
         uint256 flashEstimate = 710e6; // We overestimate slightly to account for slippage
 
@@ -3178,11 +3230,11 @@ contract CometMigratorV2Test is Positor {
             aDebtToken: variableDebtDAI,
             amount: 600e18
         });
-        bytes[] memory paths = array1(swapPath(address(dai), 500, address(usdc)));
+        CometMigratorV2.Swap[] memory swaps = array1(swapPath(address(dai), 500, address(usdc)));
         CometMigratorV2.AaveV2Position memory aaveV2Position = CometMigratorV2.AaveV2Position({
             collateral: collateralToMigrate,
             borrows: borrowsToMigrate,
-            paths: paths
+            swaps: swaps
         });
         uint256 flashEstimate = 610e6; // We overestimate slightly to account for slippage
 
@@ -3241,11 +3293,11 @@ contract CometMigratorV2Test is Positor {
             aDebtToken: stableDebtDAI,
             amount: 600e18
         });
-        bytes[] memory paths = array1(swapPath(address(dai), 500, address(usdc)));
+        CometMigratorV2.Swap[] memory swaps = array1(swapPath(address(dai), 500, address(usdc)));
         CometMigratorV2.AaveV2Position memory aaveV2Position = CometMigratorV2.AaveV2Position({
             collateral: collateralToMigrate,
             borrows: borrowsToMigrate,
-            paths: paths
+            swaps: swaps
         });
         uint256 flashEstimate = 610e6; // We overestimate slightly to account for slippage
 
@@ -3303,11 +3355,11 @@ contract CometMigratorV2Test is Positor {
             aDebtToken: variableDebtUSDT,
             amount: type(uint256).max
         });
-        bytes[] memory paths = array1(swapPath(address(usdt), 100, address(usdc)));
+        CometMigratorV2.Swap[] memory swaps = array1(swapPath(address(usdt), 100, address(usdc)));
         CometMigratorV2.AaveV2Position memory aaveV2Position = CometMigratorV2.AaveV2Position({
             collateral: collateralToMigrate,
             borrows: borrowsToMigrate,
-            paths: paths
+            swaps: swaps
         });
         uint256 flashEstimate = 710e6; // We overestimate slightly to account for slippage
 
@@ -3363,11 +3415,11 @@ contract CometMigratorV2Test is Positor {
             aDebtToken: variableDebtUNI,
             amount: type(uint256).max
         });
-        bytes[] memory paths = array1(swapPath(address(uni), 3000, address(weth), 500, address(usdc)));
+        CometMigratorV2.Swap[] memory swaps = array1(swapPath(address(uni), 3000, address(weth), 500, address(usdc)));
         CometMigratorV2.AaveV2Position memory aaveV2Position = CometMigratorV2.AaveV2Position({
             collateral: collateralToMigrate,
             borrows: borrowsToMigrate,
-            paths: paths
+            swaps: swaps
         });
         uint256 flashEstimate = 600e6; // We overestimate slightly to account for slippage
 
@@ -3424,14 +3476,14 @@ contract CometMigratorV2Test is Positor {
             aToken: aUNI,
             amount: migrateAmount
         });
-        bytes[] memory paths = array2(
-            "",
+        CometMigratorV2.Swap[] memory swaps = array2(
+            EMPTY_SWAP,
             swapPath(address(dai), 500, address(usdc))
         );
         CometMigratorV2.AaveV2Position memory aaveV2Position = CometMigratorV2.AaveV2Position({
             collateral: collateralToMigrate,
             borrows: initialBorrows,
-            paths: paths
+            swaps: swaps
         });
         uint256 flashEstimate = 710e6; // We overestimate slightly to account for slippage
         vm.startPrank(borrower);
@@ -3490,14 +3542,14 @@ contract CometMigratorV2Test is Positor {
             aToken: aUNI,
             amount: migrateAmount
         });
-        bytes[] memory paths = array2(
-            "",
+        CometMigratorV2.Swap[] memory swaps = array2(
+            EMPTY_SWAP,
             swapPath(address(dai), 500, address(usdc))
         );
         CometMigratorV2.AaveV2Position memory aaveV2Position = CometMigratorV2.AaveV2Position({
             collateral: collateralToMigrate,
             borrows: initialBorrows,
-            paths: paths
+            swaps: swaps
         });
         uint256 flashEstimate = 710e6; // We overestimate slightly to account for slippage
         vm.startPrank(borrower);
@@ -3554,14 +3606,14 @@ contract CometMigratorV2Test is Positor {
         preflightChecks();
 
         // Migrate
-        bytes[] memory paths = array2(
-            "",
+        CometMigratorV2.Swap[] memory swaps = array2(
+            EMPTY_SWAP,
             swapPath(address(dai), 500, address(usdc))
         );
         CometMigratorV2.AaveV2Position memory aaveV2Position = CometMigratorV2.AaveV2Position({
             collateral: initialCollateral,
             borrows: initialBorrows,
-            paths: paths
+            swaps: swaps
         });
         uint256 flashEstimate = 710e6; // We overestimate slightly to account for slippage
         vm.startPrank(borrower);
@@ -3625,7 +3677,7 @@ contract CometMigratorV2Test is Positor {
         CometMigratorV2.AaveV2Position memory aaveV2Position = CometMigratorV2.AaveV2Position({
             collateral: collateralToMigrate,
             borrows: initialBorrows,
-            paths: new bytes[](1)
+            swaps: new CometMigratorV2.Swap[](1)
         });
         uint256 flashEstimate = 360e6; // We overestimate slightly to account for slippage
 
@@ -3685,11 +3737,11 @@ contract CometMigratorV2Test is Positor {
             aDebtToken: variableDebtDAI,
             amount: type(uint256).max
         });
-        bytes[] memory paths = array1(swapPath(address(dai), 500, address(usdc)));
+        CometMigratorV2.Swap[] memory swaps = array1(swapPath(address(dai), 500, address(usdc)));
         CometMigratorV2.AaveV2Position memory aaveV2Position = CometMigratorV2.AaveV2Position({
             collateral: collateralToMigrate,
             borrows: borrowsToMigrate,
-            paths: paths
+            swaps: swaps
         });
         uint256 flashEstimate = 360e6; // We overestimate slightly to account for slippage
 
@@ -3740,11 +3792,11 @@ contract CometMigratorV2Test is Positor {
         deal(address(dai), address(migrator), 100e18);
 
         // Migrate
-        bytes[] memory paths = array1(swapPath(address(dai), 500, address(usdc)));
+        CometMigratorV2.Swap[] memory swaps = array1(swapPath(address(dai), 500, address(usdc)));
         CometMigratorV2.AaveV2Position memory aaveV2Position = CometMigratorV2.AaveV2Position({
             collateral: initialCollateral,
             borrows: initialBorrows,
-            paths: paths
+            swaps: swaps
         });
         uint256 flashEstimate = 360e6; // We overestimate slightly to account for slippage
 
@@ -3794,7 +3846,7 @@ contract CometMigratorV2Test is Positor {
         CometMigratorV2.AaveV2Position memory aaveV2Position = CometMigratorV2.AaveV2Position({
             collateral: initialCollateral,
             borrows: initialBorrows,
-            paths: new bytes[](1)
+            swaps: new CometMigratorV2.Swap[](1)
         });
         uint256 flashEstimate = 349e6; // This should be too low to repay borrow
 
@@ -3836,11 +3888,11 @@ contract CometMigratorV2Test is Positor {
         preflightChecks();
 
         // Migrate
-        bytes[] memory paths = array1(swapPath(address(dai), 500, address(usdc)));
+        CometMigratorV2.Swap[] memory swaps = array1(swapPath(address(dai), 500, address(usdc)));
         CometMigratorV2.AaveV2Position memory aaveV2Position = CometMigratorV2.AaveV2Position({
             collateral: initialCollateral,
             borrows: initialBorrows,
-            paths: paths
+            swaps: swaps
         });
         uint256 flashEstimate = 350e6; // This should be too little due to slippage
 
@@ -3892,7 +3944,7 @@ contract CometMigratorV2Test is Positor {
         CometMigratorV2.AaveV2Position memory aaveV2Position = CometMigratorV2.AaveV2Position({
             collateral: collateralToMigrate,
             borrows: initialBorrows,
-            paths: new bytes[](0)
+            swaps: new CometMigratorV2.Swap[](0)
         });
 
         vm.startPrank(borrower);
@@ -3941,15 +3993,13 @@ contract CometMigratorV2Test is Positor {
             aToken: aUNI,
             amount: migrateAmount
         });
-        bytes[] memory paths = new bytes[](1);
-        bytes memory invalidSwapPath = abi.encodePacked(
-            address(dai), address(dai) /* should be poolFee here */, address(usdc)
+        CometMigratorV2.Swap[] memory invalidSwaps = array1(
+            swapPath(address(dai), 999999 /* should be a valid poolFee here */, address(usdc))
         );
-        paths[0] = invalidSwapPath;
         CometMigratorV2.AaveV2Position memory aaveV2Position = CometMigratorV2.AaveV2Position({
             collateral: collateralToMigrate,
             borrows: initialBorrows,
-            paths: paths
+            swaps: invalidSwaps
         });
 
         vm.startPrank(borrower);
@@ -3962,6 +4012,54 @@ contract CometMigratorV2Test is Positor {
         // Check Aave v2 balances
         assertEq(aUNI.balanceOf(borrower), aUNIPre, "Amount of aUNI should have been migrated");
         assertEq(variableDebtUSDC.balanceOf(borrower), 700e6, "Remainder of tokens");
+
+        // Check v3 balances
+        assertEq(comet.collateralBalanceOf(borrower, address(uni)), 0e18, "v3 collateral balance");
+        assertEq(comet.borrowBalanceOf(borrower), 0e6, "v3 borrow balance");
+
+        assertNoAssetsInMigrator();
+    }
+
+    function testMigrateAaveV2Borrow_revertsFromLowSlippageTolerance() public {
+        // Posit
+        CometMigratorV2.AaveV2Collateral[] memory initialCollateral = new CometMigratorV2.AaveV2Collateral[](1);
+        initialCollateral[0] = CometMigratorV2.AaveV2Collateral({
+            aToken: aUNI,
+            amount: 300e18 // ~ $5 * 300 = ~$1500 75% collateral factor = $1,000
+        });
+        CometMigratorV2.AaveV2Borrow[] memory initialBorrows = new CometMigratorV2.AaveV2Borrow[](1);
+        initialBorrows[0] = CometMigratorV2.AaveV2Borrow({
+            aDebtToken: variableDebtDAI,
+            amount: 350e18
+        });
+        positAaveV2(PositAaveV2({
+            borrower: borrower,
+            collateral: initialCollateral,
+            borrows: initialBorrows
+        }));
+
+        uint256 aUNIPre = aUNI.balanceOf(borrower);
+        preflightChecks();
+
+        // Migrate
+        CometMigratorV2.Swap[] memory lowSlippageSwap = array1(swapPath(address(dai), 500, address(usdc)));
+        lowSlippageSwap[0].amountInMaximum = 300e6; // only allow 300e6 USDC to be swapped for 350e18 DAI
+        CometMigratorV2.AaveV2Position memory aaveV2Position = CometMigratorV2.AaveV2Position({
+            collateral: initialCollateral,
+            borrows: initialBorrows,
+            swaps: lowSlippageSwap
+        });
+        uint256 flashEstimate = 360e6; // We overestimate slightly to account for slippage
+        vm.startPrank(borrower);
+        aUNI.approve(address(migrator), type(uint256).max);
+        comet.allow(address(migrator), true);
+
+        vm.expectRevert(bytes("Too much requested"));
+        migrator.migrate(EMPTY_COMPOUND_V2_POSITION, aaveV2Position, 600e6);
+
+        // Check Aave v2 balances
+        assertEq(aUNI.balanceOf(borrower), aUNIPre, "Amount of aUNI should have been migrated");
+        assertEq(variableDebtDAI.balanceOf(borrower), 350e18, "Remainder of tokens");
 
         // Check v3 balances
         assertEq(comet.collateralBalanceOf(borrower, address(uni)), 0e18, "v3 collateral balance");
@@ -3991,7 +4089,7 @@ contract CometMigratorV2Test is Positor {
         CometMigratorV2.AaveV2Position memory aaveV2Position = CometMigratorV2.AaveV2Position({
             collateral: initialCollateral,
             borrows: initialBorrows,
-            paths: new bytes[](0)
+            swaps: new CometMigratorV2.Swap[](0)
         });
 
         vm.startPrank(borrower);
@@ -4045,7 +4143,7 @@ contract CometMigratorV2Test is Positor {
         CometMigratorV2.AaveV2Position memory aaveV2Position = CometMigratorV2.AaveV2Position({
             collateral: collateralToMigrate,
             borrows: borrowsToMigrate,
-            paths: new bytes[](1)
+            swaps: new CometMigratorV2.Swap[](1)
         });
         uint256 flashEstimate = 700e6; // no need to overestimate
         vm.startPrank(borrower);
@@ -4130,16 +4228,16 @@ contract CometMigratorV2Test is Positor {
         preflightChecks();
 
         // Migrate
-        bytes[] memory paths = new bytes[](3);
-        bytes memory usdcToDaiPath = abi.encodePacked(
+        CometMigratorV2.Swap[] memory swaps = new CometMigratorV2.Swap[](3);
+        CometMigratorV2.Swap memory usdcToDaiPath = swapPath(
             address(dai), uint24(500), address(usdc)
         );
-        bytes memory usdcToUsdtPath = abi.encodePacked(
+        CometMigratorV2.Swap memory usdcToUsdtPath = swapPath(
             address(usdt), uint24(100), address(usdc)
         );
-        paths[0] = "";
-        paths[1] = usdcToDaiPath;
-        paths[2] = usdcToUsdtPath;
+        swaps[0] = EMPTY_SWAP;
+        swaps[1] = usdcToDaiPath;
+        swaps[2] = usdcToUsdtPath;
         CometMigratorV2.CompoundV2Collateral[] memory collateralToMigrate = new CometMigratorV2.CompoundV2Collateral[](2);
         collateralToMigrate[0] = CometMigratorV2.CompoundV2Collateral({
             cToken: cUNI,
@@ -4152,12 +4250,12 @@ contract CometMigratorV2Test is Positor {
         CometMigratorV2.CompoundV2Position memory compoundV2Position = CometMigratorV2.CompoundV2Position({
             collateral: collateralToMigrate,
             borrows: initialCompoundBorrows,
-            paths: paths
+            swaps: swaps
         });
         CometMigratorV2.AaveV2Position memory aaveV2Position = CometMigratorV2.AaveV2Position({
             collateral: initialAaveCollateral,
             borrows: initialAaveBorrows,
-            paths: paths
+            swaps: swaps
         });
         uint256 flashEstimate = 2110e6; // We overestimate slightly to account for slippage
         vm.startPrank(borrower);
@@ -4223,11 +4321,11 @@ contract CometMigratorV2Test is Positor {
         deal(address(usdc), address(migrator), migratorUSDCPre);
 
         // Migrate
-        bytes[] memory paths = array1(swapPath(address(dai), 500, address(usdc)));
+        CometMigratorV2.Swap[] memory swaps = array1(swapPath(address(dai), 500, address(usdc)));
         CometMigratorV2.AaveV2Position memory aaveV2Position = CometMigratorV2.AaveV2Position({
             collateral: initialCollateral,
             borrows: initialBorrows,
-            paths: paths
+            swaps: swaps
         });
         uint256 flashEstimate = 350e6;
 
@@ -4308,11 +4406,11 @@ contract CometMigratorV2Test is Positor {
             amount: migrateAmount
         });
         // The USDC-WETH 0.01% pool has ~$1.5k of total liquidity
-        bytes[] memory paths = array1(swapPath(address(dai), 3000, address(weth), 100, address(usdc)));
+        CometMigratorV2.Swap[] memory swaps = array1(swapPath(address(dai), 3000, address(weth), 100, address(usdc)));
         CometMigratorV2.CompoundV2Position memory compoundV2Position = CometMigratorV2.CompoundV2Position({
             collateral: collateralToMigrate,
             borrows: initialBorrows,
-            paths: paths
+            swaps: swaps
         });
         uint256 flashEstimate = 360e6; //The flash estimate is too low here to account for the high slippage
         vm.startPrank(borrower);
@@ -4362,11 +4460,11 @@ contract CometMigratorV2Test is Positor {
             amount: migrateAmount
         });
         // The USDC-WETH 0.01% pool has ~$1.5k of total liquidity
-        bytes[] memory paths = array1(swapPath(address(dai), 3000, address(weth), 100, address(usdc)));
+        CometMigratorV2.Swap[] memory swaps = array1(swapPath(address(dai), 3000, address(weth), 100, address(usdc)));
         CometMigratorV2.CompoundV2Position memory compoundV2Position = CometMigratorV2.CompoundV2Position({
             collateral: collateralToMigrate,
             borrows: initialBorrows,
-            paths: paths
+            swaps: swaps
         });
         uint256 flashEstimate = 500e6; // We overestimate a lot to account for high slippage
         vm.startPrank(borrower);
@@ -4432,12 +4530,12 @@ contract CometMigratorV2Test is Positor {
         CometMigratorV2.CompoundV2Position memory compoundV2Position = CometMigratorV2.CompoundV2Position({
             collateral: collateralToMigrate,
             borrows: noCompoundBorrows,
-            paths: new bytes[](0)
+            swaps: new CometMigratorV2.Swap[](0)
         });
         CometMigratorV2.AaveV2Position memory aaveV2Position = CometMigratorV2.AaveV2Position({
             collateral: initialAaveCollateral,
             borrows: noAaveBorrows,
-            paths: new bytes[](0)
+            swaps: new CometMigratorV2.Swap[](0)
         });
         uint256 flashEstimate = 350e6; // will supply this into Comet as well
         vm.startPrank(borrower);
@@ -4509,12 +4607,12 @@ contract CometMigratorV2Test is Positor {
         CometMigratorV2.CompoundV2Position memory compoundV2Position = CometMigratorV2.CompoundV2Position({
             collateral: collateralToMigrate,
             borrows: initialCompoundBorrows,
-            paths: new bytes[](0)
+            swaps: new CometMigratorV2.Swap[](0)
         });
         CometMigratorV2.AaveV2Position memory aaveV2Position = CometMigratorV2.AaveV2Position({
             collateral: initialAaveCollateral,
             borrows: initialAaveBorrows,
-            paths: new bytes[](1)
+            swaps: new CometMigratorV2.Swap[](1)
         });
         uint256 flashEstimate = 500e6;
         vm.startPrank(borrower);
@@ -4574,27 +4672,35 @@ contract CometMigratorV2Test is Positor {
     }
 
     // Note: Path should be reversed if doing an exact output swap
-    function swapPath(address tokenIn, uint24 poolFee, address tokenOut) internal returns (bytes memory) {
-        return abi.encodePacked(
+    function swapPath(address tokenIn, uint24 poolFee, address tokenOut) internal returns (CometMigratorV2.Swap memory) {
+        bytes memory path = abi.encodePacked(
             tokenIn, poolFee, tokenOut
         );
+        return CometMigratorV2.Swap({
+            path: path,
+            amountInMaximum: type(uint256).max
+        });
     }
 
     // Note: Path should be reversed if doing an exact output swap
-    function swapPath(address tokenA, uint24 poolFee0, address tokenB, uint24 poolFee1, address tokenC) internal returns (bytes memory) {
-        return abi.encodePacked(
+    function swapPath(address tokenA, uint24 poolFee0, address tokenB, uint24 poolFee1, address tokenC) internal returns (CometMigratorV2.Swap memory) {
+        bytes memory path = abi.encodePacked(
             tokenA, poolFee0, tokenB, poolFee1, tokenC
         );
+        return CometMigratorV2.Swap({
+            path: path,
+            amountInMaximum: type(uint256).max
+        });
     }
 
-    function array1(bytes memory data0) internal returns (bytes[] memory) {
-        bytes[] memory arr = new bytes[](1);
+    function array1(CometMigratorV2.Swap memory data0) internal returns (CometMigratorV2.Swap[] memory) {
+        CometMigratorV2.Swap[] memory arr = new CometMigratorV2.Swap[](1);
         arr[0] = data0;
         return arr;
     }
 
-    function array2(bytes memory data0, bytes memory data1) internal returns (bytes[] memory) {
-        bytes[] memory arr = new bytes[](2);
+    function array2(CometMigratorV2.Swap memory data0, CometMigratorV2.Swap memory data1) internal returns (CometMigratorV2.Swap[] memory) {
+        CometMigratorV2.Swap[] memory arr = new CometMigratorV2.Swap[](2);
         arr[0] = data0;
         arr[1] = data1;
         return arr;
