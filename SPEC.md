@@ -281,7 +281,9 @@ This internal helper function repays the user’s borrow positions on Compound V
 
  * `user: address`: Alias for `msg.sender`
  * `repayAmount: uint256`: The amount to repay for each borrow position.
- * `underlying: IERC20` - The underlying of a cToken, or `weth` in the case of `cETH`.
+ * `underlying: IERC20`: The underlying of a cToken, or `weth` in the case of `cETH`.
+ * `cTokenAmount: uint256`: The amount of `cToken` to redeem from Compound V2.
+ * `underlyingCollateralAmount: uint256`: The amount of the underlying collateral to supply to Compound III.
 
 #### Function Spec
 
@@ -300,15 +302,17 @@ This internal helper function repays the user’s borrow positions on Compound V
       - **CALL** `cToken.underlying().approve(address(cToken), repayAmount)`
   		- **CALL** `cToken.repayBorrowBehalf(user, repayAmount)`
   - **FOREACH** `(cToken, amount): CompoundV2Collateral` in `position.collateral`:
-    - **CALL** `cToken.transferFrom(user, address(this), amount == type(uint256).max ? cToken.balanceOf(user) : amount)`
-    - **CALL** `cToken.redeem(cToken.balanceOf(address(this)))`
+    - **BIND** `cTokenAmount = amount == type(uint256).max ? cToken.balanceOf(user) : amount)`
+    - **CALL** `cToken.transferFrom(user, address(this), cTokenAmount)`
+    - **CALL** `cToken.redeem(cTokenAmount)`
+    - **BIND** `underlyingCollateralAmount = collateral.cToken.exchangeRateStored() * cTokenAmount / 1e18`
     - **WHEN** `cToken == cETH`:
-      - **CALL** `weth.deposit{value: address(this).balance}()`
+      - **CALL** `weth.deposit{value: underlyingCollateralAmount}()`
       - **BIND** `underlying = weth`
     - **ELSE**
       - **BIND READ** `underlying = cToken.underlying()`
-    - **CALL** `underlying.approve(address(comet), type(uint256).max)`
-    - **CALL** `comet.supplyTo(user, underlying, underlying.balanceOf(address(this)))`
+    - **CALL** `underlying.approve(address(comet), underlyingCollateralAmount)`
+    - **CALL** `comet.supplyTo(user, underlying, underlyingCollateralAmount)`
 
 ### Migrate Aave V2 Position Function
 
@@ -324,8 +328,9 @@ This internal helper function repays the user’s borrow positions on Aave V2 (e
  * `user: address`: Alias for `msg.sender`
  * `repayAmount: uint256`: The amount to repay for each borrow position.
  * `rateMode: uint256`: The rate mode for the current borrow. 1 for stable, 2 for variable.
- * `underlyingDebt: IERC20` - The underlying asset of an Aave debt token.
- * `underlyingCollateral: IERC20` - The underlying asset of an Aave aToken. No special handling needed for ETH because Aave v2 uses WETH.
+ * `underlyingDebt: IERC20`: The underlying asset of an Aave debt token.
+ * `underlyingCollateral: IERC20`: The underlying asset of an Aave aToken. No special handling needed for ETH because Aave v2 uses WETH.
+ * `aTokenAmount: uint256`: The amount of `aToken` to withdraw from Aave V2 and supply to Compound III.
 
 #### Function Spec
 
@@ -342,11 +347,12 @@ This internal helper function repays the user’s borrow positions on Aave V2 (e
     - **CALL** `underlyingDebt.approve(address(aaveV2LendingPool), repayAmount)`
     - **CALL** `aaveV2LendingPool.repay(underlyingDebt, repayAmount, rateMode, user)`
   - **FOREACH** `(aToken, amount): AaveV2Collateral` in `position.collateral`:
-    - **CALL** `aToken.transferFrom(user, address(this), amount == type(uint256).max ? aToken.balanceOf(user) : amount)`
+    - **BIND** `aTokenAmount = amount == type(uint256).max ? aToken.balanceOf(user) : amount)`
+    - **CALL** `aToken.transferFrom(user, address(this), aTokenAmount)`
     - **BIND READ** `underlyingCollateral = aToken.UNDERLYING_ASSET_ADDRESS()`
-    - **CALL** `aaveV2LendingPool.withdraw(underlyingCollateral, aToken.balanceOf(address(this)), address(this))`
-    - **CALL** `underlyingCollateral.approve(address(comet), type(uint256).max)`
-    - **CALL** `comet.supplyTo(user, underlyingCollateral, underlyingCollateral.balanceOf(address(this)))`
+    - **CALL** `aaveV2LendingPool.withdraw(underlyingCollateral, aTokenAmount, address(this))`
+    - **CALL** `underlyingCollateral.approve(address(comet), aTokenAmount)`
+    - **CALL** `comet.supplyTo(user, underlyingCollateral, aTokenAmount)`
 
 ### Migrate Maker CDP Positions Function
 

@@ -44,6 +44,10 @@ contract LazyToken is CTokenLike {
   function exchangeRateCurrent() external virtual returns (uint) {
     return 0;
   }
+
+  function exchangeRateStored() external view virtual returns (uint) {
+    return 0;
+  }
 }
 
 contract NoRedeemToken is LazyToken {
