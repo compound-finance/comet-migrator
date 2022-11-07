@@ -12,9 +12,9 @@
     "forge:build": "forge build",
     "forge:test": "script/test.sh",
     "forge:lint": "solhint '{src,script,test}/**/*.sol'",
-    "playground:mainnet": "script/playground.sh",
-    "playground:v1": "script/playgroundV1.sh",
-    "playground:v2": "script/playgroundV2.sh"
+    "playground:mainnet": "script/playground.sh mainnet",
+    "playground:v1": "script/playground.sh v1",
+    "playground:v2": "script/playground.sh v2"
   },
   "dependencies": {
     "@compound-finance/comet-extension": "^0.0.5",

@@ -5,16 +5,43 @@ set_constants
 
 set -exo pipefail
 
-mainnet_deploy_block=15749484
+case "$1" in
+  mainnet)
+    export redeploy=false
+    playground_script=script/PlaygroundV1.s.sol
 
-if [ $(($fork_block < $mainnet_deploy_block)) ]
-then
-  echo "Fork block too early, overwriting with block number $mainnet_deploy_block"
-  fork_block=$mainnet_deploy_block
-fi
+    if [ $(($fork_block < $v1_mainnet_deploy_block)) ]
+    then
+      echo "Fork block too early, overwriting with block number $v1_mainnet_deploy_block"
+      fork_block=$v1_mainnet_deploy_block
+    fi
+    ;;
+  v1)
+    export redeploy=true
+    playground_script=script/PlaygroundV1.s.sol
+    ;;
+
+  v2)
+    export redeploy=true
+    playground_script=script/PlaygroundV2.s.sol
+    ;;
+
+  *)
+    echo "run script/playground.sh {mainnet,v1,v2}"
+    exit 1
+    ;;
+esac
 
 anvil --mnemonic "$mnemonic" --fork-url "$fork_url" --fork-block-number "$fork_block" --chain-id 1 --port 8545 &
 anvil_pid="$!"
+sleep 3
+
+if kill -0 "$anvil_pid"; then
+  echo "anvil running"
+else
+  echo "anvil failed"
+  wait "$anvil_pid"
+fi
 
 while ! nc -z localhost 8545; do
   sleep 3
@@ -27,7 +54,7 @@ function cleanup {
 trap cleanup EXIT
 
 echo "Running playground script..."
-forge script script/Playground.s.sol --rpc-url "$ETH_RPC_URL" --private-key "$ETH_PRIVATE_KEY" --broadcast --etherscan-api-key "$ETHERSCAN_KEY" -vvvv $@
+REDEPLOY="$redeploy" forge script "$playground_script" --rpc-url "$ETH_RPC_URL" --private-key "$ETH_PRIVATE_KEY" --broadcast --etherscan-api-key "$ETHERSCAN_KEY" -vvvv $@
 echo "Pitter patter."
 
 yarn web:dev --mode playground
