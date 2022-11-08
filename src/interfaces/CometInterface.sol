@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity 0.8.16;
+pragma solidity ^0.8.15;
 
-interface Comet {
+interface CometInterface {
     error Absurd();
     error AlreadyInitialized();
     error BadAsset();
@@ -99,6 +99,8 @@ interface Comet {
     function totalBorrow() external view returns (uint256);
     function balanceOf(address owner) external view returns (uint256);
     function borrowBalanceOf(address account) external view returns (uint256);
+
+    function getCollateralReserves(address asset) external view returns (uint);
 
     function pause(bool supplyPaused, bool transferPaused, bool withdrawPaused, bool absorbPaused, bool buyPaused) external;
     function isSupplyPaused() external view returns (bool);
