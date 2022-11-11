@@ -314,10 +314,7 @@ export function App<N extends Network>({ rpc, web3, account, networkConfig }: Ap
     return new MulticallContract(oracleAddress, Oracle);
   }, [comptrollerRead]);
 
-  const staticProvider = useMemo(() => new StaticJsonRpcProvider(web3.connection), [web3]);
-  const ethcallProvider = useMemo(() => new Provider(staticProvider, getIdByNetwork(networkConfig.network)), [
-    staticProvider
-  ]);
+  const ethcallProvider = useMemo(() => new Provider(web3, getIdByNetwork(networkConfig.network)), [web3]);
 
   async function setTokenApproval(tokenSym: CTokenSym<Network>) {
     const tokenContract = cTokenCtxs.get(tokenSym)!;
