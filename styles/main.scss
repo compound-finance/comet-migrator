@@ -49,6 +49,7 @@
 
   &:after {
     content: '\00a0';
+    color: transparent;
   }
 
   &--circle {
