@@ -2,7 +2,7 @@ import '../styles/main.scss';
 
 import { CometState, RPC } from '@compound-finance/comet-extension';
 import { Contract } from '@ethersproject/contracts';
-import { StaticJsonRpcProvider, JsonRpcProvider } from '@ethersproject/providers';
+import { JsonRpcProvider } from '@ethersproject/providers';
 import { Contract as MulticallContract, Provider } from 'ethers-multicall';
 import { ReactNode, useEffect, useMemo, useReducer, useState } from 'react';
 
@@ -413,50 +413,7 @@ export function App<N extends Network>({ rpc, web3, account, networkConfig }: Ap
   }, [timer, tracker, account, networkConfig.network]);
 
   if (state.type === StateType.Loading || cometState[0] !== StateType.Hydrated) {
-    return (
-      <div className="page migrator">
-        <div className="container">
-          <div className="migrator__content">
-            <div className="migrator__balances">
-              <div className="panel L4">
-                <div className="panel__header-row">
-                  <h1 className="heading heading--emphasized">V2 Balances</h1>
-                </div>
-                <p className="body">
-                  Select the amounts you want to migrate from Compound V2 to Compound V3. If you are supplying USDC on
-                  one market while borrowing on the other, any supplied USDC will be used to repay any borrowed USDC
-                  before entering you into an earning position in Compound V3.
-                </p>
-
-                <div className="migrator__balances__section">
-                  <label className="L1 label text-color--2 migrator__balances__section__header">Borrowing</label>
-                  <LoadingAsset />
-                </div>
-                <div className="migrator__balances__section">
-                  <label className="L1 label text-color--2 migrator__balances__section__header">Supplying</label>
-                  <LoadingAsset />
-                  <LoadingAsset />
-                  <LoadingAsset />
-                </div>
-              </div>
-            </div>
-            <div className="migrator__summary">
-              <div className="panel L4">
-                <div className="panel__header-row">
-                  <h1 className="heading heading--emphasized">Summary</h1>
-                </div>
-                <p className="body">
-                  If you are borrowing other assets on Compound V2, migrating too much collateral could increase your
-                  liquidation risk.
-                </p>
-                <LoadingPosition />
-                <LoadingPosition />
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
+    return <LoadingView />;
   }
 
   const cTokensWithBorrowBalances = Array.from(state.data.cTokens.entries()).filter(([sym, tokenState]) => {
@@ -1118,12 +1075,12 @@ export default ({ rpc, web3 }: AppProps) => {
 
   if (networkConfig && account) {
     if (networkConfig === 'unsupported') {
-      return <div>Unsupported network...</div>;
+      return <LoadingView />;
     } else {
       return <App rpc={rpc} web3={web3} account={account} networkConfig={networkConfig} />;
     }
   } else {
-    return <div>Loading...</div>;
+    return <LoadingView />;
   }
 };
 
@@ -1233,6 +1190,53 @@ const LoadingPosition = () => {
       </div>
       <div className="meter">
         <div className="meter__bar"></div>
+      </div>
+    </div>
+  );
+};
+
+const LoadingView = () => {
+  return (
+    <div className="page migrator">
+      <div className="container">
+        <div className="migrator__content">
+          <div className="migrator__balances">
+            <div className="panel L4">
+              <div className="panel__header-row">
+                <h1 className="heading heading--emphasized">V2 Balances</h1>
+              </div>
+              <p className="body">
+                Select the amounts you want to migrate from Compound V2 to Compound V3. If you are supplying USDC on one
+                market while borrowing on the other, any supplied USDC will be used to repay any borrowed USDC before
+                entering you into an earning position in Compound V3.
+              </p>
+
+              <div className="migrator__balances__section">
+                <label className="L1 label text-color--2 migrator__balances__section__header">Borrowing</label>
+                <LoadingAsset />
+              </div>
+              <div className="migrator__balances__section">
+                <label className="L1 label text-color--2 migrator__balances__section__header">Supplying</label>
+                <LoadingAsset />
+                <LoadingAsset />
+                <LoadingAsset />
+              </div>
+            </div>
+          </div>
+          <div className="migrator__summary">
+            <div className="panel L4">
+              <div className="panel__header-row">
+                <h1 className="heading heading--emphasized">Summary</h1>
+              </div>
+              <p className="body">
+                If you are borrowing other assets on Compound V2, migrating too much collateral could increase your
+                liquidation risk.
+              </p>
+              <LoadingPosition />
+              <LoadingPosition />
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
