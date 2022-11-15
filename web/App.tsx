@@ -1,7 +1,7 @@
 import '../styles/main.scss';
 
 import { CometState, RPC } from '@compound-finance/comet-extension';
-import { TokenWithAccountState } from '@compound-finance/comet-extension/dist/CometState';
+import { BaseAssetWithState, TokenWithAccountState } from '@compound-finance/comet-extension/dist/CometState';
 import { Contract } from '@ethersproject/contracts';
 import { JsonRpcProvider } from '@ethersproject/providers';
 import { Contract as MulticallContract, Provider } from 'ethers-multicall';
@@ -669,6 +669,10 @@ export function App<N extends Network>({ rpc, web3, account, networkConfig }: Ap
           false,
           true
         );
+
+        if (tokenState.borrowBalance > cometData.baseAsset.balanceOfComet) {
+          [errorTitle, errorDescription] = notEnoughLiquidityError(cometData.baseAsset);
+        }
       } else {
         const maybeRepayAmount = maybeBigIntFromString(tokenState.repayAmount, tokenState.underlyingDecimals);
 
@@ -691,6 +695,8 @@ export function App<N extends Network>({ rpc, web3, account, networkConfig }: Ap
               tokenState.borrowBalance,
               false
             )}`;
+          } else if (maybeRepayAmount > cometData.baseAsset.balanceOfComet) {
+            [errorTitle, errorDescription] = notEnoughLiquidityError(cometData.baseAsset);
           }
         }
       }
@@ -1256,6 +1262,15 @@ const LoadingView = () => {
       </div>
     </div>
   );
+};
+
+const notEnoughLiquidityError = (baseAsset: BaseAssetWithState): [string, string] => {
+  const title = 'Not enough liquidity.';
+  const description = `There is ${formatTokenBalance(baseAsset.decimals, baseAsset.balanceOfComet, false)} of ${
+    baseAsset.symbol
+  } liquidity remaining.`;
+
+  return [title, description];
 };
 
 const supplyCapError = (token: TokenWithAccountState): [string, string] => {
