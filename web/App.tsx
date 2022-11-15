@@ -579,24 +579,45 @@ export function App<N extends Network>({ rpc, web3, account, networkConfig }: Ap
     if (repayAmount === null) {
       return undefined;
     }
-    if (repayAmount !== MAX_UINT256 && repayAmount > borrowAmount) {
+    if (
+      (repayAmount !== MAX_UINT256 && repayAmount > borrowAmount) ||
+      (repayAmount !== MAX_UINT256 && repayAmount > cometData.baseAsset.balanceOfComet) ||
+      (repayAmount === MAX_UINT256 && borrowAmount > cometData.baseAsset.balanceOfComet)
+    ) {
       return undefined;
     }
 
     let collateral: Collateral[] = [];
     for (let [
       ,
-      { address, balance, balanceUnderlying, underlyingDecimals, transfer, exchangeRate }
+      { address, balance, balanceUnderlying, underlyingDecimals, underlyingSymbol, transfer, exchangeRate }
     ] of state.data.cTokens.entries()) {
+      const collateralAsset = cometData.collateralAssets.find(asset => asset.symbol === underlyingSymbol);
+
+      if (!collateralAsset) {
+        return undefined;
+      }
+
       if (transfer === 'max') {
+        if (collateralAsset.totalSupply + balance > collateralAsset.supplyCap) {
+          return undefined;
+        }
+
         collateral.push({
           cToken: address,
           amount: balance
         });
       } else {
-        if (balanceUnderlying && Number(transfer) > balanceUnderlying) {
+        const maybeTransfer = maybeBigIntFromString(transfer, underlyingDecimals);
+        if (maybeTransfer !== undefined && maybeTransfer > balanceUnderlying) {
+          return undefined;
+        } else if (
+          maybeTransfer !== undefined &&
+          collateralAsset.totalSupply + maybeTransfer > collateralAsset.supplyCap
+        ) {
           return undefined;
         }
+
         const transferAmount = parseNumber(transfer, n =>
           amountToWei((n * 1e18) / Number(exchangeRate), underlyingDecimals!)
         );
