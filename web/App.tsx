@@ -1,6 +1,7 @@
 import '../styles/main.scss';
 
 import { CometState, RPC } from '@compound-finance/comet-extension';
+import { BaseAssetWithState, TokenWithAccountState } from '@compound-finance/comet-extension/dist/CometState';
 import { Contract } from '@ethersproject/contracts';
 import { JsonRpcProvider } from '@ethersproject/providers';
 import { Contract as MulticallContract, Provider } from 'ethers-multicall';
@@ -126,6 +127,7 @@ interface CTokenState {
   transfer: string | 'max';
   underlyingDecimals: number;
   underlyingName: string;
+  underlyingSymbol: string;
 }
 
 interface MigratorStateData<Network> {
@@ -371,6 +373,7 @@ export function App<N extends Network>({ rpc, web3, account, networkConfig }: Ap
 
         const underlyingDecimals: number = cToken.underlyingDecimals;
         const underlyingName: string = cToken.underlyingName;
+        const underlyingSymbol: string = cToken.underlyingSymbol;
         const balance: bigint = balances[index];
         const borrowBalance = borrowBalances[index];
         const exchangeRate: bigint = exchangeRates[index];
@@ -396,6 +399,7 @@ export function App<N extends Network>({ rpc, web3, account, networkConfig }: Ap
             price,
             underlyingDecimals,
             underlyingName,
+            underlyingSymbol,
             repayAmount,
             transfer
           }
@@ -665,6 +669,10 @@ export function App<N extends Network>({ rpc, web3, account, networkConfig }: Ap
           false,
           true
         );
+
+        if (tokenState.borrowBalance > cometData.baseAsset.balanceOfComet) {
+          [errorTitle, errorDescription] = notEnoughLiquidityError(cometData.baseAsset);
+        }
       } else {
         const maybeRepayAmount = maybeBigIntFromString(tokenState.repayAmount, tokenState.underlyingDecimals);
 
@@ -687,6 +695,8 @@ export function App<N extends Network>({ rpc, web3, account, networkConfig }: Ap
               tokenState.borrowBalance,
               false
             )}`;
+          } else if (maybeRepayAmount > cometData.baseAsset.balanceOfComet) {
+            [errorTitle, errorDescription] = notEnoughLiquidityError(cometData.baseAsset);
           }
         }
       }
@@ -764,7 +774,7 @@ export function App<N extends Network>({ rpc, web3, account, networkConfig }: Ap
       let errorTitle: string | undefined;
       let errorDescription: string | undefined;
       const disabled = tokenState.allowance === 0n;
-      const tokenSymbol = sym.slice(1);
+      const collateralAsset = cometData.collateralAssets.find(asset => asset.symbol === tokenState.underlyingSymbol);
 
       if (tokenState.transfer === 'max') {
         transfer = formatTokenBalance(tokenState.underlyingDecimals, tokenState.balanceUnderlying);
@@ -774,6 +784,13 @@ export function App<N extends Network>({ rpc, web3, account, networkConfig }: Ap
           false,
           true
         );
+
+        if (
+          collateralAsset !== undefined &&
+          tokenState.balanceUnderlying + collateralAsset.totalSupply > collateralAsset.supplyCap
+        ) {
+          [errorTitle, errorDescription] = supplyCapError(collateralAsset);
+        }
       } else {
         const maybeTransfer = maybeBigIntFromString(tokenState.transfer, tokenState.underlyingDecimals);
 
@@ -796,6 +813,11 @@ export function App<N extends Network>({ rpc, web3, account, networkConfig }: Ap
               tokenState.balanceUnderlying,
               false
             )}`;
+          } else if (
+            collateralAsset !== undefined &&
+            maybeTransfer + collateralAsset.totalSupply > collateralAsset.supplyCap
+          ) {
+            [errorTitle, errorDescription] = supplyCapError(collateralAsset);
           }
         }
       }
@@ -807,8 +829,8 @@ export function App<N extends Network>({ rpc, web3, account, networkConfig }: Ap
           <div className="migrator__input-view__content">
             <div className="migrator__input-view__left">
               <div className="migrator__input-view__header">
-                <div className={`asset asset--${tokenSymbol}`}></div>
-                <label className="L2 label text-color--1">{tokenSymbol}</label>
+                <div className={`asset asset--${tokenState.underlyingSymbol}`}></div>
+                <label className="L2 label text-color--1">{tokenState.underlyingSymbol}</label>
               </div>
               <div className="migrator__input-view__holder">
                 <input
@@ -843,7 +865,7 @@ export function App<N extends Network>({ rpc, web3, account, networkConfig }: Ap
                     setApproveModal({
                       asset: {
                         name: tokenState.underlyingName,
-                        symbol: tokenSymbol
+                        symbol: tokenState.underlyingSymbol
                       },
                       transactionKey: key,
                       onActionClicked: (_asset, _descption) => setTokenApproval(sym),
@@ -1240,4 +1262,22 @@ const LoadingView = () => {
       </div>
     </div>
   );
+};
+
+const notEnoughLiquidityError = (baseAsset: BaseAssetWithState): [string, string] => {
+  const title = 'Not enough liquidity.';
+  const description = `There is ${formatTokenBalance(baseAsset.decimals, baseAsset.balanceOfComet, false)} of ${
+    baseAsset.symbol
+  } liquidity remaining.`;
+
+  return [title, description];
+};
+
+const supplyCapError = (token: TokenWithAccountState): [string, string] => {
+  const title = 'Supply cap exceeded.';
+  const description = `There is ${formatTokenBalance(token.decimals, token.supplyCap - token.totalSupply, false)} of ${
+    token.symbol
+  } capacity remaining.`;
+
+  return [title, description];
 };
