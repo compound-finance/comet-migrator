@@ -595,7 +595,7 @@ export function App<N extends Network>({ rpc, web3, account, networkConfig }: Ap
       const collateralAsset = cometData.collateralAssets.find(asset => asset.symbol === underlyingSymbol);
 
       if (!collateralAsset) {
-        return undefined;
+        continue;
       }
 
       if (transfer === 'max') {
