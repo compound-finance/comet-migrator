@@ -28,7 +28,8 @@ const mainnetTokens = [
   'cBAT',
   'cCOMP',
   'cLINK',
-  'cUNI'
+  'cUNI',
+  'cDAI',
 ] as const;
 
 const goerliTokens = ['cETH', 'cDAI', 'cUSDC', 'cWBTC'] as const;
