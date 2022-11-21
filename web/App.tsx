@@ -419,12 +419,14 @@ export function App<N extends Network>({ rpc, web3, account, networkConfig }: Ap
   if (state.type === StateType.Loading || cometState[0] !== StateType.Hydrated) {
     return <LoadingView />;
   }
+  const cometData = cometState[1];
 
   const cTokensWithBorrowBalances = Array.from(state.data.cTokens.entries()).filter(([sym, tokenState]) => {
     return tokenState.borrowBalance > 0n && sym === 'cUSDC';
   });
   const collateralWithBalances = Array.from(state.data.cTokens.entries()).filter(([, tokenState]) => {
-    return tokenState.balance > 0n;
+    const v3CollateralAsset = cometData.collateralAssets.find(asset => asset.symbol === tokenState.underlyingSymbol);
+    return v3CollateralAsset !== undefined && tokenState.balance > 0n;
   });
   const cTokens = Array.from(state.data.cTokens.entries());
   const v2BorrowValue = cTokens.reduce((acc, [, { borrowBalance, underlyingDecimals, price, repayAmount }]) => {
@@ -444,6 +446,21 @@ export function App<N extends Network>({ rpc, web3, account, networkConfig }: Ap
   }, BigInt(0));
   const displayV2CollateralValue = formatTokenBalance(PRICE_PRECISION, v2CollateralValue, false, true);
 
+  const v2UnsupportedCollateralValue = cTokens.reduce(
+    (acc, [, { balanceUnderlying, underlyingDecimals, underlyingSymbol, price }]) => {
+      const v3CollateralAsset = cometData.collateralAssets.find(asset => asset.symbol === underlyingSymbol);
+      const balance = v3CollateralAsset === undefined ? balanceUnderlying : 0n;
+      return acc + (balance * price) / BigInt(10 ** underlyingDecimals);
+    },
+    BigInt(0)
+  );
+  const displayV2UnsupportedCollateralValue = formatTokenBalance(
+    PRICE_PRECISION,
+    v2UnsupportedCollateralValue,
+    false,
+    true
+  );
+
   const v2BorrowCapacity = cTokens.reduce(
     (acc, [, { balanceUnderlying, collateralFactor, price, transfer, underlyingDecimals }]) => {
       const maybeTransfer =
@@ -460,8 +477,6 @@ export function App<N extends Network>({ rpc, web3, account, networkConfig }: Ap
 
   const v2AvailableToBorrow = v2BorrowCapacity - v2BorrowValue;
   const displayV2AvailableToBorrow = formatTokenBalance(PRICE_PRECISION, v2AvailableToBorrow, false, true);
-
-  const cometData = cometState[1];
 
   const v2ToV3MigrateBorrowValue = cTokens.reduce(
     (acc, [, { borrowBalance, underlyingDecimals, price, repayAmount }]) => {
@@ -969,6 +984,15 @@ export function App<N extends Network>({ rpc, web3, account, networkConfig }: Ap
                   <div className="migrator__balances__section">
                     <label className="L1 label text-color--2 migrator__balances__section__header">Supplying</label>
                     {collateralEl}
+                    {v2UnsupportedCollateralValue > 0n && (
+                      <div className="migrator__balances__alert" style={{ marginTop: '1rem' }}>
+                        <CircleExclamation className="svg--icon--2" />
+                        <p className="meta text-color--2">
+                          {displayV2UnsupportedCollateralValue} of V2 collateral value cannot be migrated due to
+                          unsupported collateral in V3.
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </>
               )}
