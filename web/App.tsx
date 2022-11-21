@@ -1139,12 +1139,12 @@ export default ({ rpc, web3 }: AppProps) => {
 
   if (networkConfig && account) {
     if (networkConfig === 'unsupported') {
-      return <LoadingView />;
+      return <LoadingView rpc={rpc} />;
     } else {
       return <App rpc={rpc} web3={web3} account={account} networkConfig={networkConfig} />;
     }
   } else {
-    return <LoadingView />;
+    return <LoadingView rpc={rpc} />;
   }
 };
 
@@ -1259,7 +1259,23 @@ const LoadingPosition = () => {
   );
 };
 
-const LoadingView = () => {
+const LoadingView = ({ rpc }: {rpc?: RPC}) => {
+
+  useEffect(() => {
+    if (rpc) {
+      rpc.on({
+        setTheme: ({ theme }) => {
+          getDocument(document => {
+            document.body.classList.add('theme');
+            document.body.classList.remove(`theme--dark`);
+            document.body.classList.remove(`theme--light`);
+            document.body.classList.add(`theme--${theme.toLowerCase()}`);
+          });
+        },
+      });
+    }
+  }, [rpc]);
+
   return (
     <div className="page migrator">
       <div className="container">
