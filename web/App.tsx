@@ -796,14 +796,8 @@ export function App<N extends Network>({ rpc, web3, account, networkConfig }: Ap
     });
   }
 
-  let collateralEl;
-  if (collateralWithBalances.length === 0) {
-    collateralEl = (
-      <div className="asset-row asset-row--active L3">
-        <p className="L2 text-color--1">Any collateral balances in Compound V2 will appear here.</p>
-      </div>
-    );
-  } else {
+  let collateralEl = null;
+  if (collateralWithBalances.length > 0) {
     collateralEl = collateralWithBalances.map(([sym, tokenState]) => {
       let transfer: string;
       let transferDollarValue: string;
@@ -985,7 +979,10 @@ export function App<N extends Network>({ rpc, web3, account, networkConfig }: Ap
                     <label className="L1 label text-color--2 migrator__balances__section__header">Supplying</label>
                     {collateralEl}
                     {v2UnsupportedCollateralValue > 0n && (
-                      <div className="migrator__balances__alert" style={{ marginTop: '1rem' }}>
+                      <div
+                        className="migrator__balances__alert"
+                        style={{ marginTop: collateralWithBalances.length > 0 ? '1rem' : '0rem' }}
+                      >
                         <CircleExclamation className="svg--icon--2" />
                         <p className="meta text-color--2">
                           {displayV2UnsupportedCollateralValue} of V2 collateral value cannot be migrated due to
