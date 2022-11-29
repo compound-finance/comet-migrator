@@ -4,16 +4,20 @@ import { CometState, RPC } from '@compound-finance/comet-extension';
 import { BaseAssetWithState, TokenWithAccountState } from '@compound-finance/comet-extension/dist/CometState';
 import { Contract } from '@ethersproject/contracts';
 import { JsonRpcProvider } from '@ethersproject/providers';
+import { Protocol } from '@uniswap/router-sdk'
+import { AlphaRouter, SwapRoute, SwapType } from '@uniswap/smart-order-router';
+import { CurrencyAmount, Percent, Token, TradeType } from '@uniswap/sdk-core';
 import { Contract as MulticallContract, Provider } from 'ethers-multicall';
+import JSBI from 'jsbi'
 import { ReactNode, useEffect, useMemo, useReducer, useState } from 'react';
 
 import Comet from '../abis/Comet';
 import Comptroller from '../abis/Comptroller';
 import CToken from '../abis/CToken';
-import Oracle from '../abis/Oracle';
+import CompoundV2Oracle from '../abis/Oracle';
 
 import ApproveModal from './components/ApproveModal';
-import { CircleExclamation } from './components/Icons';
+import { ArrowRight, CircleExclamation } from './components/Icons';
 
 import { formatTokenBalance, getRiskLevelAndPercentage, maybeBigIntFromString } from './helpers/numbers';
 
@@ -25,6 +29,7 @@ import {
 
 import { CTokenSym, Network, NetworkConfig, getIdByNetwork, getNetworkById, getNetworkConfig } from './Network';
 import { ApproveModalProps } from './types';
+import SwapDropdown from './components/SwapDropdown';
 
 const MAX_UINT256 = BigInt('115792089237316195423570985008687907853269984665640564039457584007913129639935');
 const FACTOR_PRECISION = 18;
@@ -113,6 +118,8 @@ enum StateType {
   Hydrated = 'hydrated'
 }
 
+type SwapRouteState = undefined | [StateType.Loading] | [StateType.Hydrated, SwapRoute];
+
 interface CTokenState {
   address: string;
   allowance: bigint;
@@ -125,9 +132,13 @@ interface CTokenState {
   price: bigint;
   repayAmount: string | 'max';
   transfer: string | 'max';
-  underlyingDecimals: number;
-  underlyingName: string;
-  underlyingSymbol: string;
+  underlying: {
+    address: string;
+    decimals: number;
+    name: string;
+    symbol: string;
+  };
+  swapRoute: SwapRouteState;
 }
 
 interface MigratorStateData<Network> {
@@ -145,6 +156,7 @@ enum ActionType {
   SetAccountState = 'set-account-state',
   SetError = 'set-error',
   SetRepayAmount = 'set-repay-amount',
+  SetSwapRoute = 'set-swap-route',
   SetTransferForCToken = 'set-transfer-for-ctoken'
 }
 
@@ -168,6 +180,13 @@ type ActionSetRepayAmount = {
     repayAmount: string;
   };
 };
+type ActionSetSwapRoute = {
+  type: ActionType.SetSwapRoute;
+  payload: {
+    symbol: CTokenSym<Network>;
+    swapRoute: SwapRouteState;
+  };
+};
 type ActionSetTransferForCToken = {
   type: ActionType.SetTransferForCToken;
   payload: {
@@ -184,6 +203,7 @@ type Action =
   | ActionSetAccountState
   | ActionSetError
   | ActionSetRepayAmount
+  | ActionSetSwapRoute
   | ActionSetTransferForCToken;
 
 function reducer(state: MigratorState, action: Action): MigratorState {
@@ -234,6 +254,24 @@ function reducer(state: MigratorState, action: Action): MigratorState {
       cTokenCopy.set(action.payload.symbol, {
         ...(state.data.cTokens.get(action.payload.symbol) as CTokenState),
         repayAmount: action.payload.repayAmount
+      });
+
+      return {
+        type: StateType.Hydrated,
+        data: {
+          ...state.data,
+          error: null,
+          cTokens: cTokenCopy
+        }
+      };
+    }
+    case ActionType.SetSwapRoute: {
+      if (state.type !== StateType.Hydrated) return state;
+
+      const cTokenCopy: Map<CTokenSym<Network>, CTokenState> = new Map(Array.from(state.data.cTokens));
+      cTokenCopy.set(action.payload.symbol, {
+        ...(state.data.cTokens.get(action.payload.symbol) as CTokenState),
+        swapRoute: action.payload.swapRoute
       });
 
       return {
@@ -313,7 +351,7 @@ export function App<N extends Network>({ rpc, web3, account, networkConfig }: Ap
   const comptrollerRead = useMemo(() => new MulticallContract(networkConfig.comptrollerAddress, Comptroller), []);
   const oraclePromise = useMemo(async () => {
     const oracleAddress = await comptroller.oracle();
-    return new MulticallContract(oracleAddress, Oracle);
+    return new MulticallContract(oracleAddress, CompoundV2Oracle);
   }, [comptrollerRead]);
 
   const ethcallProvider = useMemo(() => new Provider(web3, getIdByNetwork(networkConfig.network)), [web3]);
@@ -327,6 +365,35 @@ export function App<N extends Network>({ rpc, web3, account, networkConfig }: Ap
   }
 
   useAsyncEffect(async () => {
+    const WETH = new Token(1, '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2', 18, 'WETH', 'Wrapped Ether');
+    const outputAmount = '100000000000000000000';
+    const amount = CurrencyAmount.fromRawAmount(WETH, JSBI.BigInt(outputAmount));
+    console.log('AMOUNT===', amount);
+    
+    const USDC = new Token(1, '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48', 6, 'USDC', 'USD//C');
+    const uniswapRouter = new AlphaRouter({ chainId: 1, provider: web3 });
+    console.log('Getting Route');
+
+    const route = await uniswapRouter.route(
+      amount,
+      USDC,
+      TradeType.EXACT_OUTPUT,
+      undefined,
+      {
+        protocols: [Protocol.V3]
+      }
+      //   , {
+      //   type: SwapType.SWAP_ROUTER_02,
+      //   recipient: migrator.address,
+      //   slippageTolerance: new Percent(5, 100),
+      //   deadline: Math.floor(Date.now() / 1000 + 1800)
+      // }
+    );
+
+    console.log('ROUTEEEE-----', route);
+  });
+
+  useAsyncEffect(async () => {
     const cTokenContracts = networkConfig.cTokens.map(({ address }) => new MulticallContract(address, CToken));
     const oracle = await oraclePromise;
 
@@ -338,7 +405,7 @@ export function App<N extends Network>({ rpc, web3, account, networkConfig }: Ap
       comptrollerRead.markets(cTokenContract.address)
     );
     const priceCalls = networkConfig.cTokens.map(cToken => {
-      const priceSymbol = cToken.underlyingSymbol === 'WBTC' ? 'BTC' : cToken.underlyingSymbol;
+      const priceSymbol = cToken.underlying.symbol === 'WBTC' ? 'BTC' : cToken.underlying.symbol;
       return oracle.price(priceSymbol);
     });
 
@@ -371,9 +438,6 @@ export function App<N extends Network>({ rpc, web3, account, networkConfig }: Ap
       networkConfig.cTokens.map((cToken, index) => {
         const maybeTokenState = state.type === StateType.Loading ? undefined : state.data.cTokens.get(cToken.symbol);
 
-        const underlyingDecimals: number = cToken.underlyingDecimals;
-        const underlyingName: string = cToken.underlyingName;
-        const underlyingSymbol: string = cToken.underlyingSymbol;
         const balance: bigint = balances[index];
         const borrowBalance = borrowBalances[index];
         const exchangeRate: bigint = exchangeRates[index];
@@ -383,6 +447,7 @@ export function App<N extends Network>({ rpc, web3, account, networkConfig }: Ap
         const decimals: number = cToken.decimals;
         const repayAmount: string = maybeTokenState?.repayAmount ?? '';
         const transfer: string = maybeTokenState?.transfer ?? '';
+        const swapRoute: SwapRouteState = maybeTokenState?.swapRoute;
         const price: bigint = prices[index];
 
         return [
@@ -397,11 +462,10 @@ export function App<N extends Network>({ rpc, web3, account, networkConfig }: Ap
             decimals,
             exchangeRate,
             price,
-            underlyingDecimals,
-            underlyingName,
-            underlyingSymbol,
+            underlying: cToken.underlying,
             repayAmount,
-            transfer
+            transfer,
+            swapRoute
           }
         ];
       })
@@ -421,39 +485,36 @@ export function App<N extends Network>({ rpc, web3, account, networkConfig }: Ap
   }
   const cometData = cometState[1];
 
-  const cTokensWithBorrowBalances = Array.from(state.data.cTokens.entries()).filter(([sym, tokenState]) => {
-    return tokenState.borrowBalance > 0n && sym === 'cUSDC';
+  const cTokensWithBorrowBalances = Array.from(state.data.cTokens.entries()).filter(([, tokenState]) => {
+    return tokenState.borrowBalance > 0n;
   });
   const collateralWithBalances = Array.from(state.data.cTokens.entries()).filter(([, tokenState]) => {
-    const v3CollateralAsset = cometData.collateralAssets.find(asset => asset.symbol === tokenState.underlyingSymbol);
+    const v3CollateralAsset = cometData.collateralAssets.find(asset => asset.symbol === tokenState.underlying.symbol);
     return v3CollateralAsset !== undefined && tokenState.balance > 0n;
   });
   const cTokens = Array.from(state.data.cTokens.entries());
-  const v2BorrowValue = cTokens.reduce((acc, [, { borrowBalance, underlyingDecimals, price, repayAmount }]) => {
+  const v2BorrowValue = cTokens.reduce((acc, [, { borrowBalance, underlying, price, repayAmount }]) => {
     const maybeRepayAmount =
-      repayAmount === 'max' ? borrowBalance : maybeBigIntFromString(repayAmount, underlyingDecimals);
+      repayAmount === 'max' ? borrowBalance : maybeBigIntFromString(repayAmount, underlying.decimals);
     const repayAmountBigInt =
       maybeRepayAmount === undefined ? 0n : maybeRepayAmount > borrowBalance ? borrowBalance : maybeRepayAmount;
-    return acc + ((borrowBalance - repayAmountBigInt) * price) / BigInt(10 ** underlyingDecimals);
+    return acc + ((borrowBalance - repayAmountBigInt) * price) / BigInt(10 ** underlying.decimals);
   }, BigInt(0));
   const displayV2BorrowValue = formatTokenBalance(PRICE_PRECISION, v2BorrowValue, false, true);
 
-  const v2CollateralValue = cTokens.reduce((acc, [, { balanceUnderlying, underlyingDecimals, price, transfer }]) => {
-    const maybeTransfer = transfer === 'max' ? balanceUnderlying : maybeBigIntFromString(transfer, underlyingDecimals);
+  const v2CollateralValue = cTokens.reduce((acc, [, { balanceUnderlying, underlying, price, transfer }]) => {
+    const maybeTransfer = transfer === 'max' ? balanceUnderlying : maybeBigIntFromString(transfer, underlying.decimals);
     const transferBigInt =
       maybeTransfer === undefined ? 0n : maybeTransfer > balanceUnderlying ? balanceUnderlying : maybeTransfer;
-    return acc + ((balanceUnderlying - transferBigInt) * price) / BigInt(10 ** underlyingDecimals);
+    return acc + ((balanceUnderlying - transferBigInt) * price) / BigInt(10 ** underlying.decimals);
   }, BigInt(0));
   const displayV2CollateralValue = formatTokenBalance(PRICE_PRECISION, v2CollateralValue, false, true);
 
-  const v2UnsupportedCollateralValue = cTokens.reduce(
-    (acc, [, { balanceUnderlying, underlyingDecimals, underlyingSymbol, price }]) => {
-      const v3CollateralAsset = cometData.collateralAssets.find(asset => asset.symbol === underlyingSymbol);
-      const balance = v3CollateralAsset === undefined ? balanceUnderlying : 0n;
-      return acc + (balance * price) / BigInt(10 ** underlyingDecimals);
-    },
-    BigInt(0)
-  );
+  const v2UnsupportedCollateralValue = cTokens.reduce((acc, [, { balanceUnderlying, underlying, price }]) => {
+    const v3CollateralAsset = cometData.collateralAssets.find(asset => asset.symbol === underlying.symbol);
+    const balance = v3CollateralAsset === undefined ? balanceUnderlying : 0n;
+    return acc + (balance * price) / BigInt(10 ** underlying.decimals);
+  }, BigInt(0));
   const displayV2UnsupportedCollateralValue = formatTokenBalance(
     PRICE_PRECISION,
     v2UnsupportedCollateralValue,
@@ -462,12 +523,12 @@ export function App<N extends Network>({ rpc, web3, account, networkConfig }: Ap
   );
 
   const v2BorrowCapacity = cTokens.reduce(
-    (acc, [, { balanceUnderlying, collateralFactor, price, transfer, underlyingDecimals }]) => {
+    (acc, [, { balanceUnderlying, collateralFactor, price, transfer, underlying }]) => {
       const maybeTransfer =
-        transfer === 'max' ? balanceUnderlying : maybeBigIntFromString(transfer, underlyingDecimals);
+        transfer === 'max' ? balanceUnderlying : maybeBigIntFromString(transfer, underlying.decimals);
       const transferBigInt =
         maybeTransfer === undefined ? 0n : maybeTransfer > balanceUnderlying ? balanceUnderlying : maybeTransfer;
-      const dollarValue = ((balanceUnderlying - transferBigInt) * price) / BigInt(10 ** underlyingDecimals);
+      const dollarValue = ((balanceUnderlying - transferBigInt) * price) / BigInt(10 ** underlying.decimals);
       const capacity = (dollarValue * collateralFactor) / BigInt(10 ** FACTOR_PRECISION);
       return acc + capacity;
     },
@@ -478,16 +539,13 @@ export function App<N extends Network>({ rpc, web3, account, networkConfig }: Ap
   const v2AvailableToBorrow = v2BorrowCapacity - v2BorrowValue;
   const displayV2AvailableToBorrow = formatTokenBalance(PRICE_PRECISION, v2AvailableToBorrow, false, true);
 
-  const v2ToV3MigrateBorrowValue = cTokens.reduce(
-    (acc, [, { borrowBalance, underlyingDecimals, price, repayAmount }]) => {
-      const maybeRepayAmount =
-        repayAmount === 'max' ? borrowBalance : maybeBigIntFromString(repayAmount, underlyingDecimals);
-      const repayAmountBigInt =
-        maybeRepayAmount === undefined ? 0n : maybeRepayAmount > borrowBalance ? borrowBalance : maybeRepayAmount;
-      return acc + (repayAmountBigInt * price) / BigInt(10 ** underlyingDecimals);
-    },
-    BigInt(0)
-  );
+  const v2ToV3MigrateBorrowValue = cTokens.reduce((acc, [, { borrowBalance, underlying, price, repayAmount }]) => {
+    const maybeRepayAmount =
+      repayAmount === 'max' ? borrowBalance : maybeBigIntFromString(repayAmount, underlying.decimals);
+    const repayAmountBigInt =
+      maybeRepayAmount === undefined ? 0n : maybeRepayAmount > borrowBalance ? borrowBalance : maybeRepayAmount;
+    return acc + (repayAmountBigInt * price) / BigInt(10 ** underlying.decimals);
+  }, BigInt(0));
   const existinBorrowBalance = cometData.baseAsset.balance < 0n ? -cometData.baseAsset.balance : 0n;
   const existingBorrowValue: bigint =
     (existinBorrowBalance * cometData.baseAsset.price) / BigInt(10 ** cometData.baseAsset.decimals);
@@ -495,16 +553,12 @@ export function App<N extends Network>({ rpc, web3, account, networkConfig }: Ap
 
   const displayV3BorrowValue = formatTokenBalance(PRICE_PRECISION, v3BorrowValue, false, true);
 
-  const v2ToV3MigrateCollateralValue = cTokens.reduce(
-    (acc, [, { balanceUnderlying, underlyingDecimals, price, transfer }]) => {
-      const maybeTransfer =
-        transfer === 'max' ? balanceUnderlying : maybeBigIntFromString(transfer, underlyingDecimals);
-      const transferBigInt =
-        maybeTransfer === undefined ? 0n : maybeTransfer > balanceUnderlying ? balanceUnderlying : maybeTransfer;
-      return acc + (transferBigInt * price) / BigInt(10 ** underlyingDecimals);
-    },
-    BigInt(0)
-  );
+  const v2ToV3MigrateCollateralValue = cTokens.reduce((acc, [, { balanceUnderlying, underlying, price, transfer }]) => {
+    const maybeTransfer = transfer === 'max' ? balanceUnderlying : maybeBigIntFromString(transfer, underlying.decimals);
+    const transferBigInt =
+      maybeTransfer === undefined ? 0n : maybeTransfer > balanceUnderlying ? balanceUnderlying : maybeTransfer;
+    return acc + (transferBigInt * price) / BigInt(10 ** underlying.decimals);
+  }, BigInt(0));
   const v3CollateralValuePreMigrate = cometData.collateralAssets.reduce((acc, { balance, decimals, price }) => {
     return acc + (balance * price) / BigInt(10 ** decimals);
   }, BigInt(0));
@@ -514,12 +568,12 @@ export function App<N extends Network>({ rpc, web3, account, networkConfig }: Ap
 
   const v3BorrowCapacityValue = cometData.collateralAssets.reduce(
     (acc, { balance, collateralFactor, decimals, price, symbol }) => {
-      const filteredTokens = cTokens.filter(([, tokenState]) => tokenState.underlyingSymbol === symbol);
+      const filteredTokens = cTokens.filter(([, tokenState]) => tokenState.underlying.symbol === symbol);
       const transfer = filteredTokens.reduce((acc, [, tokenState]) => {
         if (tokenState.transfer === 'max') {
           return acc + tokenState.balanceUnderlying;
         } else {
-          const maybeTransfer = maybeBigIntFromString(tokenState.transfer, tokenState.underlyingDecimals);
+          const maybeTransfer = maybeBigIntFromString(tokenState.transfer, tokenState.underlying.decimals);
           return maybeTransfer === undefined
             ? acc
             : maybeTransfer > tokenState.balanceUnderlying
@@ -591,7 +645,7 @@ export function App<N extends Network>({ rpc, web3, account, networkConfig }: Ap
       return undefined;
     }
 
-    const repayAmount = parseNumber(cUSDC.repayAmount, n => amountToWei(n, cUSDC.underlyingDecimals));
+    const repayAmount = parseNumber(cUSDC.repayAmount, n => amountToWei(n, cUSDC.underlying.decimals));
     if (repayAmount === null) {
       return undefined;
     }
@@ -606,9 +660,9 @@ export function App<N extends Network>({ rpc, web3, account, networkConfig }: Ap
     let collateral: Collateral[] = [];
     for (let [
       ,
-      { address, balance, balanceUnderlying, underlyingDecimals, underlyingSymbol, transfer, exchangeRate }
+      { address, balance, balanceUnderlying, underlying, transfer, exchangeRate }
     ] of state.data.cTokens.entries()) {
-      const collateralAsset = cometData.collateralAssets.find(asset => asset.symbol === underlyingSymbol);
+      const collateralAsset = cometData.collateralAssets.find(asset => asset.symbol === underlying.symbol);
 
       if (!collateralAsset) {
         continue;
@@ -624,7 +678,7 @@ export function App<N extends Network>({ rpc, web3, account, networkConfig }: Ap
           amount: balance
         });
       } else {
-        const maybeTransfer = maybeBigIntFromString(transfer, underlyingDecimals);
+        const maybeTransfer = maybeBigIntFromString(transfer, underlying.decimals);
         if (maybeTransfer !== undefined && maybeTransfer > balanceUnderlying) {
           return undefined;
         } else if (
@@ -635,7 +689,7 @@ export function App<N extends Network>({ rpc, web3, account, networkConfig }: Ap
         }
 
         const transferAmount = parseNumber(transfer, n =>
-          amountToWei((n * 1e18) / Number(exchangeRate), underlyingDecimals!)
+          amountToWei((n * 1e18) / Number(exchangeRate), underlying.decimals!)
         );
         if (transferAmount === null) {
           return undefined;
@@ -689,6 +743,15 @@ export function App<N extends Network>({ rpc, web3, account, networkConfig }: Ap
     }
   }
 
+  const uniswapRouter = new AlphaRouter({ chainId: getIdByNetwork(networkConfig.network), provider: web3 });
+  const BASE_ASSET = new Token(
+    getIdByNetwork(networkConfig.network),
+    cometData.baseAsset.address,
+    cometData.baseAsset.decimals,
+    cometData.baseAsset.symbol,
+    cometData.baseAsset.name
+  );
+
   let borrowEl;
   if (cTokensWithBorrowBalances.length > 0) {
     borrowEl = cTokensWithBorrowBalances.map(([sym, tokenState]) => {
@@ -696,22 +759,21 @@ export function App<N extends Network>({ rpc, web3, account, networkConfig }: Ap
       let repayAmountDollarValue: string;
       let errorTitle: string | undefined;
       let errorDescription: string | undefined;
-      const disabled = sym !== 'cUSDC';
 
       if (tokenState.repayAmount === 'max') {
-        repayAmount = formatTokenBalance(tokenState.underlyingDecimals, tokenState.borrowBalance, false);
+        repayAmount = formatTokenBalance(tokenState.underlying.decimals, tokenState.borrowBalance);
         repayAmountDollarValue = formatTokenBalance(
-          tokenState.underlyingDecimals + PRICE_PRECISION,
+          tokenState.underlying.decimals + PRICE_PRECISION,
           tokenState.borrowBalance * tokenState.price,
           false,
           true
         );
 
-        if (tokenState.borrowBalance > cometData.baseAsset.balanceOfComet) {
-          [errorTitle, errorDescription] = notEnoughLiquidityError(cometData.baseAsset);
-        }
+        // if (tokenState.borrowBalance > cometData.baseAsset.balanceOfComet) {
+        //   [errorTitle, errorDescription] = notEnoughLiquidityError(cometData.baseAsset);
+        // }
       } else {
-        const maybeRepayAmount = maybeBigIntFromString(tokenState.repayAmount, tokenState.underlyingDecimals);
+        const maybeRepayAmount = maybeBigIntFromString(tokenState.repayAmount, tokenState.underlying.decimals);
 
         if (maybeRepayAmount === undefined) {
           repayAmount = tokenState.repayAmount;
@@ -719,7 +781,7 @@ export function App<N extends Network>({ rpc, web3, account, networkConfig }: Ap
         } else {
           repayAmount = tokenState.repayAmount;
           repayAmountDollarValue = formatTokenBalance(
-            tokenState.underlyingDecimals + PRICE_PRECISION,
+            tokenState.underlying.decimals + PRICE_PRECISION,
             maybeRepayAmount * tokenState.price,
             false,
             true
@@ -728,13 +790,14 @@ export function App<N extends Network>({ rpc, web3, account, networkConfig }: Ap
           if (maybeRepayAmount > tokenState.borrowBalance) {
             errorTitle = 'Amount Exceeds Borrow Balance.';
             errorDescription = `Value must be less than or equal to ${formatTokenBalance(
-              tokenState.underlyingDecimals,
+              tokenState.underlying.decimals,
               tokenState.borrowBalance,
               false
             )}`;
-          } else if (maybeRepayAmount > cometData.baseAsset.balanceOfComet) {
-            [errorTitle, errorDescription] = notEnoughLiquidityError(cometData.baseAsset);
           }
+          //  else if (maybeRepayAmount > cometData.baseAsset.balanceOfComet) {
+          //   [errorTitle, errorDescription] = notEnoughLiquidityError(cometData.baseAsset);
+          // }
         }
       }
 
@@ -743,21 +806,30 @@ export function App<N extends Network>({ rpc, web3, account, networkConfig }: Ap
           <div className="migrator__input-view__content">
             <div className="migrator__input-view__left">
               <div className="migrator__input-view__header">
-                <div className={`asset asset--${sym.slice(1)}`}></div>
-                <label className="L2 label text-color--1">USDC</label>
+                <div className={`asset asset--${tokenState.underlying.symbol}`}></div>
+                <label className="L2 label text-color--1">{tokenState.underlying.symbol}</label>
+                {tokenState.underlying.symbol !== cometData.baseAsset.symbol && (
+                  <>
+                    <ArrowRight className="svg--icon--2" />
+                    <div className={`asset asset--${cometData.baseAsset.symbol}`}></div>
+                    <label className="L2 label text-color--1">{cometData.baseAsset.symbol}</label>
+                  </>
+                )}
               </div>
               <div className="migrator__input-view__holder">
                 <input
                   placeholder="0.0000"
                   value={repayAmount}
-                  onChange={e =>
-                    dispatch({ type: ActionType.SetRepayAmount, payload: { symbol: sym, repayAmount: e.target.value } })
-                  }
+                  onChange={e => {
+                    dispatch({
+                      type: ActionType.SetRepayAmount,
+                      payload: { symbol: sym, repayAmount: e.target.value }
+                    });
+                  }}
                   type="text"
                   inputMode="decimal"
-                  disabled={disabled}
                 />
-                {tokenState.repayAmount === '' && !disabled && (
+                {tokenState.repayAmount === '' && (
                   <div className="migrator__input-view__placeholder text-color--2">
                     <span className="text-color--1">0</span>.0000
                   </div>
@@ -770,20 +842,77 @@ export function App<N extends Network>({ rpc, web3, account, networkConfig }: Ap
             <div className="migrator__input-view__right">
               <button
                 className="button button--small"
-                disabled={disabled || tokenState.repayAmount === 'max'}
-                onClick={() =>
-                  dispatch({ type: ActionType.SetRepayAmount, payload: { symbol: sym, repayAmount: 'max' } })
-                }
+                disabled={tokenState.repayAmount === 'max'}
+                onClick={() => {
+                  dispatch({ type: ActionType.SetRepayAmount, payload: { symbol: sym, repayAmount: 'max' } });
+
+                  if (tokenState.underlying.symbol !== cometData.baseAsset.symbol) {
+                    console.log('We are here');
+                    dispatch({
+                      type: ActionType.SetSwapRoute,
+                      payload: { symbol: sym, swapRoute: [StateType.Loading] }
+                    });
+
+                    // const token = new Token(
+                    //   getIdByNetwork(networkConfig.network),
+                    //   tokenState.underlying.address,
+                    //   tokenState.underlying.decimals,
+                    //   tokenState.underlying.symbol,
+                    //   tokenState.underlying.name
+                    // );
+                    // const outputAmount = tokenState.borrowBalance.toString();
+                    const token = new Token(
+                      1,
+                      '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2',
+                      18,
+                      'WETH',
+                      'Wrapped Ether'
+                    );
+                    const outputAmount = '100000000000000000000';
+                    const amount = CurrencyAmount.fromRawAmount(token, outputAmount);
+                    const USDC = new Token(1, '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48', 6, 'USDC', 'USD//C');
+
+                    uniswapRouter
+                      .route(
+                        amount,
+                        // BASE_ASSET,
+                        USDC,
+                        TradeType.EXACT_OUTPUT,
+                        {
+                          type: SwapType.SWAP_ROUTER_02,
+                          recipient: migrator.address,
+                          slippageTolerance: new Percent(5, 100),
+                          deadline: Math.floor(Date.now() / 1000 + 1800)
+                        }
+                      )
+                      .then(route => {
+                        console.log('ROUTE', route);
+
+                        if (route !== null) {
+                          dispatch({
+                            type: ActionType.SetSwapRoute,
+                            payload: { symbol: sym, swapRoute: [StateType.Hydrated, route] }
+                          });
+                        }
+                      })
+                      .catch(e => {
+                        dispatch({
+                          type: ActionType.SetSwapRoute,
+                          payload: { symbol: sym, swapRoute: undefined }
+                        });
+                      });
+                  }
+                }}
               >
                 Max
               </button>
-              <p className="meta text-color--2" style={{ marginTop: '0.75rem' }}>
+              <p className="meta text-color--2" style={{ marginTop: '0.25rem' }}>
                 <span style={{ fontWeight: '500' }}>V2 balance:</span>{' '}
-                {formatTokenBalance(tokenState.underlyingDecimals, tokenState.borrowBalance, false)}
+                {formatTokenBalance(tokenState.underlying.decimals, tokenState.borrowBalance, false)}
               </p>
               <p className="meta text-color--2">
                 {formatTokenBalance(
-                  tokenState.underlyingDecimals + PRICE_PRECISION,
+                  tokenState.underlying.decimals + PRICE_PRECISION,
                   tokenState.borrowBalance * tokenState.price,
                   false,
                   true
@@ -791,6 +920,7 @@ export function App<N extends Network>({ rpc, web3, account, networkConfig }: Ap
               </p>
             </div>
           </div>
+          <SwapDropdown baseAsset={cometData.baseAsset} state={tokenState.swapRoute} />
           {!!errorTitle && <InputViewError title={errorTitle} description={errorDescription} />}
         </div>
       );
@@ -805,12 +935,12 @@ export function App<N extends Network>({ rpc, web3, account, networkConfig }: Ap
       let errorTitle: string | undefined;
       let errorDescription: string | undefined;
       const disabled = tokenState.allowance === 0n;
-      const collateralAsset = cometData.collateralAssets.find(asset => asset.symbol === tokenState.underlyingSymbol);
+      const collateralAsset = cometData.collateralAssets.find(asset => asset.symbol === tokenState.underlying.symbol);
 
       if (tokenState.transfer === 'max') {
-        transfer = formatTokenBalance(tokenState.underlyingDecimals, tokenState.balanceUnderlying, false);
+        transfer = formatTokenBalance(tokenState.underlying.decimals, tokenState.balanceUnderlying);
         transferDollarValue = formatTokenBalance(
-          tokenState.underlyingDecimals + PRICE_PRECISION,
+          tokenState.underlying.decimals + PRICE_PRECISION,
           tokenState.balanceUnderlying * tokenState.price,
           false,
           true
@@ -823,7 +953,7 @@ export function App<N extends Network>({ rpc, web3, account, networkConfig }: Ap
           [errorTitle, errorDescription] = supplyCapError(collateralAsset);
         }
       } else {
-        const maybeTransfer = maybeBigIntFromString(tokenState.transfer, tokenState.underlyingDecimals);
+        const maybeTransfer = maybeBigIntFromString(tokenState.transfer, tokenState.underlying.decimals);
 
         if (maybeTransfer === undefined) {
           transfer = tokenState.transfer;
@@ -831,7 +961,7 @@ export function App<N extends Network>({ rpc, web3, account, networkConfig }: Ap
         } else {
           transfer = tokenState.transfer;
           transferDollarValue = formatTokenBalance(
-            tokenState.underlyingDecimals + PRICE_PRECISION,
+            tokenState.underlying.decimals + PRICE_PRECISION,
             maybeTransfer * tokenState.price,
             false,
             true
@@ -840,7 +970,7 @@ export function App<N extends Network>({ rpc, web3, account, networkConfig }: Ap
           if (maybeTransfer > tokenState.balanceUnderlying) {
             errorTitle = 'Amount Exceeds Balance.';
             errorDescription = `Value must be less than or equal to ${formatTokenBalance(
-              tokenState.underlyingDecimals,
+              tokenState.underlying.decimals,
               tokenState.balanceUnderlying,
               false
             )}`;
@@ -860,8 +990,8 @@ export function App<N extends Network>({ rpc, web3, account, networkConfig }: Ap
           <div className="migrator__input-view__content">
             <div className="migrator__input-view__left">
               <div className="migrator__input-view__header">
-                <div className={`asset asset--${tokenState.underlyingSymbol}`}></div>
-                <label className="L2 label text-color--1">{tokenState.underlyingSymbol}</label>
+                <div className={`asset asset--${tokenState.underlying.symbol}`}></div>
+                <label className="L2 label text-color--1">{tokenState.underlying.symbol}</label>
               </div>
               <div className="migrator__input-view__holder">
                 <input
@@ -895,8 +1025,8 @@ export function App<N extends Network>({ rpc, web3, account, networkConfig }: Ap
                   onClick={() => {
                     setApproveModal({
                       asset: {
-                        name: tokenState.underlyingName,
-                        symbol: tokenState.underlyingSymbol
+                        name: tokenState.underlying.name,
+                        symbol: tokenState.underlying.symbol
                       },
                       transactionKey: key,
                       onActionClicked: (_asset, _descption) => setTokenApproval(sym),
@@ -917,13 +1047,13 @@ export function App<N extends Network>({ rpc, web3, account, networkConfig }: Ap
                   Max
                 </button>
               )}
-              <p className="meta text-color--2" style={{ marginTop: '0.75rem' }}>
+              <p className="meta text-color--2" style={{ marginTop: '0.25rem' }}>
                 <span style={{ fontWeight: '500' }}>V2 balance:</span>{' '}
-                {formatTokenBalance(tokenState.underlyingDecimals, tokenState.balanceUnderlying, false)}
+                {formatTokenBalance(tokenState.underlying.decimals, tokenState.balanceUnderlying, false)}
               </p>
               <p className="meta text-color--2">
                 {formatTokenBalance(
-                  tokenState.underlyingDecimals + PRICE_PRECISION,
+                  tokenState.underlying.decimals + PRICE_PRECISION,
                   tokenState.balanceUnderlying * tokenState.price,
                   false,
                   true
