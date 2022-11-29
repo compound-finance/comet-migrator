@@ -514,21 +514,21 @@ export function App<N extends Network>({ rpc, web3, account, networkConfig }: Ap
 
   const v3BorrowCapacityValue = cometData.collateralAssets.reduce(
     (acc, { balance, collateralFactor, decimals, price, symbol }) => {
-      const maybeCToken = cTokens.find(([sym]) => sym.slice(1) === symbol)?.[1];
-      const maybeTransfer =
-        maybeCToken === undefined
-          ? undefined
-          : maybeCToken.transfer === 'max'
-          ? maybeCToken.balanceUnderlying
-          : maybeBigIntFromString(maybeCToken.transfer, maybeCToken.underlyingDecimals);
-      const transferBigInt =
-        maybeTransfer === undefined
-          ? 0n
-          : maybeCToken !== undefined && maybeTransfer > maybeCToken.balanceUnderlying
-          ? maybeCToken.balanceUnderlying
-          : maybeTransfer;
+      const filteredTokens = cTokens.filter(([, tokenState]) => tokenState.underlyingSymbol === symbol);
+      const transfer = filteredTokens.reduce((acc, [, tokenState]) => {
+        if (tokenState.transfer === 'max') {
+          return acc + tokenState.balanceUnderlying;
+        } else {
+          const maybeTransfer = maybeBigIntFromString(tokenState.transfer, tokenState.underlyingDecimals);
+          return maybeTransfer === undefined
+            ? acc
+            : maybeTransfer > tokenState.balanceUnderlying
+            ? acc + tokenState.balanceUnderlying
+            : acc + maybeTransfer;
+        }
+      }, 0n);
 
-      const dollarValue = ((balance + transferBigInt) * price) / BigInt(10 ** decimals);
+      const dollarValue = ((balance + transfer) * price) / BigInt(10 ** decimals);
       const capacity = (dollarValue * collateralFactor) / BigInt(10 ** FACTOR_PRECISION);
 
       return acc + capacity;
@@ -539,20 +539,21 @@ export function App<N extends Network>({ rpc, web3, account, networkConfig }: Ap
 
   const v3LiquidationCapacityValue = cometData.collateralAssets.reduce(
     (acc, { balance, liquidateCollateralFactor, decimals, price, symbol }) => {
-      const maybeCToken = cTokens.find(([sym]) => sym.slice(1) === symbol)?.[1];
-      const maybeTransfer =
-        maybeCToken === undefined
-          ? undefined
-          : maybeCToken.transfer === 'max'
-          ? maybeCToken.balanceUnderlying
-          : maybeBigIntFromString(maybeCToken.transfer, maybeCToken.underlyingDecimals);
-      const transferBigInt =
-        maybeTransfer === undefined
-          ? 0n
-          : maybeCToken !== undefined && maybeTransfer > maybeCToken.balanceUnderlying
-          ? maybeCToken.balanceUnderlying
-          : maybeTransfer;
-      const dollarValue = ((balance + transferBigInt) * price) / BigInt(10 ** decimals);
+      const filteredTokens = cTokens.filter(([, tokenState]) => tokenState.underlyingSymbol === symbol);
+      const transfer = filteredTokens.reduce((acc, [, tokenState]) => {
+        if (tokenState.transfer === 'max') {
+          return acc + tokenState.balanceUnderlying;
+        } else {
+          const maybeTransfer = maybeBigIntFromString(tokenState.transfer, tokenState.underlyingDecimals);
+          return maybeTransfer === undefined
+            ? acc
+            : maybeTransfer > tokenState.balanceUnderlying
+            ? acc + tokenState.balanceUnderlying
+            : acc + maybeTransfer;
+        }
+      }, 0n);
+
+      const dollarValue = ((balance + transfer) * price) / BigInt(10 ** decimals);
       const capacity = (dollarValue * liquidateCollateralFactor) / BigInt(10 ** FACTOR_PRECISION);
       return acc + capacity;
     },
@@ -698,7 +699,7 @@ export function App<N extends Network>({ rpc, web3, account, networkConfig }: Ap
       const disabled = sym !== 'cUSDC';
 
       if (tokenState.repayAmount === 'max') {
-        repayAmount = formatTokenBalance(tokenState.underlyingDecimals, tokenState.borrowBalance);
+        repayAmount = formatTokenBalance(tokenState.underlyingDecimals, tokenState.borrowBalance, false);
         repayAmountDollarValue = formatTokenBalance(
           tokenState.underlyingDecimals + PRICE_PRECISION,
           tokenState.borrowBalance * tokenState.price,
@@ -807,7 +808,7 @@ export function App<N extends Network>({ rpc, web3, account, networkConfig }: Ap
       const collateralAsset = cometData.collateralAssets.find(asset => asset.symbol === tokenState.underlyingSymbol);
 
       if (tokenState.transfer === 'max') {
-        transfer = formatTokenBalance(tokenState.underlyingDecimals, tokenState.balanceUnderlying);
+        transfer = formatTokenBalance(tokenState.underlyingDecimals, tokenState.balanceUnderlying, false);
         transferDollarValue = formatTokenBalance(
           tokenState.underlyingDecimals + PRICE_PRECISION,
           tokenState.balanceUnderlying * tokenState.price,
@@ -1259,8 +1260,7 @@ const LoadingPosition = () => {
   );
 };
 
-const LoadingView = ({ rpc }: {rpc?: RPC}) => {
-
+const LoadingView = ({ rpc }: { rpc?: RPC }) => {
   useEffect(() => {
     if (rpc) {
       rpc.on({
@@ -1271,7 +1271,7 @@ const LoadingView = ({ rpc }: {rpc?: RPC}) => {
             document.body.classList.remove(`theme--light`);
             document.body.classList.add(`theme--${theme.toLowerCase()}`);
           });
-        },
+        }
       });
     }
   }, [rpc]);
