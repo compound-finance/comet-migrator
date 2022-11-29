@@ -29,7 +29,7 @@ const mainnetTokens = [
   'cCOMP',
   'cLINK',
   'cUNI',
-  'cDAI',
+  'cDAI'
 ] as const;
 
 const goerliTokens = ['cETH', 'cDAI', 'cUSDC', 'cWBTC'] as const;
@@ -53,14 +53,17 @@ export type RootsV3<Network> = Network extends 'mainnet'
   : never;
 
 interface CToken<Network> {
-  abi: JsonFragment[]
+  abi: JsonFragment[];
   address: string;
   decimals: number;
   name: string;
   symbol: CTokenSym<Network>;
-  underlyingDecimals: number;
-  underlyingName: string;
-  underlyingSymbol: string;
+  underlying: {
+    address: string;
+    decimals: number;
+    name: string;
+    symbol: string;
+  }
 }
 
 export interface NetworkConfig<Network> {
@@ -151,36 +154,39 @@ export function mainnetConfig<N extends 'mainnet'>(network: N): NetworkConfig<'m
   const migratorAbi = cometMigratorAbi;
   const rootsV3: RootsV3<'mainnet'> = mainnetV3Roots;
   const cTokens: CToken<'mainnet'>[] = cTokenSymbols.map(symbol => {
-      const { address, decimals, name } = mainnetV2Roots.cTokens[symbol] as {
-        address: string;
-        decimals: number;
-        name: string;
-        underlying: string;
-      };
-      const abi = mainnetV2Abi[symbol] as JsonFragment[];
+    const { address, decimals, name } = mainnetV2Roots.cTokens[symbol] as {
+      address: string;
+      decimals: number;
+      name: string;
+      underlying: string;
+    };
+    const abi = mainnetV2Abi[symbol] as JsonFragment[];
 
-      const underlyingSymbol = symbol === 'cWBTC2' ? 'WBTC' : symbol.slice(1);
-      const underlying =
-        symbol === 'cETH'
-          ? { decimals: 18, name: 'Ether', symbol: 'ETH' }
-          : ((mainnetV2Roots.Tokens as any)[underlyingSymbol] as {
-              address: string;
-              decimals: number;
-              name: string;
-              underlying: string;
-            });
+    const underlyingSymbol = symbol === 'cWBTC2' ? 'WBTC' : symbol.slice(1);
+    const underlying =
+      symbol === 'cETH'
+        ? {
+            address: '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2', // THIS IS WETH ADDRESS
+            decimals: 18,
+            name: 'Ether',
+            symbol: 'ETH'
+          }
+        : ((mainnetV2Roots.Tokens as any)[underlyingSymbol] as {
+            address: string;
+            decimals: number;
+            name: string;
+            symbol: string;
+          });
 
-      return {
-        abi,
-        address,
-        decimals,
-        name,
-        symbol,
-        underlyingSymbol,
-        underlyingDecimals: underlying.decimals,
-        underlyingName: underlying.name
-      };
-    });
+    return {
+      abi,
+      address,
+      decimals,
+      name,
+      symbol,
+      underlying
+    };
+  });
 
   return {
     network,
@@ -213,12 +219,17 @@ export function goerliConfig<N extends 'goerli'>(network: N): NetworkConfig<'goe
     const underlyingSymbol = symbol.slice(1);
     const underlying =
       symbol === 'cETH'
-        ? { decimals: 18, name: 'Ether', symbol: 'ETH' }
+        ? {
+            address: '0xD4a33860578De61DBAbDc8BFdb98FD742fA7028e', // THIS IS WETH ADDRESS
+            decimals: 18,
+            name: 'Ether',
+            symbol: 'ETH'
+          }
         : ((goerliV2Roots.Tokens as any)[underlyingSymbol] as {
             address: string;
             decimals: number;
             name: string;
-            underlying: string;
+            symbol: string;
           });
 
     return {
@@ -227,9 +238,7 @@ export function goerliConfig<N extends 'goerli'>(network: N): NetworkConfig<'goe
       decimals,
       name,
       symbol,
-      underlyingSymbol,
-      underlyingDecimals: underlying.decimals,
-      underlyingName: underlying.name
+      underlying
     };
   });
 

@@ -1,0 +1,67 @@
+@use '../abstracts/variables' as *;
+
+.swap-dropdown {
+  border: 0.5px solid var(--ui--border);
+  border-radius: 0.25rem;
+  cursor: pointer;
+  height: 2.5rem;
+  padding: 0.75rem 1rem;
+  transition: height 300ms ease;
+  overflow: hidden;
+
+  &--active {
+    height: 9.25rem;
+  }
+
+  &--loading {
+    cursor: unset;
+  }
+
+  label {
+    cursor: inherit;
+  }
+
+  .asset {
+    height: 0.75rem;
+    width: 0.75rem;
+    margin-right: 0.25rem;
+  }
+
+  .load-spinner {
+    border-color: var(--text--2);
+    border-bottom-color: transparent;
+    margin-right: 0.5rem;
+  }
+
+  &__row {
+    align-items: center;
+    display: flex;
+
+    &__left {
+      align-items: center;
+      display: flex;
+      flex-basis: 66.666%;
+    }
+    &__right {
+      align-items: center;
+      display: flex;
+      justify-content: flex-end;
+      flex-basis: 33.333%;
+    }
+
+    & + & {
+      margin-top: 0.5rem;
+    }
+  }
+
+  &__content {
+    margin-top: 0.75rem;
+  }
+
+  &__divider {
+    background-color: var(--ui--border);
+    height: 0.5px;
+    margin: 0.5rem 0;
+    width: 100%;
+  }
+}

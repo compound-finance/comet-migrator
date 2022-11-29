@@ -130,11 +130,16 @@
     &__header {
       align-items: center;
       display: flex;
+      gap: 0.25rem;
 
       .asset {
         height: 0.75rem;
         width: 0.75rem;
-        margin-right: 0.5rem;
+      }
+
+      .svg {
+        height: 1rem;
+        width: 1rem;
       }
     }
 
@@ -177,6 +182,10 @@
       &:disabled {
         color: var(--text--3);
       }
+    }
+
+    .swap-dropdown {
+      margin-top: 1.25rem;
     }
 
     &__error {

@@ -32,7 +32,7 @@ case "$1" in
     ;;
 esac
 
-anvil --mnemonic "$mnemonic" --fork-url "$fork_url" --fork-block-number "$fork_block" --chain-id 1 --port 8545 &
+anvil --mnemonic "$mnemonic" --fork-url "$fork_url" --fork-block-number "$fork_block" --chain-id 1 --port 8545 --gas-limit 1500000000 &
 anvil_pid="$!"
 sleep 3
 

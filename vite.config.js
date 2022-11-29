@@ -2,6 +2,7 @@ import { resolve } from 'path';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { NodeGlobalsPolyfillPlugin } from '@esbuild-plugins/node-globals-polyfill';
+import { NodeModulesPolyfillPlugin } from '@esbuild-plugins/node-modules-polyfill'
 import nodePolyfills from "rollup-plugin-polyfill-node";
 
 // https://vitejs.dev/config/
@@ -34,6 +35,7 @@ export default defineConfig({
   },
   resolve: {
     alias: {
+      events: 'rollup-plugin-node-polyfills/polyfills/events',
       '/fonts': resolve(__dirname, 'node_modules/compound-styles/public/fonts'),
     },
   },
@@ -48,6 +50,7 @@ export default defineConfig({
         NodeGlobalsPolyfillPlugin({
           buffer: true,
         }),
+        NodeModulesPolyfillPlugin()
       ],
     },
   },
