@@ -64,7 +64,7 @@ function usePoll(timeout: number) {
     }
     loop(1, timeout);
     return () => clearTimeout(t);
-  }, []);
+  }, [timeout]);
 
   return timer;
 }
@@ -1115,8 +1115,8 @@ export function App<N extends Network>({ rpc, web3, account, networkConfig }: Ap
 }
 
 export default ({ rpc, web3 }: AppProps) => {
-  let timer = usePoll(30000);
   const [account, setAccount] = useState<string | null>(null);
+  let timer = usePoll(!!account ? 30000 : 3000);
   const [networkConfig, setNetworkConfig] = useState<NetworkConfig<Network> | 'unsupported' | null>(null);
 
   useAsyncEffect(async () => {
