@@ -1,4 +1,5 @@
-import { TransactionReceipt } from '@ethersproject/providers';
+import { RPC } from '@compound-finance/comet-extension';
+import { TransactionReceipt, JsonRpcProvider } from '@ethersproject/providers';
 
 export type Token = {
   name: string;
@@ -40,3 +41,19 @@ export type ApproveModalProps = {
   onActionClicked: (asset: Token, description: string) => void;
   onRequestClose: () => void;
 };
+
+export enum MigrationSource {
+  AaveV2 = 'aave-v2',
+  CompoundV2 = 'compound-v2'
+}
+
+export enum StateType {
+  Loading = 'loading',
+  Hydrated = 'hydrated'
+}
+
+export interface AppProps {
+  rpc?: RPC;
+  web3: JsonRpcProvider;
+  selectMigratorSource: (source: MigrationSource) => void;
+}

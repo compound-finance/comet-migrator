@@ -1,4 +1,3 @@
-import cometMigratorAbi from '../abis/CometMigrator';
 import { JsonFragment } from '@ethersproject/abi';
 
 import mainnetV3Roots from '../node_modules/comet/deployments/mainnet/usdc/roots.json';
@@ -8,6 +7,10 @@ import mainnetV2Abi from '../node_modules/compound-config/networks/mainnet-abi.j
 import goerliV3Roots from '../node_modules/comet/deployments/goerli/usdc/roots.json';
 import goerliV2Roots from '../node_modules/compound-config/networks/goerli.json';
 import goerliV2Abi from '../node_modules/compound-config/networks/goerli-abi.json';
+
+import cometMigratorAbi from '../abis/CometMigratorV2';
+
+import ATokens from './helpers/Aave/config';
 
 type ConstTupleItems<Tuple extends readonly [...any]> = Tuple[Exclude<keyof Tuple, keyof Array<any>>];
 
@@ -23,7 +26,6 @@ const mainnetTokens = [
   'cUSDT',
   'cUSDC',
   'cETH',
-  // "cSAI",
   'cREP',
   'cBAT',
   'cCOMP',
@@ -32,7 +34,43 @@ const mainnetTokens = [
   'cDAI'
 ] as const;
 
+const mainnetAaveTokens = [
+  'aUSDT',
+  'aWBTC',
+  'aWETH',
+  'aYFI',
+  'aZRX',
+  'aUNI',
+  'aAAVE',
+  'aBAT',
+  'aBUSD',
+  'aDAI',
+  'aENJ',
+  'aKNC',
+  'aLINK',
+  'aMANA',
+  'aMKR',
+  'aREN',
+  'aSNX',
+  'aSUSD',
+  'aTUSD',
+  'aUSDC',
+  'aCRV',
+  'aGUSD',
+  'aBAL',
+  'aXSUSHI',
+  'aRENFIL',
+  'aRAI',
+  'aAMPL',
+  'aUSDP',
+  'aDPI',
+  'aFRAX',
+  'aFEI'
+] as const;
+
 const goerliTokens = ['cETH', 'cDAI', 'cUSDC', 'cWBTC'] as const;
+
+export type ATokenSym<Network> = Network extends 'mainnet' ? ConstTupleItems<typeof mainnetAaveTokens> : never;
 
 export type CTokenSym<Network> = Network extends 'mainnet'
   ? ConstTupleItems<typeof mainnetTokens>
@@ -63,7 +101,17 @@ interface CToken<Network> {
     decimals: number;
     name: string;
     symbol: string;
-  }
+  };
+}
+
+export interface AToken {
+  aTokenAddress: string;
+  aTokenSymbol: ATokenSym<Network>;
+  stableDebtTokenAddress: string;
+  variableDebtTokenAddress: string;
+  symbol: string;
+  address: string;
+  decimals: number;
 }
 
 export interface NetworkConfig<Network> {
@@ -73,6 +121,16 @@ export interface NetworkConfig<Network> {
   migratorAbi: typeof cometMigratorAbi;
   cTokens: CToken<Network>[];
   rootsV2: RootsV2<Network>;
+  rootsV3: RootsV3<Network>;
+}
+
+export interface AaveNetworkConfig<Network> {
+  aTokens: AToken[];
+  lendingPoolAddressesProviderAddress: string;
+  lendingPoolAddress: string;
+  migratorAbi: typeof cometMigratorAbi;
+  migratorAddress: string;
+  network: Network;
   rootsV3: RootsV3<Network>;
 }
 
@@ -260,4 +318,30 @@ export function getNetworkConfig<N extends Network>(network: N): NetworkConfig<N
     return goerliConfig(network) as NetworkConfig<N>;
   }
   return null as never;
+}
+
+export function aaveMainnetConfig<N extends 'mainnet'>(network: N): AaveNetworkConfig<'mainnet'> {
+  const migratorAbi = cometMigratorAbi;
+  const migratorAddress: string = getMigratorAddress(network);
+  const lendingPoolAddressesProviderAddress = '0xB53C1a33016B2DC2fF3653530bfF1848a515c8c5';
+  const lendingPoolAddress = '0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9';
+  const rootsV3: RootsV3<'mainnet'> = mainnetV3Roots;
+
+  return {
+    aTokens: ATokens as AToken[],
+    lendingPoolAddressesProviderAddress,
+    lendingPoolAddress,
+    migratorAbi,
+    migratorAddress,
+    network,
+    rootsV3
+  };
+}
+
+export function getAaveNetworkConfig<N extends Network>(network: N): AaveNetworkConfig<N> | null {
+  if (isMainnet(network)) {
+    return aaveMainnetConfig(network) as AaveNetworkConfig<N>;
+  }
+
+  return null;
 }
