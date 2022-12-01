@@ -1,8 +1,14 @@
+import { SwapInfo } from '../types';
+
 const BILLION = 1_000_000_000;
 const MILLION = 1_000_000;
 const HUNDRED_THOUSAND = 100_000;
 const THOUSAND = 1_000;
 export const MAX_UINT256 = BigInt('115792089237316195423570985008687907853269984665640564039457584007913129639935');
+export const PRICE_PRECISION = 8;
+export const FACTOR_PRECISION = 18;
+export const BASE_FACTOR = BigInt(10 ** FACTOR_PRECISION);
+export const SLIPPAGE_TOLERANCE = BigInt(10 ** FACTOR_PRECISION * 0.005);
 
 export enum MeterRiskLevel {
   Low = 'low',
@@ -62,6 +68,19 @@ export const formatUnits = (units: number, shortened: boolean = true, usd: boole
   })}${postfix}`;
 };
 
+export const formatRateFactor = (
+  value: bigint,
+  maximumFractionDigits: number = 2,
+  minimumFractionDigits: number = 2
+): string => {
+  const rate = Number((value * 10_000n) / BASE_FACTOR) / 100;
+
+  return `${rate.toLocaleString('en-US', {
+    maximumFractionDigits,
+    minimumFractionDigits
+  })}%`;
+};
+
 export const getRiskLevelAndPercentage = (numerator: bigint, denominator: bigint): [MeterRiskLevel, number, string] => {
   const percentage =
     denominator === 0n ? (numerator === 0n ? 0 : 100) : Math.round(Number((numerator * 10_000n) / denominator) / 100);
@@ -118,4 +137,8 @@ export function parseNumber(str: string, f: (x: number) => bigint): bigint | nul
       return f(num);
     }
   }
+}
+
+export function maximumBorrowFromSwapInfo(swapInfo: SwapInfo): bigint {
+  return (swapInfo.tokenOut.amount * (BASE_FACTOR + SLIPPAGE_TOLERANCE)) / BASE_FACTOR;
 }

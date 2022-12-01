@@ -1,6 +1,6 @@
 import '../styles/main.scss';
 
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 
 import { LoadingView } from './components/LoadingViews';
 
@@ -25,6 +25,15 @@ export default ({ rpc, web3 }: AppProps) => {
   const [migrationSource, setMigrationSource] = useState<MigrationSource>(MigrationSource.CompoundV2);
   const [compoundNetworkConfig, setCompoundNetworkConfig] = useState<NetworkConfig<Network> | null>(null);
   const [aaveNetworkConfig, setAaveNetworkConfig] = useState<AaveNetworkConfig<Network> | null>(null);
+
+  const selectMigratorSource = useCallback(
+    (source: MigrationSource) => {
+      if (source !== migrationSource) {
+        setMigrationSource(source);
+      }
+    },
+    [migrationSource, setMigrationSource]
+  );
 
   useAsyncEffect(async () => {
     let accounts = await web3.listAccounts();
@@ -52,19 +61,19 @@ export default ({ rpc, web3 }: AppProps) => {
         web3={web3}
         account={account}
         networkConfig={compoundNetworkConfig}
-        selectMigratorSource={setMigrationSource}
+        selectMigratorSource={selectMigratorSource}
       />
     );
-  } else if (migrationSource === MigrationSource.AaveV2 && aaveNetworkConfig !== null && account) {
-    return (
-      <AaveV2Migrator
-        rpc={rpc}
-        web3={web3}
-        account={account}
-        networkConfig={aaveNetworkConfig}
-        selectMigratorSource={setMigrationSource}
-      />
-    );
+  // } else if (migrationSource === MigrationSource.AaveV2 && aaveNetworkConfig !== null && account) {
+  //   return (
+  //     <AaveV2Migrator
+  //       rpc={rpc}
+  //       web3={web3}
+  //       account={account}
+  //       networkConfig={aaveNetworkConfig}
+  //       selectMigratorSource={selectMigratorSource}
+  //     />
+  //   );
   } else {
     return <LoadingView rpc={rpc} />;
   }

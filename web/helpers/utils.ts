@@ -1,4 +1,4 @@
-import { MigrationSource } from '../types';
+import { MigrationSource, SwapInfo } from '../types';
 
 export function getDocument(f: (document: Document) => void) {
   if (document.readyState !== 'loading') {
@@ -20,15 +20,9 @@ export function tokenApproveTrxKey(tokenAddress: string, approveAddress: string)
 
 export function migrationSourceToDisplayString(migrationSource: MigrationSource): string {
   switch (migrationSource) {
-    case MigrationSource.AaveV2:
-      return 'Aave V2';
+    // case MigrationSource.AaveV2:
+    //   return 'Aave V2';
     case MigrationSource.CompoundV2:
       return 'Compound V2';
   }
 }
-
-export const EMPTY_MIGRATOR_POSITION = {
-  collateral: [],
-  borrows: [],
-  swaps: []
-};

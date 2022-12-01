@@ -3,7 +3,7 @@ import '../styles/main.scss';
 import { CometState } from '@compound-finance/comet-extension';
 import { BaseAssetWithState, TokenWithAccountState } from '@compound-finance/comet-extension/dist/CometState';
 import { Contract } from '@ethersproject/contracts';
-import { Protocol } from '@uniswap/router-sdk';
+import { JsonRpcProvider } from '@ethersproject/providers';
 import { AlphaRouter, SwapRoute, SwapType } from '@uniswap/smart-order-router';
 import { CurrencyAmount, Percent, Token, TradeType } from '@uniswap/sdk-core';
 import { Contract as MulticallContract, Provider } from 'ethers-multicall';
@@ -319,35 +319,6 @@ export default function AaveV2Migrator<N extends Network>({
       tokenContract.approve(migrator.address, MAX_UINT256)
     );
   }
-
-  // useAsyncEffect(async () => {
-  // const WETH = new Token(1, '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2', 18, 'WETH', 'Wrapped Ether');
-  // const outputAmount = '100000000000000000000';
-  // const amount = CurrencyAmount.fromRawAmount(WETH, JSBI.BigInt(outputAmount));
-  // console.log('AMOUNT===', amount);
-
-  // const USDC = new Token(1, '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48', 6, 'USDC', 'USD//C');
-  // const uniswapRouter = new AlphaRouter({ chainId: 1, provider: web3 });
-  // console.log('Getting Route');
-
-  // const route = await uniswapRouter.route(
-  //   amount,
-  //   USDC,
-  //   TradeType.EXACT_OUTPUT,
-  //   undefined,
-  //   {
-  //     protocols: [Protocol.V3]
-  //   }
-  //   //   , {
-  //   //   type: SwapType.SWAP_ROUTER_02,
-  //   //   recipient: migrator.address,
-  //   //   slippageTolerance: new Percent(5, 100),
-  //   //   deadline: Math.floor(Date.now() / 1000 + 1800)
-  //   // }
-  // );
-
-  //   console.log('ROUTEEEE-----', route);
-  // });
 
   useAsyncEffect(async () => {
     const aTokenContracts = networkConfig.aTokens.map(
@@ -757,7 +728,10 @@ export default function AaveV2Migrator<N extends Network>({
     }
   }
 
-  const uniswapRouter = new AlphaRouter({ chainId: getIdByNetwork(networkConfig.network), provider: web3 });
+  const quoteProvider = import.meta.env.VITE_BYPASS_MAINNET_RPC_URL
+    ? new JsonRpcProvider(import.meta.env.VITE_BYPASS_MAINNET_RPC_URL)
+    : web3;
+  const uniswapRouter = new AlphaRouter({ chainId: getIdByNetwork(networkConfig.network), provider: quoteProvider });
   const BASE_ASSET = new Token(
     getIdByNetwork(networkConfig.network),
     cometData.baseAsset.address,
@@ -773,6 +747,7 @@ export default function AaveV2Migrator<N extends Network>({
       let repayAmountDollarValue: string;
       let errorTitle: string | undefined;
       let errorDescription: string | undefined;
+      const slippageTolerance = new Percent(5, 1000);
 
       if (tokenState.repayAmountVariable === 'max') {
         repayAmount = formatTokenBalance(tokenState.aToken.decimals, tokenState.borrowBalanceVariable);
@@ -870,54 +845,36 @@ export default function AaveV2Migrator<N extends Network>({
                       payload: { symbol: sym, swapRoute: [StateType.Loading] }
                     });
 
-                    // const token = new Token(
-                    //   getIdByNetwork(networkConfig.network),
-                    //   tokenState.aToken.address,
-                    //   tokenState.aToken.decimals,
-                    //   tokenState.aToken.symbol,
-                    //   tokenState.aToken.name
-                    // );
-                    // const outputAmount = tokenState.borrowBalance.toString();
                     const token = new Token(
-                      1,
-                      '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2',
-                      18,
-                      'WETH',
-                      'Wrapped Ether'
+                      getIdByNetwork(networkConfig.network),
+                      tokenState.aToken.address,
+                      tokenState.aToken.decimals,
+                      tokenState.aToken.symbol,
+                      tokenState.aToken.symbol
                     );
-                    const outputAmount = '100000000000000000000';
+                    const outputAmount = tokenState.borrowBalanceVariable.toString();
                     const amount = CurrencyAmount.fromRawAmount(token, outputAmount);
-                    const USDC = new Token(1, '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48', 6, 'USDC', 'USD//C');
-
-                    // uniswapRouter
-                    //   .route(
-                    //     amount,
-                    //     // BASE_ASSET,
-                    //     USDC,
-                    //     TradeType.EXACT_OUTPUT,
-                    //     {
-                    //       type: SwapType.SWAP_ROUTER_02,
-                    //       recipient: migrator.address,
-                    //       slippageTolerance: new Percent(5, 100),
-                    //       deadline: Math.floor(Date.now() / 1000 + 1800)
-                    //     }
-                    //   )
-                    //   .then(route => {
-                    //     console.log('ROUTE', route);
-
-                    //     if (route !== null) {
-                    //       dispatch({
-                    //         type: ActionType.SetSwapRoute,
-                    //         payload: { symbol: sym, swapRoute: [StateType.Hydrated, route] }
-                    //       });
-                    //     }
-                    //   })
-                    //   .catch(e => {
-                    //     dispatch({
-                    //       type: ActionType.SetSwapRoute,
-                    //       payload: { symbol: sym, swapRoute: undefined }
-                    //     });
-                    //   });
+                    uniswapRouter
+                      .route(amount, BASE_ASSET, TradeType.EXACT_OUTPUT, {
+                        slippageTolerance,
+                        type: SwapType.SWAP_ROUTER_02,
+                        recipient: migrator.address,
+                        deadline: Math.floor(Date.now() / 1000 + 1800)
+                      })
+                      .then(route => {
+                        if (route !== null) {
+                          dispatch({
+                            type: ActionType.SetSwapRoute,
+                            payload: { symbol: sym, swapRoute: [StateType.Hydrated, route] }
+                          });
+                        }
+                      })
+                      .catch(e => {
+                        dispatch({
+                          type: ActionType.SetSwapRoute,
+                          payload: { symbol: sym, swapRoute: undefined }
+                        });
+                      });
                   }
                 }}
               >
@@ -937,7 +894,7 @@ export default function AaveV2Migrator<N extends Network>({
               </p>
             </div>
           </div>
-          <SwapDropdown baseAsset={cometData.baseAsset} state={tokenState.swapRoute} />
+          {/* <SwapDropdown baseAsset={cometData.baseAsset} slippageTolerance={slippageTolerance} state={tokenState.swapRoute} /> */}
           {!!errorTitle && <InputViewError title={errorTitle} description={errorDescription} />}
         </div>
       );

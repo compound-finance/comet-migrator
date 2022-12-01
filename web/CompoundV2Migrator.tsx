@@ -1,14 +1,12 @@
 import '../styles/main.scss';
 
-import { CometState, RPC } from '@compound-finance/comet-extension';
+import { CometState } from '@compound-finance/comet-extension';
 import { BaseAssetWithState, TokenWithAccountState } from '@compound-finance/comet-extension/dist/CometState';
 import { Contract } from '@ethersproject/contracts';
 import { JsonRpcProvider } from '@ethersproject/providers';
-import { Protocol } from '@uniswap/router-sdk';
 import { AlphaRouter, SwapRoute, SwapType } from '@uniswap/smart-order-router';
 import { CurrencyAmount, Percent, Token, TradeType } from '@uniswap/sdk-core';
 import { Contract as MulticallContract, Provider } from 'ethers-multicall';
-import JSBI from 'jsbi';
 import { ReactNode, useEffect, useMemo, useReducer, useState } from 'react';
 
 import Comet from '../abis/Comet';
@@ -27,15 +25,11 @@ import {
   getRiskLevelAndPercentage,
   maybeBigIntFromString,
   parseNumber,
-  MAX_UINT256
+  MAX_UINT256,
+  PRICE_PRECISION,
+  FACTOR_PRECISION
 } from './helpers/numbers';
-import {
-  getDocument,
-  migratorTrxKey,
-  tokenApproveTrxKey,
-  migrationSourceToDisplayString,
-  EMPTY_MIGRATOR_POSITION
-} from './helpers/utils';
+import { getDocument, migratorTrxKey, tokenApproveTrxKey, migrationSourceToDisplayString } from './helpers/utils';
 
 import { useAsyncEffect } from './lib/useAsyncEffect';
 import { usePoll } from './lib/usePoll';
@@ -46,12 +40,9 @@ import {
 } from './lib/useTransactionTracker';
 
 import { CTokenSym, Network, NetworkConfig, getIdByNetwork } from './Network';
-import { AppProps, ApproveModalProps, MigrationSource, StateType } from './types';
+import { AppProps, ApproveModalProps, MigrationSource, StateType, SwapInfo } from './types';
 import SwapDropdown from './components/SwapDropdown';
 import Dropdown from './components/Dropdown';
-
-const FACTOR_PRECISION = 18;
-const PRICE_PRECISION = 8;
 
 type CompoundV2MigratorProps<N extends Network> = AppProps & {
   account: string;
@@ -74,7 +65,7 @@ interface Swap {
   amountInMaximum: bigint;
 }
 
-type SwapRouteState = undefined | [StateType.Loading] | [StateType.Hydrated, SwapRoute];
+type SwapRouteState = undefined | [StateType.Loading] | [StateType.Hydrated, SwapInfo];
 
 interface CTokenState {
   address: string;
@@ -334,32 +325,6 @@ export default function CompoundV2Migrator<N extends Network>({
       tokenContract.approve(migrator.address, MAX_UINT256)
     );
   }
-
-  useAsyncEffect(async () => {
-    // const WETH = new Token(1, '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2', 18, 'WETH', 'Wrapped Ether');
-    // const outputAmount = '100000000000000000000';
-    // const amount = CurrencyAmount.fromRawAmount(WETH, JSBI.BigInt(outputAmount));
-    // console.log('AMOUNT===', amount);
-    // const USDC = new Token(1, '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48', 6, 'USDC', 'USD//C');
-    // const uniswapRouter = new AlphaRouter({ chainId: 1, provider: web3 });
-    // console.log('Getting Route');
-    // const route = await uniswapRouter.route(
-    //   amount,
-    //   USDC,
-    //   TradeType.EXACT_OUTPUT,
-    //   undefined,
-    //   {
-    //     protocols: [Protocol.V3]
-    //   }
-    //   //   , {
-    //   //   type: SwapType.SWAP_ROUTER_02,
-    //   //   recipient: migrator.address,
-    //   //   slippageTolerance: new Percent(5, 100),
-    //   //   deadline: Math.floor(Date.now() / 1000 + 1800)
-    //   // }
-    // );
-    // console.log('ROUTEEEE-----', route);
-  });
 
   useAsyncEffect(async () => {
     const cTokenContracts = networkConfig.cTokens.map(({ address }) => new MulticallContract(address, CToken));
@@ -764,7 +729,10 @@ export default function CompoundV2Migrator<N extends Network>({
     }
   }
 
-  const uniswapRouter = new AlphaRouter({ chainId: getIdByNetwork(networkConfig.network), provider: web3 });
+  const quoteProvider = import.meta.env.VITE_BYPASS_MAINNET_RPC_URL
+    ? new JsonRpcProvider(import.meta.env.VITE_BYPASS_MAINNET_RPC_URL)
+    : web3;
+  const uniswapRouter = new AlphaRouter({ chainId: getIdByNetwork(networkConfig.network), provider: quoteProvider });
   const BASE_ASSET = new Token(
     getIdByNetwork(networkConfig.network),
     cometData.baseAsset.address,
@@ -780,6 +748,7 @@ export default function CompoundV2Migrator<N extends Network>({
       let repayAmountDollarValue: string;
       let errorTitle: string | undefined;
       let errorDescription: string | undefined;
+      const slippageTolerance = new Percent(5, 1000);
 
       if (tokenState.repayAmount === 'max') {
         repayAmount = formatTokenBalance(tokenState.underlying.decimals, tokenState.borrowBalance);
@@ -874,54 +843,55 @@ export default function CompoundV2Migrator<N extends Network>({
                       payload: { symbol: sym, swapRoute: [StateType.Loading] }
                     });
 
-                    // const token = new Token(
-                    //   getIdByNetwork(networkConfig.network),
-                    //   tokenState.underlying.address,
-                    //   tokenState.underlying.decimals,
-                    //   tokenState.underlying.symbol,
-                    //   tokenState.underlying.name
-                    // );
-                    // const outputAmount = tokenState.borrowBalance.toString();
                     const token = new Token(
-                      1,
-                      '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2',
-                      18,
-                      'WETH',
-                      'Wrapped Ether'
+                      getIdByNetwork(networkConfig.network),
+                      tokenState.underlying.address,
+                      tokenState.underlying.decimals,
+                      tokenState.underlying.symbol,
+                      tokenState.underlying.name
                     );
-                    const outputAmount = '100000000000000000000';
+                    const outputAmount = tokenState.borrowBalance.toString();
                     const amount = CurrencyAmount.fromRawAmount(token, outputAmount);
-                    const USDC = new Token(1, '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48', 6, 'USDC', 'USD//C');
+                    uniswapRouter
+                      .route(amount, BASE_ASSET, TradeType.EXACT_OUTPUT, {
+                        slippageTolerance,
+                        type: SwapType.SWAP_ROUTER_02,
+                        recipient: migrator.address,
+                        deadline: Math.floor(Date.now() / 1000 + 1800)
+                      })
+                      .then(route => {
+                        if (route !== null) {
+                          const swapInfo: SwapInfo = {
+                            tokenIn: {
+                              symbol: tokenState.underlying.symbol,
+                              decimals: tokenState.underlying.decimals,
+                              price: tokenState.price,
+                              amount: tokenState.borrowBalance
+                            },
+                            tokenOut: {
+                              symbol: cometData.baseAsset.symbol,
+                              decimals: cometData.baseAsset.decimals,
+                              price: cometData.baseAsset.price,
+                              amount: BigInt(
+                                Number(route.quote.toFixed(cometData.baseAsset.decimals)) *
+                                  10 ** cometData.baseAsset.decimals
+                              )
+                            },
+                            networkFee: `$${route.estimatedGasUsedUSD.toFixed(2)}`
+                          };
 
-                    // uniswapRouter
-                    //   .route(
-                    //     amount,
-                    //     // BASE_ASSET,
-                    //     USDC,
-                    //     TradeType.EXACT_OUTPUT,
-                    //     {
-                    //       type: SwapType.SWAP_ROUTER_02,
-                    //       recipient: migrator.address,
-                    //       slippageTolerance: new Percent(5, 100),
-                    //       deadline: Math.floor(Date.now() / 1000 + 1800)
-                    //     }
-                    //   )
-                    //   .then(route => {
-                    //     console.log('ROUTE', route);
-
-                    //     if (route !== null) {
-                    //       dispatch({
-                    //         type: ActionType.SetSwapRoute,
-                    //         payload: { symbol: sym, swapRoute: [StateType.Hydrated, route] }
-                    //       });
-                    //     }
-                    //   })
-                    //   .catch(e => {
-                    //     dispatch({
-                    //       type: ActionType.SetSwapRoute,
-                    //       payload: { symbol: sym, swapRoute: undefined }
-                    //     });
-                    //   });
+                          dispatch({
+                            type: ActionType.SetSwapRoute,
+                            payload: { symbol: sym, swapRoute: [StateType.Hydrated, swapInfo] }
+                          });
+                        }
+                      })
+                      .catch(e => {
+                        dispatch({
+                          type: ActionType.SetSwapRoute,
+                          payload: { symbol: sym, swapRoute: undefined }
+                        });
+                      });
                   }
                 }}
               >
@@ -941,7 +911,10 @@ export default function CompoundV2Migrator<N extends Network>({
               </p>
             </div>
           </div>
-          <SwapDropdown baseAsset={cometData.baseAsset} state={tokenState.swapRoute} />
+          <SwapDropdown
+            baseAsset={cometData.baseAsset}
+            state={tokenState.swapRoute}
+          />
           {!!errorTitle && <InputViewError title={errorTitle} description={errorDescription} />}
         </div>
       );

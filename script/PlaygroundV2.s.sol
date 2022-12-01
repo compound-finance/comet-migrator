@@ -9,7 +9,7 @@ import "forge-std/console2.sol";
 
 contract PlaygroundV2 is Script, Test, MainnetConstants {
     address public constant account = address(0xEacB91408a77824bfd2D9eF1D0773Cf0966d526C);
-    uint256 public constant targetNonce = 10;
+    uint256 public constant targetNonce = 20;
 
     function setUp() public {}
 
@@ -65,6 +65,34 @@ contract PlaygroundV2 is Script, Test, MainnetConstants {
         require(cDAI.borrow(5000000000000000000000) == 0, "failed to borrow");
         require(dai.balanceOf(account) == 5000000000000000000000, "incorrect borrow");
         console.log("Borrowed DAI");
+
+        console.log("Trading WETH for UNI");
+        uint256 newUniBalance = swap(weth, uni, 3000, account, 20 ether);
+        require(uni.balanceOf(account) == newUniBalance, "invalid uni balance [0]");
+        require(uni.balanceOf(account) > 0, "invalid uni balance [1]");
+        console.log("Traded WETH for UNI", newUniBalance);
+
+        console.log("Supplying UNI to Aave");
+        uni.approve(address(aaveV2LendingPool), type(uint256).max);
+        aaveV2LendingPool.deposit(address(uni), newUniBalance, account, 0);
+        require(aUNI.balanceOf(account) > 0, "invalid aUNI balance");
+        require(aUNI.balanceOf(account) == newUniBalance, "invalid aUNI balance");
+        console.log("Supplied UNI to Aave");
+
+        console.log("Borrowing USDC");
+        aaveV2LendingPool.borrow(address(usdc), 5000000000, 2, 0, account);
+        require(variableDebtUSDC.balanceOf(account) == 5000000000, "incorrect borrow");
+        console.log("Borrowed USDC");
+
+        console.log("Borrowing Variable DAI");
+        aaveV2LendingPool.borrow(address(dai), 2500000000000000000000, 2, 0, account);
+        require(variableDebtDAI.balanceOf(account) == 2500000000000000000000, "incorrect borrow");
+        console.log("Borrowed Variable DAI");
+
+        console.log("Borrowing Stable DAI");
+        aaveV2LendingPool.borrow(address(dai), 2500000000000000000000, 1, 0, account);
+        require(variableDebtDAI.balanceOf(account) == 2500000000000000000000, "incorrect borrow");
+        console.log("Borrowed Stable DAI");
 
         // Setting nonce to target nonce
         console.log("Setting account nonce to target nonce", targetNonce);
