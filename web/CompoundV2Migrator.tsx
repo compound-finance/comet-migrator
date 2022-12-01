@@ -70,7 +70,7 @@ interface Collateral {
 }
 
 interface Swap {
-  bytes: string;
+  path: string;
   amountInMaximum: bigint;
 }
 
@@ -715,7 +715,7 @@ export default function CompoundV2Migrator<N extends Network>({
     for (let [symbol, { swapRoute }] of state.data.cTokens.entries()) {
       if (symbol === 'cUSDC') {
         swaps.push({
-          bytes: '',
+          path: '0x',
           amountInMaximum: MAX_UINT256
         });
       } else {
