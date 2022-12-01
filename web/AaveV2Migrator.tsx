@@ -52,6 +52,7 @@ const PRICE_PRECISION = 8;
 type AaveV2MigratorProps<N extends Network> = AppProps & {
   account: string;
   networkConfig: AaveNetworkConfig<N>;
+  selectMigratorSource: (source: MigrationSource) => void;
 };
 
 interface Collateral {
