@@ -17,18 +17,18 @@ const SwapDropdown = ({ baseAsset, state }: SwapDropdownProps) => {
 
   if (state === undefined) return null;
 
-  if (state[0] === StateType.Loading) {
-    return (
-      <div className="swap-dropdown swap-dropdown--loading L2">
-        <div className="swap-dropdown__row">
-          <div className="swap-dropdown__row__left">
-            <LoadSpinner size={12} />
-            <label className="label text-color--2">Calculating best price...</label>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // if (state[0] === StateType.Loading) {
+  //   return (
+  //     <div className="swap-dropdown swap-dropdown--loading L2">
+  //       <div className="swap-dropdown__row">
+  //         <div className="swap-dropdown__row__left">
+  //           <LoadSpinner size={12} />
+  //           <label className="label text-color--2">Calculating best price...</label>
+  //         </div>
+  //       </div>
+  //     </div>
+  //   );
+  // }
 
   const expectedBorrow = '4,999,622.8900';
   const priceImpact = '0.00%';

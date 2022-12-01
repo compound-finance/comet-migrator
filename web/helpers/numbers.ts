@@ -2,6 +2,7 @@ const BILLION = 1_000_000_000;
 const MILLION = 1_000_000;
 const HUNDRED_THOUSAND = 100_000;
 const THOUSAND = 1_000;
+export const MAX_UINT256 = BigInt('115792089237316195423570985008687907853269984665640564039457584007913129639935');
 
 export enum MeterRiskLevel {
   Low = 'low',
@@ -93,3 +94,28 @@ export const maybeBigIntFromString = (inputValue: string, precision: number): bi
     return undefined;
   }
 };
+
+export const usdPriceFromEthPrice = (usdcPriceInEth: bigint, priceInEth: bigint, precision: number): bigint => {
+  const baseUnit = BigInt(10 ** precision);
+  const oneEth = BigInt(10 ** 18);
+  const priceOfEth = (baseUnit * oneEth) / usdcPriceInEth;
+
+  return (priceOfEth * priceInEth) / oneEth;
+};
+
+export function amountToWei(amount: number, decimals: number): bigint {
+  return BigInt(Math.floor(Number(amount) * 10 ** decimals));
+}
+
+export function parseNumber(str: string, f: (x: number) => bigint): bigint | null {
+  if (str === 'max') {
+    return MAX_UINT256;
+  } else {
+    let num = Number(str);
+    if (Number.isNaN(num)) {
+      return null;
+    } else {
+      return f(num);
+    }
+  }
+}
