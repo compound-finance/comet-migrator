@@ -56,6 +56,7 @@ const PRICE_PRECISION = 8;
 type CompoundV2MigratorProps<N extends Network> = AppProps & {
   account: string;
   networkConfig: NetworkConfig<N>;
+  selectMigratorSource: (source: MigrationSource) => void;
 };
 
 interface Borrow {

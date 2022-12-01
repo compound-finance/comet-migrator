@@ -55,5 +55,4 @@ export enum StateType {
 export interface AppProps {
   rpc?: RPC;
   web3: JsonRpcProvider;
-  selectMigratorSource: (source: MigrationSource) => void;
 }
