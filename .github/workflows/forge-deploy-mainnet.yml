@@ -6,6 +6,12 @@ on:
       deployer_address:
         description: WalletConnect address to deploy from
         required: true
+      migrator_version:
+        type: choice
+        description: Migrator version to deploy
+        options:
+          - v1
+          - v2
 
 env:
   FOUNDRY_PROFILE: ci
@@ -38,8 +44,14 @@ jobs:
           forge build --sizes
 
       - name: Forge Deploy Compound v2 Migrator [Mainnet]
-        run: script/mainnet/deploy_migrator.sh
         env:
           ETHERSCAN_API_KEY: "${{ secrets.ETHERSCAN_API_KEY }}"
           ETH_FROM: "${{ inputs.deployer_address }}"
+          MIGRATOR_VERSION: "${{ inputs.migrator_version }}"
           RPC_URL: "http://localhost:8585"
+        run: |
+          case $MIGRATOR_VERSION in
+          v1) script/mainnet/deploy_migrator.sh ;;
+          v2) script/mainnet/deploy_migrator_v2.sh ;;
+          *) echo "Invalid option!" && exit 1 ;;
+          esac
