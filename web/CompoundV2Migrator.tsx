@@ -5,7 +5,7 @@ import { BaseAssetWithState, TokenWithAccountState } from '@compound-finance/com
 import { Contract } from '@ethersproject/contracts';
 import { JsonRpcProvider } from '@ethersproject/providers';
 import { Protocol } from '@uniswap/router-sdk';
-import { AlphaRouter, SwapRoute, SwapType } from '@uniswap/smart-order-router';
+import { AlphaRouter, SwapRoute, SwapType, setGlobalLogger } from '@uniswap/smart-order-router';
 import { CurrencyAmount, Percent, Token, TradeType } from '@uniswap/sdk-core';
 import { Contract as MulticallContract, Provider } from 'ethers-multicall';
 import JSBI from 'jsbi';
@@ -764,7 +764,9 @@ export default function CompoundV2Migrator<N extends Network>({
     }
   }
 
-  const uniswapRouter = new AlphaRouter({ chainId: getIdByNetwork(networkConfig.network), provider: web3 });
+  setGlobalLogger(console);
+  let quoteProvider = import.meta.env.VITE_BYPASS_MAINNET_RPC_URL ? new JsonRpcProvider(import.meta.env.VITE_BYPASS_MAINNET_RPC_URL) : web3;
+  const uniswapRouter = new AlphaRouter({ chainId: getIdByNetwork(networkConfig.network), provider: quoteProvider });
   const BASE_ASSET = new Token(
     getIdByNetwork(networkConfig.network),
     cometData.baseAsset.address,
@@ -874,54 +876,45 @@ export default function CompoundV2Migrator<N extends Network>({
                       payload: { symbol: sym, swapRoute: [StateType.Loading] }
                     });
 
-                    // const token = new Token(
-                    //   getIdByNetwork(networkConfig.network),
-                    //   tokenState.underlying.address,
-                    //   tokenState.underlying.decimals,
-                    //   tokenState.underlying.symbol,
-                    //   tokenState.underlying.name
-                    // );
-                    // const outputAmount = tokenState.borrowBalance.toString();
                     const token = new Token(
-                      1,
-                      '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2',
-                      18,
-                      'WETH',
-                      'Wrapped Ether'
+                      getIdByNetwork(networkConfig.network),
+                      tokenState.underlying.address,
+                      tokenState.underlying.decimals,
+                      tokenState.underlying.symbol,
+                      tokenState.underlying.name
                     );
-                    const outputAmount = '100000000000000000000';
+                    const outputAmount = tokenState.borrowBalance.toString();
                     const amount = CurrencyAmount.fromRawAmount(token, outputAmount);
                     const USDC = new Token(1, '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48', 6, 'USDC', 'USD//C');
+                    uniswapRouter
+                      .route(
+                        amount,
+                        // BASE_ASSET,
+                        USDC,
+                        TradeType.EXACT_OUTPUT,
+                        {
+                          type: SwapType.SWAP_ROUTER_02,
+                          recipient: migrator.address,
+                          slippageTolerance: new Percent(5, 100),
+                          deadline: Math.floor(Date.now() / 1000 + 1800)
+                        }
+                      )
+                      .then(route => {
+                        console.log('ROUTE', route);
 
-                    // uniswapRouter
-                    //   .route(
-                    //     amount,
-                    //     // BASE_ASSET,
-                    //     USDC,
-                    //     TradeType.EXACT_OUTPUT,
-                    //     {
-                    //       type: SwapType.SWAP_ROUTER_02,
-                    //       recipient: migrator.address,
-                    //       slippageTolerance: new Percent(5, 100),
-                    //       deadline: Math.floor(Date.now() / 1000 + 1800)
-                    //     }
-                    //   )
-                    //   .then(route => {
-                    //     console.log('ROUTE', route);
-
-                    //     if (route !== null) {
-                    //       dispatch({
-                    //         type: ActionType.SetSwapRoute,
-                    //         payload: { symbol: sym, swapRoute: [StateType.Hydrated, route] }
-                    //       });
-                    //     }
-                    //   })
-                    //   .catch(e => {
-                    //     dispatch({
-                    //       type: ActionType.SetSwapRoute,
-                    //       payload: { symbol: sym, swapRoute: undefined }
-                    //     });
-                    //   });
+                        if (route !== null) {
+                          dispatch({
+                            type: ActionType.SetSwapRoute,
+                            payload: { symbol: sym, swapRoute: [StateType.Hydrated, route] }
+                          });
+                        }
+                      })
+                      .catch(e => {
+                        dispatch({
+                          type: ActionType.SetSwapRoute,
+                          payload: { symbol: sym, swapRoute: undefined }
+                        });
+                      });
                   }
                 }}
               >
