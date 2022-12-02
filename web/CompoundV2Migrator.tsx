@@ -1,11 +1,12 @@
 import '../styles/main.scss';
 
 import { CometState } from '@compound-finance/comet-extension';
-import { BaseAssetWithState, TokenWithAccountState } from '@compound-finance/comet-extension/dist/CometState';
 import { Contract } from '@ethersproject/contracts';
 import { JsonRpcProvider } from '@ethersproject/providers';
-import { AlphaRouter, SwapRoute, SwapType } from '@uniswap/smart-order-router';
+import { Protocol } from '@uniswap/router-sdk';
+import { AlphaRouter, SwapType, V3Route } from '@uniswap/smart-order-router';
 import { CurrencyAmount, Percent, Token, TradeType } from '@uniswap/sdk-core';
+import { encodeRouteToPath } from '@uniswap/v3-sdk';
 import { Contract as MulticallContract, Provider } from 'ethers-multicall';
 import { ReactNode, useEffect, useMemo, useReducer, useState } from 'react';
 
@@ -15,6 +16,7 @@ import CToken from '../abis/CToken';
 import CompoundV2Oracle from '../abis/Oracle';
 
 import ApproveModal from './components/ApproveModal';
+import { InputViewError, notEnoughLiquidityError, supplyCapError } from './components/ErrorViews';
 import { ArrowRight, CircleExclamation } from './components/Icons';
 import { LoadingView } from './components/LoadingViews';
 
@@ -27,7 +29,9 @@ import {
   parseNumber,
   MAX_UINT256,
   PRICE_PRECISION,
-  FACTOR_PRECISION
+  FACTOR_PRECISION,
+  SLIPPAGE_TOLERANCE,
+  BASE_FACTOR
 } from './helpers/numbers';
 import { getDocument, migratorTrxKey, tokenApproveTrxKey, migrationSourceToDisplayString } from './helpers/utils';
 
@@ -39,7 +43,7 @@ import {
   useTransactionTracker
 } from './lib/useTransactionTracker';
 
-import { CTokenSym, Network, NetworkConfig, getIdByNetwork } from './Network';
+import { CTokenSym, Network, NetworkConfig, getIdByNetwork, stableCoins } from './Network';
 import { AppProps, ApproveModalProps, MigrationSource, StateType, SwapInfo } from './types';
 import SwapDropdown from './components/SwapDropdown';
 import Dropdown from './components/Dropdown';
@@ -418,7 +422,7 @@ export default function CompoundV2Migrator<N extends Network>({
   const cometData = cometState[1];
 
   const cTokensWithBorrowBalances = Array.from(state.data.cTokens.entries()).filter(([, tokenState]) => {
-    return tokenState.borrowBalance > 0n;
+    return tokenState.borrowBalance > 0n && !!stableCoins.find(coin => coin === tokenState.underlying.symbol);
   });
   const collateralWithBalances = Array.from(state.data.cTokens.entries()).filter(([, tokenState]) => {
     const v3CollateralAsset = cometData.collateralAssets.find(asset => asset.symbol === tokenState.underlying.symbol);
@@ -569,28 +573,6 @@ export default function CompoundV2Migrator<N extends Network>({
       return undefined;
     }
 
-    const cUSDC = state.data.cTokens.get('cUSDC' as CTokenSym<Network>);
-    if (!cUSDC) {
-      return undefined;
-    }
-
-    const borrowAmount = cUSDC.borrowBalance;
-    if (!borrowAmount) {
-      return undefined;
-    }
-
-    const repayAmount = parseNumber(cUSDC.repayAmount, n => amountToWei(n, cUSDC.underlying.decimals));
-    if (repayAmount === null) {
-      return undefined;
-    }
-    if (
-      (repayAmount !== MAX_UINT256 && repayAmount > borrowAmount) ||
-      (repayAmount !== MAX_UINT256 && repayAmount > cometData.baseAsset.balanceOfComet) ||
-      (repayAmount === MAX_UINT256 && borrowAmount > cometData.baseAsset.balanceOfComet)
-    ) {
-      return undefined;
-    }
-
     const collateral: Collateral[] = [];
     for (let [
       ,
@@ -641,27 +623,15 @@ export default function CompoundV2Migrator<N extends Network>({
     const borrows: Borrow[] = [];
     for (let [, { address, borrowBalance, underlying, repayAmount }] of state.data.cTokens.entries()) {
       if (repayAmount === 'max') {
-        // Check if over borrow cap
-        // if (collateralAsset.totalSupply + balance > collateralAsset.supplyCap) {
-        //   return undefined;
-        // }
-
         borrows.push({
           cToken: address,
-          amount: borrowBalance
+          amount: MAX_UINT256
         });
       } else {
         const maybeRepayAmount = maybeBigIntFromString(repayAmount, underlying.decimals);
         if (maybeRepayAmount !== undefined && maybeRepayAmount > borrowBalance) {
           return undefined;
         }
-        // Check if over borrow cap
-        // else if (
-        //   maybeRepayAmount !== undefined &&
-        //   collateralAsset.totalSupply + maybeTransfer > collateralAsset.supplyCap
-        // ) {
-        //   return undefined;
-        // }
 
         if (maybeRepayAmount === undefined) {
           return undefined;
@@ -677,13 +647,24 @@ export default function CompoundV2Migrator<N extends Network>({
     }
 
     const swaps: Swap[] = [];
-    for (let [symbol, { swapRoute }] of state.data.cTokens.entries()) {
-      if (symbol === 'cUSDC') {
-        swaps.push({
-          path: '0x',
-          amountInMaximum: MAX_UINT256
-        });
-      } else {
+    for (let [symbol, { borrowBalance, repayAmount, swapRoute, underlying }] of state.data.cTokens.entries()) {
+      const maybeRepayAmount =
+        repayAmount === 'max' ? borrowBalance : maybeBigIntFromString(repayAmount, underlying.decimals);
+
+      if (maybeRepayAmount !== undefined && maybeRepayAmount > 0n) {
+        if (symbol === 'cUSDC') {
+          swaps.push({
+            path: '0x',
+            amountInMaximum: MAX_UINT256
+          });
+        } else if (swapRoute !== undefined && swapRoute[0] === StateType.Hydrated) {
+          swaps.push({
+            path: swapRoute[1].path,
+            amountInMaximum: MAX_UINT256
+          });
+        } else {
+          return undefined;
+        }
       }
     }
 
@@ -696,8 +677,11 @@ export default function CompoundV2Migrator<N extends Network>({
     }
 
     const oneBaseAssetUnit = BigInt(10 ** cometData.baseAsset.decimals);
-    const maximumBorrowValue = v2ToV3MigrateBorrowValue + BigInt(2e8); // Pad by $2
+    const maximumBorrowValue = (v2ToV3MigrateBorrowValue * SLIPPAGE_TOLERANCE) / BASE_FACTOR;
     const flashAmount = (maximumBorrowValue * oneBaseAssetUnit) / cometData.baseAsset.price;
+    if (flashAmount > cometData.baseAsset.balanceOfComet) {
+      return `Insufficient ${cometData.baseAsset.symbol} Liquidity`;
+    }
 
     return [{ collateral, borrows, swaps }, flashAmount];
   }
@@ -748,7 +732,6 @@ export default function CompoundV2Migrator<N extends Network>({
       let repayAmountDollarValue: string;
       let errorTitle: string | undefined;
       let errorDescription: string | undefined;
-      const slippageTolerance = new Percent(5, 1000);
 
       if (tokenState.repayAmount === 'max') {
         repayAmount = formatTokenBalance(tokenState.underlying.decimals, tokenState.borrowBalance);
@@ -759,9 +742,16 @@ export default function CompoundV2Migrator<N extends Network>({
           true
         );
 
-        // if (tokenState.borrowBalance > cometData.baseAsset.balanceOfComet) {
-        //   [errorTitle, errorDescription] = notEnoughLiquidityError(cometData.baseAsset);
-        // }
+        if (
+          (tokenState.underlying.symbol === cometData.baseAsset.symbol &&
+            tokenState.borrowBalance > cometData.baseAsset.balanceOfComet) ||
+          (tokenState.swapRoute !== undefined &&
+            tokenState.swapRoute[0] === StateType.Hydrated &&
+            tokenState.swapRoute[1].tokenIn.amount > cometData.baseAsset.balanceOfComet)
+        ) {
+          
+          [errorTitle, errorDescription] = notEnoughLiquidityError(cometData.baseAsset);
+        }
       } else {
         const maybeRepayAmount = maybeBigIntFromString(tokenState.repayAmount, tokenState.underlying.decimals);
 
@@ -784,10 +774,15 @@ export default function CompoundV2Migrator<N extends Network>({
               tokenState.borrowBalance,
               false
             )}`;
+          } else if (
+            (tokenState.underlying.symbol === cometData.baseAsset.symbol &&
+              maybeRepayAmount > cometData.baseAsset.balanceOfComet) ||
+            (tokenState.swapRoute !== undefined &&
+              tokenState.swapRoute[0] === StateType.Hydrated &&
+              tokenState.swapRoute[1].tokenIn.amount > cometData.baseAsset.balanceOfComet)
+          ) {
+            [errorTitle, errorDescription] = notEnoughLiquidityError(cometData.baseAsset);
           }
-          //  else if (maybeRepayAmount > cometData.baseAsset.balanceOfComet) {
-          //   [errorTitle, errorDescription] = notEnoughLiquidityError(cometData.baseAsset);
-          // }
         }
       }
 
@@ -837,7 +832,6 @@ export default function CompoundV2Migrator<N extends Network>({
                   dispatch({ type: ActionType.SetRepayAmount, payload: { symbol: sym, repayAmount: 'max' } });
 
                   if (tokenState.underlying.symbol !== cometData.baseAsset.symbol) {
-                    console.log('We are here');
                     dispatch({
                       type: ActionType.SetSwapRoute,
                       payload: { symbol: sym, swapRoute: [StateType.Loading] }
@@ -853,22 +847,25 @@ export default function CompoundV2Migrator<N extends Network>({
                     const outputAmount = tokenState.borrowBalance.toString();
                     const amount = CurrencyAmount.fromRawAmount(token, outputAmount);
                     uniswapRouter
-                      .route(amount, BASE_ASSET, TradeType.EXACT_OUTPUT, {
-                        slippageTolerance,
-                        type: SwapType.SWAP_ROUTER_02,
-                        recipient: migrator.address,
-                        deadline: Math.floor(Date.now() / 1000 + 1800)
-                      })
+                      .route(
+                        amount,
+                        BASE_ASSET,
+                        TradeType.EXACT_OUTPUT,
+                        {
+                          slippageTolerance: new Percent(SLIPPAGE_TOLERANCE.toString(), FACTOR_PRECISION.toString()),
+                          type: SwapType.SWAP_ROUTER_02,
+                          recipient: migrator.address,
+                          deadline: Math.floor(Date.now() / 1000 + 1800)
+                        },
+                        {
+                          protocols: [Protocol.V3],
+                          maxSplits: 1 // This only makes one path
+                        }
+                      )
                       .then(route => {
                         if (route !== null) {
                           const swapInfo: SwapInfo = {
                             tokenIn: {
-                              symbol: tokenState.underlying.symbol,
-                              decimals: tokenState.underlying.decimals,
-                              price: tokenState.price,
-                              amount: tokenState.borrowBalance
-                            },
-                            tokenOut: {
                               symbol: cometData.baseAsset.symbol,
                               decimals: cometData.baseAsset.decimals,
                               price: cometData.baseAsset.price,
@@ -877,7 +874,14 @@ export default function CompoundV2Migrator<N extends Network>({
                                   10 ** cometData.baseAsset.decimals
                               )
                             },
-                            networkFee: `$${route.estimatedGasUsedUSD.toFixed(2)}`
+                            tokenOut: {
+                              symbol: tokenState.underlying.symbol,
+                              decimals: tokenState.underlying.decimals,
+                              price: tokenState.price,
+                              amount: tokenState.borrowBalance
+                            },
+                            networkFee: `$${route.estimatedGasUsedUSD.toFixed(2)}`,
+                            path: encodeRouteToPath(route.route[0].route as V3Route, true)
                           };
 
                           dispatch({
@@ -911,10 +915,7 @@ export default function CompoundV2Migrator<N extends Network>({
               </p>
             </div>
           </div>
-          <SwapDropdown
-            baseAsset={cometData.baseAsset}
-            state={tokenState.swapRoute}
-          />
+          <SwapDropdown baseAsset={cometData.baseAsset} state={tokenState.swapRoute} />
           {!!errorTitle && <InputViewError title={errorTitle} description={errorDescription} />}
         </div>
       );
@@ -1250,32 +1251,3 @@ export default function CompoundV2Migrator<N extends Network>({
     </div>
   );
 }
-
-const InputViewError = ({ title, description }: { title: string; description?: string }) => {
-  return (
-    <div className="migrator__input-view__error">
-      <CircleExclamation />
-      <p className="meta">
-        <span style={{ fontWeight: '500' }}>{title}</span> {description}
-      </p>
-    </div>
-  );
-};
-
-const notEnoughLiquidityError = (baseAsset: BaseAssetWithState): [string, string] => {
-  const title = 'Not enough liquidity.';
-  const description = `There is ${formatTokenBalance(baseAsset.decimals, baseAsset.balanceOfComet, false)} of ${
-    baseAsset.symbol
-  } liquidity remaining.`;
-
-  return [title, description];
-};
-
-const supplyCapError = (token: TokenWithAccountState): [string, string] => {
-  const title = 'Supply cap exceeded.';
-  const description = `There is ${formatTokenBalance(token.decimals, token.supplyCap - token.totalSupply, false)} of ${
-    token.symbol
-  } capacity remaining.`;
-
-  return [title, description];
-};

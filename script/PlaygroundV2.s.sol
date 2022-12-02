@@ -112,7 +112,7 @@ contract PlaygroundV2 is Script, Test, MainnetConstants {
             cETH,
             weth,
             aaveV2LendingPool,
-            pool_DAI_USDC,
+            pool_USDT_USDC,
             swapRouter,
             sweepee
         );

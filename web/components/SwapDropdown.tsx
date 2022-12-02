@@ -1,15 +1,17 @@
 import { StateType, BaseAsset } from '@compound-finance/comet-extension/dist/CometState';
-import { useState } from 'react';
+import { useState, ReactNode } from 'react';
 
 import {
   FACTOR_PRECISION,
   formatRateFactor,
   formatTokenBalance,
   maximumBorrowFromSwapInfo,
+  SLIPPAGE_TOLERANCE
 } from '../helpers/numbers';
 
 import { SwapInfo } from '../types';
 
+import { InputViewError } from './ErrorViews';
 import LoadSpinner from './LoadSpinner';
 import { ChevronDown } from './Icons';
 
@@ -39,26 +41,62 @@ const SwapDropdown = ({ baseAsset, state }: SwapDropdownProps) => {
   }
   const swapInfo = state[1];
 
+  const exchangeRateRaw =
+    (swapInfo.tokenOut.amount * BigInt(10 ** swapInfo.tokenIn.decimals)) / swapInfo.tokenIn.amount;
+  const exchangeRate = formatTokenBalance(swapInfo.tokenOut.decimals, exchangeRateRaw, false);
   const expectedBorrow = formatTokenBalance(swapInfo.tokenOut.decimals, swapInfo.tokenOut.amount, false);
   const valueIn = (swapInfo.tokenIn.amount * swapInfo.tokenIn.price) / BigInt(10 ** swapInfo.tokenIn.decimals);
   const valueOut = (swapInfo.tokenOut.amount * swapInfo.tokenOut.price) / BigInt(10 ** swapInfo.tokenOut.decimals);
   const priceImpactRaw = ((valueOut - valueIn) * BigInt(10 ** FACTOR_PRECISION)) / valueIn;
-  const priceImpact = formatRateFactor(priceImpactRaw < 0 ? -priceImpactRaw : priceImpactRaw);
+  const priceImpactAbs = priceImpactRaw < 0 ? -priceImpactRaw : priceImpactRaw;
+  const priceImpact = formatRateFactor(priceImpactAbs);
   const maximumBorrow = formatTokenBalance(swapInfo.tokenOut.decimals, maximumBorrowFromSwapInfo(swapInfo), false);
   const networkFee = swapInfo.networkFee;
+
+  let exchangeRateLabel: ReactNode;
+  let error: ReactNode;
+
+  if (priceImpactRaw < SLIPPAGE_TOLERANCE) {
+    exchangeRateLabel = (
+      <>
+        <label className="label text-color--2">
+          1.0000 {swapInfo.tokenIn.symbol} = {`${exchangeRate} ${swapInfo.tokenOut.symbol}`}
+        </label>
+        <label className="label label--secondary text-color--2" style={{ marginLeft: '0.25rem' }}>
+          ({formatRateFactor(SLIPPAGE_TOLERANCE)} slippage)
+        </label>
+      </>
+    );
+    error = null;
+  } else {
+    exchangeRateLabel = (
+      <>
+        <label className="label text-color--caution">
+          1.0000 {swapInfo.tokenIn.symbol} = {`${exchangeRate} ${swapInfo.tokenOut.symbol}`}
+        </label>
+        <label className="label label--secondary text-color--caution" style={{ marginLeft: '0.25rem' }}>
+          ({priceImpact} Price Impact)
+        </label>
+      </>
+    );
+    error = (
+      <InputViewError
+        title="Slippage for this swap is high."
+        description=" A swap of this size may have a high price impact, given the current liquidity in the pool. There may be a larger difference between the amount of your input token and what you will recieve in the output token."
+      />
+    );
+  }
 
   return (
     <div className={`swap-dropdown L2${active ? ' swap-dropdown--active' : ''}`} onClick={() => setActive(!active)}>
       <div className="swap-dropdown__row">
-        <div className="swap-dropdown__row__left">
-          <label className="label text-color--2">1.0000 DAI = 0.9899 USDC</label>
-          <label className="label label--secondary text-color--2">(0.05% slippage)</label>
-        </div>
+        <div className="swap-dropdown__row__left">{exchangeRateLabel}</div>
         <div className="swap-dropdown__row__right">
           <ChevronDown className="svg--icon--2" />
         </div>
       </div>
       <div className="swap-dropdown__content">
+        {error}
         <div className="swap-dropdown__row">
           <div className="swap-dropdown__row__left">
             <label className="label label--secondary text-color--2">Expected Borrow</label>

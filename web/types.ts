@@ -73,4 +73,5 @@ export type SwapInfo = {
     price: bigint;
   };
   networkFee: string;
+  path: string;
 }

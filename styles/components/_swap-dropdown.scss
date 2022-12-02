@@ -9,8 +9,15 @@
   transition: height 300ms ease;
   overflow: hidden;
 
+  .migrator__input-view__error {
+    margin-top: 0;
+    margin-bottom: 0.75rem;
+  }
+
   &--active {
-    height: 9.25rem;
+    // height: 9.25rem;
+    min-height: 9.25rem;
+    height: fit-content;
   }
 
   &--loading {

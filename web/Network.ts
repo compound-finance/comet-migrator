@@ -70,6 +70,8 @@ const mainnetAaveTokens = [
 
 const goerliTokens = ['cETH', 'cDAI', 'cUSDC', 'cWBTC'] as const;
 
+export const stableCoins = ['USDC', 'USDT', 'DAI', 'BUSD', 'SUSD', 'TUSD', 'GUSD', 'USDP', 'RAI'] as const;
+
 export type ATokenSym<Network> = Network extends 'mainnet' ? ConstTupleItems<typeof mainnetAaveTokens> : never;
 
 export type CTokenSym<Network> = Network extends 'mainnet'

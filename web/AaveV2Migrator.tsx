@@ -19,6 +19,7 @@ import AavePriceOracle from '../abis/Aave/PriceOracle';
 import Comet from '../abis/Comet';
 
 import ApproveModal from './components/ApproveModal';
+import { InputViewError, notEnoughLiquidityError, supplyCapError } from './components/ErrorViews';
 import { ArrowRight, CircleExclamation } from './components/Icons';
 import { LoadingView } from './components/LoadingViews';
 
@@ -1220,32 +1221,3 @@ export default function AaveV2Migrator<N extends Network>({
     </div>
   );
 }
-
-const InputViewError = ({ title, description }: { title: string; description?: string }) => {
-  return (
-    <div className="migrator__input-view__error">
-      <CircleExclamation />
-      <p className="meta">
-        <span style={{ fontWeight: '500' }}>{title}</span> {description}
-      </p>
-    </div>
-  );
-};
-
-const notEnoughLiquidityError = (baseAsset: BaseAssetWithState): [string, string] => {
-  const title = 'Not enough liquidity.';
-  const description = `There is ${formatTokenBalance(baseAsset.decimals, baseAsset.balanceOfComet, false)} of ${
-    baseAsset.symbol
-  } liquidity remaining.`;
-
-  return [title, description];
-};
-
-const supplyCapError = (token: TokenWithAccountState): [string, string] => {
-  const title = 'Supply cap exceeded.';
-  const description = `There is ${formatTokenBalance(token.decimals, token.supplyCap - token.totalSupply, false)} of ${
-    token.symbol
-  } capacity remaining.`;
-
-  return [title, description];
-};
