@@ -290,7 +290,7 @@ export default function AaveV2Migrator<N extends Network>({
     }
   }, [rpc]);
 
-  const timer = usePoll(10000);
+  const timer = usePoll(5000);
 
   const signer = useMemo(() => {
     return web3.getSigner().connectUnchecked();
@@ -430,7 +430,7 @@ export default function AaveV2Migrator<N extends Network>({
   }, [timer, tracker, account, networkConfig.network]);
 
   if (state.type === StateType.Loading || cometState[0] !== StateType.Hydrated) {
-    return <LoadingView />;
+    return <LoadingView migrationSource={MigrationSource.AaveV2} />;
   }
   const cometData = cometState[1];
 
@@ -791,7 +791,6 @@ export default function AaveV2Migrator<N extends Network>({
     if (migrateParams !== undefined && typeof migrateParams !== 'string') {
       try {
         console.log('Migrate Params', migrateParams, migrator.address);
-
 
         await trackTransaction(
           migratorTrxKey(migrator.address),

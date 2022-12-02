@@ -291,7 +291,7 @@ export default function CompoundV2Migrator<N extends Network>({
     }
   }, [rpc]);
 
-  let timer = usePoll(10000);
+  const timer = usePoll(5000);
 
   const signer = useMemo(() => {
     return web3.getSigner().connectUnchecked();
@@ -418,7 +418,7 @@ export default function CompoundV2Migrator<N extends Network>({
   }, [timer, tracker, account, networkConfig.network]);
 
   if (state.type === StateType.Loading || cometState[0] !== StateType.Hydrated) {
-    return <LoadingView />;
+    return <LoadingView migrationSource={MigrationSource.CompoundV2} />;
   }
   const cometData = cometState[1];
 
@@ -1097,7 +1097,7 @@ export default function CompoundV2Migrator<N extends Network>({
                   ])}
                   selectedOption={migrationSourceToDisplayString(MigrationSource.CompoundV2)}
                   selectOption={(option: [string, string]) => {
-                    selectMigratorSource(option[0] as MigrationSource)
+                    selectMigratorSource(option[0] as MigrationSource);
                   }}
                 />
               </div>
