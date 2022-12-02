@@ -99,7 +99,7 @@ const SwapDropdown = ({ baseAsset, state }: SwapDropdownProps) => {
         {error}
         <div className="swap-dropdown__row">
           <div className="swap-dropdown__row__left">
-            <label className="label label--secondary text-color--2">Expected Borrow</label>
+            <label className="label label--secondary text-color--2">Expected V3 Borrow</label>
           </div>
           <div className="swap-dropdown__row__right">
             <div className={`asset asset--${baseAsset.symbol}`}></div>
@@ -117,7 +117,7 @@ const SwapDropdown = ({ baseAsset, state }: SwapDropdownProps) => {
         <div className="swap-dropdown__divider"></div>
         <div className="swap-dropdown__row">
           <div className="swap-dropdown__row__left">
-            <label className="label label--secondary text-color--2">Maximum Borrow</label>
+            <label className="label label--secondary text-color--2">Maximum V3 Borrow</label>
           </div>
           <div className="swap-dropdown__row__right">
             <div className={`asset asset--${baseAsset.symbol}`}></div>

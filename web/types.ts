@@ -44,7 +44,7 @@ export type ApproveModalProps = {
 };
 
 export enum MigrationSource {
-  // AaveV2 = 'aave-v2',
+  AaveV2 = 'aave-v2',
   CompoundV2 = 'compound-v2'
 }
 

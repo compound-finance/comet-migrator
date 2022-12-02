@@ -1,13 +1,13 @@
 import '../styles/main.scss';
 
 import { CometState } from '@compound-finance/comet-extension';
-import { BaseAssetWithState, TokenWithAccountState } from '@compound-finance/comet-extension/dist/CometState';
 import { Contract } from '@ethersproject/contracts';
 import { JsonRpcProvider } from '@ethersproject/providers';
-import { AlphaRouter, SwapRoute, SwapType } from '@uniswap/smart-order-router';
+import { Protocol } from '@uniswap/router-sdk';
+import { AlphaRouter, SwapType, V3Route } from '@uniswap/smart-order-router';
 import { CurrencyAmount, Percent, Token, TradeType } from '@uniswap/sdk-core';
+import { encodeRouteToPath } from '@uniswap/v3-sdk';
 import { Contract as MulticallContract, Provider } from 'ethers-multicall';
-import JSBI from 'jsbi';
 import { ReactNode, useEffect, useMemo, useReducer, useState } from 'react';
 
 import ATokenAbi from '../abis/Aave/AToken';
@@ -19,20 +19,22 @@ import AavePriceOracle from '../abis/Aave/PriceOracle';
 import Comet from '../abis/Comet';
 
 import ApproveModal from './components/ApproveModal';
+import Dropdown from './components/Dropdown';
 import { InputViewError, notEnoughLiquidityError, supplyCapError } from './components/ErrorViews';
 import { ArrowRight, CircleExclamation } from './components/Icons';
 import { LoadingView } from './components/LoadingViews';
 
 import { multicall } from './helpers/multicall';
 import {
-  amountToWei,
+  BASE_FACTOR,
   formatTokenBalance,
   getRiskLevelAndPercentage,
   maybeBigIntFromString,
-  parseNumber,
-  usdPriceFromEthPrice
+  usdPriceFromEthPrice,
+  SLIPPAGE_TOLERANCE,
+  getLTVAsFactor
 } from './helpers/numbers';
-import { getDocument, migratorTrxKey, tokenApproveTrxKey } from './helpers/utils';
+import { getDocument, migratorTrxKey, tokenApproveTrxKey, migrationSourceToDisplayString } from './helpers/utils';
 
 import { useAsyncEffect } from './lib/useAsyncEffect';
 import { usePoll } from './lib/usePoll';
@@ -43,7 +45,7 @@ import {
 } from './lib/useTransactionTracker';
 
 import { AToken, ATokenSym, Network, getIdByNetwork, AaveNetworkConfig } from './Network';
-import { AppProps, ApproveModalProps, MigrationSource, StateType } from './types';
+import { AppProps, ApproveModalProps, MigrationSource, StateType, SwapInfo } from './types';
 import SwapDropdown from './components/SwapDropdown';
 
 const MAX_UINT256 = BigInt('115792089237316195423570985008687907853269984665640564039457584007913129639935');
@@ -56,18 +58,28 @@ type AaveV2MigratorProps<N extends Network> = AppProps & {
   selectMigratorSource: (source: MigrationSource) => void;
 };
 
+interface Borrow {
+  aToken: string;
+  amount: bigint;
+}
+
 interface Collateral {
   aToken: string;
   amount: bigint;
 }
 
-type SwapRouteState = undefined | [StateType.Loading] | [StateType.Hydrated, SwapRoute];
+interface Swap {
+  path: string;
+  amountInMaximum: bigint;
+}
+
+type SwapRouteState = undefined | [StateType.Loading] | [StateType.Hydrated, SwapInfo];
 
 interface ATokenState {
   aToken: AToken;
   allowance: bigint;
-  allowanceStableDebtToken: bigint;
-  allowanceVariableDebtToken: bigint;
+  // allowanceStableDebtToken: bigint;
+  // allowanceVariableDebtToken: bigint;
   balance: bigint;
   borrowBalanceStable: bigint;
   borrowBalanceVariable: bigint;
@@ -252,7 +264,8 @@ export default function AaveV2Migrator<N extends Network>({
   rpc,
   web3,
   account,
-  networkConfig
+  networkConfig,
+  selectMigratorSource
 }: AaveV2MigratorProps<N>) {
   const [state, dispatch] = useReducer(reducer, initialState);
   const [cometState, setCometState] = useState<CometState>([StateType.Loading, undefined]);
@@ -335,12 +348,6 @@ export default function AaveV2Migrator<N extends Network>({
 
     const balanceCalls = aTokenContracts.map(aTokenContract => aTokenContract.balanceOf(account));
     const allowanceCalls = aTokenContracts.map(aTokenContract => aTokenContract.allowance(account, migrator.address));
-    const allowanceStableDebtTokenCalls = stableDebtTokenContracts.map(debtTokenContract =>
-      debtTokenContract.allowance(account, migrator.address)
-    );
-    const allowanceVariableDebtTokenCalls = variableDebtTokenContracts.map(debtTokenContract =>
-      debtTokenContract.allowance(account, migrator.address)
-    );
     const collateralFactorCalls = networkConfig.aTokens.map(({ address }) => lendingPool.getConfiguration(address));
     const borrowBalanceStableCalls = stableDebtTokenContracts.map(debtTokenContract =>
       debtTokenContract.balanceOf(account)
@@ -355,8 +362,6 @@ export default function AaveV2Migrator<N extends Network>({
       pricesInEth,
       balanceResponses,
       allowanceResponses,
-      allowanceStableDebtTokenResponses,
-      allowanceVariableDebtTokenResponses,
       collateralFactorResponses,
       borrowBalanceStableResponses,
       borrowBalanceVariableResponses
@@ -366,8 +371,6 @@ export default function AaveV2Migrator<N extends Network>({
       oracle.getAssetsPrices(networkConfig.aTokens.map(aToken => aToken.address)),
       balanceCalls,
       allowanceCalls,
-      allowanceStableDebtTokenCalls,
-      allowanceVariableDebtTokenCalls,
       collateralFactorCalls,
       borrowBalanceStableCalls,
       borrowBalanceVariableCalls
@@ -375,10 +378,8 @@ export default function AaveV2Migrator<N extends Network>({
 
     const balances = balanceResponses.map((balance: any) => balance.toBigInt());
     const allowances = allowanceResponses.map((allowance: any) => allowance.toBigInt());
-    const collateralFactors = collateralFactorResponses.map(([, collateralFactor]: any) => collateralFactor.toBigInt());
-    const allowancesStableDebtToken = allowanceStableDebtTokenResponses.map((allowance: any) => allowance.toBigInt());
-    const allowancesVariableDebtToken = allowanceVariableDebtTokenResponses.map((allowance: any) =>
-      allowance.toBigInt()
+    const collateralFactors = collateralFactorResponses.map((configData: any, i: number) =>
+      getLTVAsFactor(configData.data.toBigInt())
     );
     const borrowBalancesStableDebtToken = borrowBalanceStableResponses.map((balance: any) => balance.toBigInt());
     const borrowBalancesVariableDebtToken = borrowBalanceVariableResponses.map((balance: any) => balance.toBigInt());
@@ -393,8 +394,6 @@ export default function AaveV2Migrator<N extends Network>({
 
         const balance: bigint = balances[index];
         const allowance: bigint = allowances[index];
-        const allowanceStableDebtToken: bigint = allowancesStableDebtToken[index];
-        const allowanceVariableDebtToken: bigint = allowancesVariableDebtToken[index];
         const collateralFactor: bigint = collateralFactors[index];
         const borrowBalanceStable: bigint = borrowBalancesStableDebtToken[index];
         const borrowBalanceVariable: bigint = borrowBalancesVariableDebtToken[index];
@@ -409,8 +408,6 @@ export default function AaveV2Migrator<N extends Network>({
           {
             aToken: aToken,
             allowance,
-            allowanceStableDebtToken,
-            allowanceVariableDebtToken,
             balance,
             borrowBalanceStable,
             borrowBalanceVariable,
@@ -503,7 +500,7 @@ export default function AaveV2Migrator<N extends Network>({
     const maybeTransfer = transfer === 'max' ? balance : maybeBigIntFromString(transfer, aToken.decimals);
     const transferBigInt = maybeTransfer === undefined ? 0n : maybeTransfer > balance ? balance : maybeTransfer;
     const dollarValue = ((balance - transferBigInt) * price) / BigInt(10 ** aToken.decimals);
-    const capacity = (dollarValue * collateralFactor) / BigInt(10 ** FACTOR_PRECISION);
+    const capacity = (dollarValue * collateralFactor) / BASE_FACTOR;
     return acc + capacity;
   }, BigInt(0));
   const displayV2BorrowCapacity = formatTokenBalance(PRICE_PRECISION, v2BorrowCapacity, false, true);
@@ -622,36 +619,17 @@ export default function AaveV2Migrator<N extends Network>({
   const v3LiquidationPoint = (v3CollateralValue * BigInt(Math.min(100, v3RiskPercentage))) / 100n;
   const displayV3LiquidationPoint = formatTokenBalance(PRICE_PRECISION, v3LiquidationPoint, false, true);
 
-  function validateForm(): { borrowAmount: bigint; collateral: Collateral[] } | string | undefined {
+  function validateForm():
+    | [{ collateral: Collateral[]; borrows: Borrow[]; swaps: Swap[] }, bigint]
+    | string
+    | undefined {
     if (state.type === StateType.Loading || !state.data.migratorEnabled) {
       return undefined;
     }
 
-    const aUSDC = state.data.aTokens.get('aUSDC' as ATokenSym<Network>);
-    if (!aUSDC) {
-      return undefined;
-    }
-
-    const borrowAmount = aUSDC.borrowBalanceStable;
-    if (!borrowAmount) {
-      return undefined;
-    }
-
-    const repayAmount = parseNumber(aUSDC.repayAmountStable, n => amountToWei(n, aUSDC.aToken.decimals));
-    if (repayAmount === null) {
-      return undefined;
-    }
-    if (
-      (repayAmount !== MAX_UINT256 && repayAmount > borrowAmount) ||
-      (repayAmount !== MAX_UINT256 && repayAmount > cometData.baseAsset.balanceOfComet) ||
-      (repayAmount === MAX_UINT256 && borrowAmount > cometData.baseAsset.balanceOfComet)
-    ) {
-      return undefined;
-    }
-
-    let collateral: Collateral[] = [];
+    const collateral: Collateral[] = [];
     for (let [, { aToken, balance, transfer }] of state.data.aTokens.entries()) {
-      const collateralAsset = cometData.collateralAssets.find(asset => asset.address === aToken.address);
+      const collateralAsset = cometData.collateralAssets.find(asset => asset.symbol === aToken.symbol);
 
       if (!collateralAsset) {
         continue;
@@ -690,6 +668,107 @@ export default function AaveV2Migrator<N extends Network>({
       }
     }
 
+    const borrows: Borrow[] = [];
+    for (let [
+      ,
+      { aToken, borrowBalanceStable, borrowBalanceVariable, repayAmountStable, repayAmountVariable }
+    ] of state.data.aTokens.entries()) {
+      if (repayAmountStable === '' && repayAmountVariable === '') {
+        continue;
+      }
+
+      if (repayAmountStable === 'max') {
+        borrows.push({
+          aToken: aToken.stableDebtTokenAddress,
+          amount: MAX_UINT256
+        });
+      } else if (repayAmountStable !== '') {
+        const maybeRepayAmount = maybeBigIntFromString(repayAmountStable, aToken.decimals);
+        if (maybeRepayAmount !== undefined && maybeRepayAmount > borrowBalanceStable) {
+          return undefined;
+        }
+
+        if (maybeRepayAmount === undefined) {
+          return undefined;
+        } else {
+          if (maybeRepayAmount > 0n) {
+            borrows.push({
+              aToken: aToken.stableDebtTokenAddress,
+              amount: maybeRepayAmount
+            });
+          }
+        }
+      }
+
+      if (repayAmountVariable === 'max') {
+        borrows.push({
+          aToken: aToken.variableDebtTokenAddress,
+          amount: MAX_UINT256
+        });
+      } else if (repayAmountVariable !== '') {
+        const maybeRepayAmount = maybeBigIntFromString(repayAmountVariable, aToken.decimals);
+        if (maybeRepayAmount !== undefined && maybeRepayAmount > borrowBalanceVariable) {
+          return undefined;
+        }
+
+        if (maybeRepayAmount === undefined) {
+          return undefined;
+        } else {
+          if (maybeRepayAmount > 0n) {
+            borrows.push({
+              aToken: aToken.variableDebtTokenAddress,
+              amount: maybeRepayAmount
+            });
+          }
+        }
+      }
+    }
+
+    const swaps: Swap[] = [];
+    for (let [
+      symbol,
+      { aToken, borrowBalanceStable, borrowBalanceVariable, repayAmountStable, repayAmountVariable, swapRoute }
+    ] of state.data.aTokens.entries()) {
+      const maybeRepayAmountStable =
+        repayAmountStable === 'max' ? borrowBalanceStable : maybeBigIntFromString(repayAmountStable, aToken.decimals);
+      const maybeRepayAmountVariable =
+        repayAmountVariable === 'max'
+          ? borrowBalanceVariable
+          : maybeBigIntFromString(repayAmountVariable, aToken.decimals);
+
+      if (maybeRepayAmountStable !== undefined && maybeRepayAmountStable > 0n) {
+        if (symbol === 'aUSDC') {
+          swaps.push({
+            path: '0x',
+            amountInMaximum: MAX_UINT256
+          });
+        } else if (swapRoute !== undefined && swapRoute[0] === StateType.Hydrated) {
+          swaps.push({
+            path: swapRoute[1].path,
+            amountInMaximum: MAX_UINT256
+          });
+        } else {
+          return undefined;
+        }
+      }
+
+      if (maybeRepayAmountVariable !== undefined && maybeRepayAmountVariable > 0n) {
+        if (symbol === 'aUSDC') {
+          swaps.push({
+            path: '0x',
+            amountInMaximum: MAX_UINT256
+          });
+        } else if (swapRoute !== undefined && swapRoute[0] === StateType.Hydrated) {
+          swaps.push({
+            path: swapRoute[1].path,
+            amountInMaximum: MAX_UINT256
+          });
+        } else {
+          return undefined;
+        }
+      }
+    }
+
     if (v2BorrowValue > v2BorrowCapacity || v3BorrowValue > v3BorrowCapacityValue) {
       return 'Insufficient Collateral';
     }
@@ -698,10 +777,14 @@ export default function AaveV2Migrator<N extends Network>({
       return;
     }
 
-    return {
-      borrowAmount: repayAmount,
-      collateral
-    };
+    const oneBaseAssetUnit = BigInt(10 ** cometData.baseAsset.decimals);
+    const maximumBorrowValue = (v2ToV3MigrateBorrowValue * (BASE_FACTOR + SLIPPAGE_TOLERANCE)) / BASE_FACTOR; // pad borrow value by 1 + SLIPPAGE_TOLERANCE
+    const flashAmount = (maximumBorrowValue * oneBaseAssetUnit) / cometData.baseAsset.price;
+    if (flashAmount > cometData.baseAsset.balanceOfComet) {
+      return `Insufficient ${cometData.baseAsset.symbol} Liquidity`;
+    }
+
+    return [{ collateral, borrows, swaps }, flashAmount];
   }
 
   let migrateParams = state.data.error ?? validateForm();
@@ -709,9 +792,12 @@ export default function AaveV2Migrator<N extends Network>({
   async function migrate() {
     if (migrateParams !== undefined && typeof migrateParams !== 'string') {
       try {
+        console.log('Migrate Params', migrateParams, migrator.address);
+
+
         await trackTransaction(
           migratorTrxKey(migrator.address),
-          migrator.migrate(migrateParams.collateral, migrateParams.borrowAmount),
+          migrator.migrate([[], [], []], migrateParams[0], migrateParams[1]),
           () => {
             dispatch({ type: ActionType.ClearRepayAndTransferAmounts });
           }
@@ -748,7 +834,6 @@ export default function AaveV2Migrator<N extends Network>({
       let repayAmountDollarValue: string;
       let errorTitle: string | undefined;
       let errorDescription: string | undefined;
-      const slippageTolerance = new Percent(5, 1000);
 
       if (tokenState.repayAmountVariable === 'max') {
         repayAmount = formatTokenBalance(tokenState.aToken.decimals, tokenState.borrowBalanceVariable);
@@ -759,9 +844,15 @@ export default function AaveV2Migrator<N extends Network>({
           true
         );
 
-        // if (tokenState.borrowBalance > cometData.baseAsset.balanceOfComet) {
-        //   [errorTitle, errorDescription] = notEnoughLiquidityError(cometData.baseAsset);
-        // }
+        if (
+          (tokenState.aToken.symbol === cometData.baseAsset.symbol &&
+            tokenState.borrowBalanceVariable > cometData.baseAsset.balanceOfComet) ||
+          (tokenState.swapRoute !== undefined &&
+            tokenState.swapRoute[0] === StateType.Hydrated &&
+            tokenState.swapRoute[1].tokenIn.amount > cometData.baseAsset.balanceOfComet)
+        ) {
+          [errorTitle, errorDescription] = notEnoughLiquidityError(cometData.baseAsset);
+        }
       } else {
         const maybeRepayAmount = maybeBigIntFromString(tokenState.repayAmountVariable, tokenState.aToken.decimals);
 
@@ -784,10 +875,15 @@ export default function AaveV2Migrator<N extends Network>({
               tokenState.borrowBalanceVariable,
               false
             )}`;
+          } else if (
+            (tokenState.aToken.symbol === cometData.baseAsset.symbol &&
+              maybeRepayAmount > cometData.baseAsset.balanceOfComet) ||
+            (tokenState.swapRoute !== undefined &&
+              tokenState.swapRoute[0] === StateType.Hydrated &&
+              tokenState.swapRoute[1].tokenIn.amount > cometData.baseAsset.balanceOfComet)
+          ) {
+            [errorTitle, errorDescription] = notEnoughLiquidityError(cometData.baseAsset);
           }
-          //  else if (maybeRepayAmount > cometData.baseAsset.balanceOfComet) {
-          //   [errorTitle, errorDescription] = notEnoughLiquidityError(cometData.baseAsset);
-          // }
         }
       }
 
@@ -856,17 +952,46 @@ export default function AaveV2Migrator<N extends Network>({
                     const outputAmount = tokenState.borrowBalanceVariable.toString();
                     const amount = CurrencyAmount.fromRawAmount(token, outputAmount);
                     uniswapRouter
-                      .route(amount, BASE_ASSET, TradeType.EXACT_OUTPUT, {
-                        slippageTolerance,
-                        type: SwapType.SWAP_ROUTER_02,
-                        recipient: migrator.address,
-                        deadline: Math.floor(Date.now() / 1000 + 1800)
-                      })
+                      .route(
+                        amount,
+                        BASE_ASSET,
+                        TradeType.EXACT_OUTPUT,
+                        {
+                          slippageTolerance: new Percent(SLIPPAGE_TOLERANCE.toString(), FACTOR_PRECISION.toString()),
+                          type: SwapType.SWAP_ROUTER_02,
+                          recipient: migrator.address,
+                          deadline: Math.floor(Date.now() / 1000 + 1800)
+                        },
+                        {
+                          protocols: [Protocol.V3],
+                          maxSplits: 1 // This only makes one path
+                        }
+                      )
                       .then(route => {
                         if (route !== null) {
+                          const swapInfo: SwapInfo = {
+                            tokenIn: {
+                              symbol: cometData.baseAsset.symbol,
+                              decimals: cometData.baseAsset.decimals,
+                              price: cometData.baseAsset.price,
+                              amount: BigInt(
+                                Number(route.quote.toFixed(cometData.baseAsset.decimals)) *
+                                  10 ** cometData.baseAsset.decimals
+                              )
+                            },
+                            tokenOut: {
+                              symbol: tokenState.aToken.symbol,
+                              decimals: tokenState.aToken.decimals,
+                              price: tokenState.price,
+                              amount: tokenState.borrowBalanceVariable
+                            },
+                            networkFee: `$${route.estimatedGasUsedUSD.toFixed(2)}`,
+                            path: encodeRouteToPath(route.route[0].route as V3Route, true)
+                          };
+
                           dispatch({
                             type: ActionType.SetSwapRoute,
-                            payload: { symbol: sym, swapRoute: [StateType.Hydrated, route] }
+                            payload: { symbol: sym, swapRoute: [StateType.Hydrated, swapInfo] }
                           });
                         }
                       })
@@ -895,7 +1020,7 @@ export default function AaveV2Migrator<N extends Network>({
               </p>
             </div>
           </div>
-          {/* <SwapDropdown baseAsset={cometData.baseAsset} slippageTolerance={slippageTolerance} state={tokenState.swapRoute} /> */}
+          <SwapDropdown baseAsset={cometData.baseAsset} state={tokenState.swapRoute} />
           {!!errorTitle && <InputViewError title={errorTitle} description={errorDescription} />}
         </div>
       );
@@ -1070,6 +1195,16 @@ export default function AaveV2Migrator<N extends Network>({
               </p>
               <div className="migrator__balances__section">
                 <label className="L1 label text-color--2 migrator__balances__section__header">Source</label>
+                <Dropdown
+                  options={Object.values(MigrationSource).map(source => [
+                    source,
+                    migrationSourceToDisplayString(source)
+                  ])}
+                  selectedOption={migrationSourceToDisplayString(MigrationSource.AaveV2)}
+                  selectOption={(option: [string, string]) => {
+                    selectMigratorSource(option[0] as MigrationSource);
+                  }}
+                />
               </div>
 
               {borrowEl === undefined ? (

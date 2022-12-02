@@ -263,7 +263,8 @@ export default function CompoundV2Migrator<N extends Network>({
   rpc,
   web3,
   account,
-  networkConfig
+  networkConfig,
+  selectMigratorSource
 }: CompoundV2MigratorProps<N>) {
   const [state, dispatch] = useReducer(reducer, initialState);
   const [cometState, setCometState] = useState<CometState>([StateType.Loading, undefined]);
@@ -593,7 +594,7 @@ export default function CompoundV2Migrator<N extends Network>({
           cToken: address,
           amount: balance
         });
-      } else {
+      } else if (transfer !== '') {
         const maybeTransfer = maybeBigIntFromString(transfer, underlying.decimals);
         if (maybeTransfer !== undefined && maybeTransfer > balanceUnderlying) {
           return undefined;
@@ -627,7 +628,7 @@ export default function CompoundV2Migrator<N extends Network>({
           cToken: address,
           amount: MAX_UINT256
         });
-      } else {
+      } else if (repayAmount !== '') {
         const maybeRepayAmount = maybeBigIntFromString(repayAmount, underlying.decimals);
         if (maybeRepayAmount !== undefined && maybeRepayAmount > borrowBalance) {
           return undefined;
@@ -1096,7 +1097,7 @@ export default function CompoundV2Migrator<N extends Network>({
                   ])}
                   selectedOption={migrationSourceToDisplayString(MigrationSource.CompoundV2)}
                   selectOption={(option: [string, string]) => {
-                    console.log('SELECTED OPTION', option);
+                    selectMigratorSource(option[0] as MigrationSource)
                   }}
                 />
               </div>

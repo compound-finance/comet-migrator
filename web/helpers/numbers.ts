@@ -142,3 +142,12 @@ export function parseNumber(str: string, f: (x: number) => bigint): bigint | nul
 export function maximumBorrowFromSwapInfo(swapInfo: SwapInfo): bigint {
   return (swapInfo.tokenOut.amount * (BASE_FACTOR + SLIPPAGE_TOLERANCE)) / BASE_FACTOR;
 }
+
+export function getLTVAsFactor(config: bigint): bigint {
+  // https://docs.aave.com/developers/v/2.0/the-core-protocol/lendingpool#getconfiguration configuration is a bitmask and LTV are from bits 0-15
+  const LTV_MASK = BigInt(0xffff);
+  const MAX_LTV = BigInt(10000);
+  const ltv = config & LTV_MASK;
+  const ltvAsFactor = (BASE_FACTOR * ltv) / MAX_LTV;
+  return ltvAsFactor;
+}

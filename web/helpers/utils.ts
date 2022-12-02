@@ -20,8 +20,8 @@ export function tokenApproveTrxKey(tokenAddress: string, approveAddress: string)
 
 export function migrationSourceToDisplayString(migrationSource: MigrationSource): string {
   switch (migrationSource) {
-    // case MigrationSource.AaveV2:
-    //   return 'Aave V2';
+    case MigrationSource.AaveV2:
+      return 'Aave V2';
     case MigrationSource.CompoundV2:
       return 'Compound V2';
   }

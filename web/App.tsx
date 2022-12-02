@@ -64,16 +64,16 @@ export default ({ rpc, web3 }: AppProps) => {
         selectMigratorSource={selectMigratorSource}
       />
     );
-  // } else if (migrationSource === MigrationSource.AaveV2 && aaveNetworkConfig !== null && account) {
-  //   return (
-  //     <AaveV2Migrator
-  //       rpc={rpc}
-  //       web3={web3}
-  //       account={account}
-  //       networkConfig={aaveNetworkConfig}
-  //       selectMigratorSource={selectMigratorSource}
-  //     />
-  //   );
+  } else if (migrationSource === MigrationSource.AaveV2 && aaveNetworkConfig !== null && account) {
+    return (
+      <AaveV2Migrator
+        rpc={rpc}
+        web3={web3}
+        account={account}
+        networkConfig={aaveNetworkConfig}
+        selectMigratorSource={selectMigratorSource}
+      />
+    );
   } else {
     return <LoadingView rpc={rpc} />;
   }
