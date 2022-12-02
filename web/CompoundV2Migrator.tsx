@@ -677,7 +677,7 @@ export default function CompoundV2Migrator<N extends Network>({
     }
 
     const oneBaseAssetUnit = BigInt(10 ** cometData.baseAsset.decimals);
-    const maximumBorrowValue = (v2ToV3MigrateBorrowValue * SLIPPAGE_TOLERANCE) / BASE_FACTOR;
+    const maximumBorrowValue = (v2ToV3MigrateBorrowValue * (BASE_FACTOR + SLIPPAGE_TOLERANCE)) / BASE_FACTOR; // pad borrow value by 1 + SLIPPAGE_TOLERANCE
     const flashAmount = (maximumBorrowValue * oneBaseAssetUnit) / cometData.baseAsset.price;
     if (flashAmount > cometData.baseAsset.balanceOfComet) {
       return `Insufficient ${cometData.baseAsset.symbol} Liquidity`;
@@ -749,7 +749,6 @@ export default function CompoundV2Migrator<N extends Network>({
             tokenState.swapRoute[0] === StateType.Hydrated &&
             tokenState.swapRoute[1].tokenIn.amount > cometData.baseAsset.balanceOfComet)
         ) {
-          
           [errorTitle, errorDescription] = notEnoughLiquidityError(cometData.baseAsset);
         }
       } else {
