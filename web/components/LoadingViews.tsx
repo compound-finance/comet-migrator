@@ -1,7 +1,11 @@
 import { RPC } from '@compound-finance/comet-extension';
 import { useEffect } from 'react';
 
-import { getDocument } from '../helpers/utils';
+import { getDocument, migrationSourceToDisplayString } from '../helpers/utils';
+
+import { MigrationSource } from '../types';
+
+import Dropdown from './Dropdown';
 
 export const LoadingAsset = () => {
   return (
@@ -126,13 +130,24 @@ export const LoadingView = ({ rpc }: { rpc?: RPC }) => {
           <div className="migrator__balances">
             <div className="panel L4">
               <div className="panel__header-row">
-                <h1 className="heading heading--emphasized">V2 Balances</h1>
+                <h1 className="heading heading--emphasized">Balances</h1>
               </div>
               <p className="body">
-                Select the amounts you want to migrate from Compound V2 to Compound V3. If you are supplying USDC on one
-                market while borrowing on the other, any supplied USDC will be used to repay any borrowed USDC before
-                entering you into an earning position in Compound V3.
+                Select a source and the balances you want to migrate to Compound V3. If you are supplying USDC on one
+                market while borrowing on the other, your ending balance will be the net of these two balances.
               </p>
+
+              <div className="migrator__balances__section">
+                <label className="L1 label text-color--2 migrator__balances__section__header">Source</label>
+                <Dropdown
+                  options={Object.values(MigrationSource).map(source => [
+                    source,
+                    migrationSourceToDisplayString(source)
+                  ])}
+                  selectedOption={migrationSourceToDisplayString(MigrationSource.CompoundV2)}
+                  selectOption={(option: [string, string]) => {}}
+                />
+              </div>
 
               <div className="migrator__balances__section">
                 <label className="L1 label text-color--2 migrator__balances__section__header">Borrowing</label>
@@ -152,8 +167,8 @@ export const LoadingView = ({ rpc }: { rpc?: RPC }) => {
                 <h1 className="heading heading--emphasized">Summary</h1>
               </div>
               <p className="body">
-                If you are borrowing other assets on Compound V2, migrating too much collateral could increase your
-                liquidation risk.
+                If you are borrowing other assets on V2, migrating too much collateral could increase your liquidation
+                risk.
               </p>
               <LoadingPosition />
               <LoadingPosition />

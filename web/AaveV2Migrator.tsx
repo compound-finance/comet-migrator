@@ -78,8 +78,6 @@ type SwapRouteState = undefined | [StateType.Loading] | [StateType.Hydrated, Swa
 interface ATokenState {
   aToken: AToken;
   allowance: bigint;
-  // allowanceStableDebtToken: bigint;
-  // allowanceVariableDebtToken: bigint;
   balance: bigint;
   borrowBalanceStable: bigint;
   borrowBalanceVariable: bigint;
