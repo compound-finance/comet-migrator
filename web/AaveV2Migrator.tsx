@@ -59,7 +59,7 @@ type AaveV2MigratorProps<N extends Network> = AppProps & {
 };
 
 interface Borrow {
-  aToken: string;
+  aDebtToken: string;
   amount: bigint;
 }
 
@@ -679,7 +679,7 @@ export default function AaveV2Migrator<N extends Network>({
 
       if (repayAmountStable === 'max') {
         borrows.push({
-          aToken: aToken.stableDebtTokenAddress,
+          aDebtToken: aToken.stableDebtTokenAddress,
           amount: MAX_UINT256
         });
       } else if (repayAmountStable !== '') {
@@ -693,7 +693,7 @@ export default function AaveV2Migrator<N extends Network>({
         } else {
           if (maybeRepayAmount > 0n) {
             borrows.push({
-              aToken: aToken.stableDebtTokenAddress,
+              aDebtToken: aToken.stableDebtTokenAddress,
               amount: maybeRepayAmount
             });
           }
@@ -702,7 +702,7 @@ export default function AaveV2Migrator<N extends Network>({
 
       if (repayAmountVariable === 'max') {
         borrows.push({
-          aToken: aToken.variableDebtTokenAddress,
+          aDebtToken: aToken.variableDebtTokenAddress,
           amount: MAX_UINT256
         });
       } else if (repayAmountVariable !== '') {
@@ -716,7 +716,7 @@ export default function AaveV2Migrator<N extends Network>({
         } else {
           if (maybeRepayAmount > 0n) {
             borrows.push({
-              aToken: aToken.variableDebtTokenAddress,
+              aDebtToken: aToken.variableDebtTokenAddress,
               amount: maybeRepayAmount
             });
           }
@@ -1125,8 +1125,8 @@ export default function AaveV2Migrator<N extends Network>({
                   onClick={() => {
                     setApproveModal({
                       asset: {
-                        name: tokenState.aToken.aTokenSymbol,
-                        symbol: tokenState.aToken.aTokenSymbol
+                        name: tokenState.aToken.symbol,
+                        symbol: tokenState.aToken.symbol
                       },
                       transactionKey: key,
                       onActionClicked: (_asset, _descption) => setTokenApproval(sym),
