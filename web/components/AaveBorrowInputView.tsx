@@ -82,7 +82,7 @@ const AaveBorrowInputView = ({
   }
 
   return (
-    <div className="migrator__input-view" key={tokenState.aToken.symbol}>
+    <div className="migrator__input-view" key={`${tokenState.aToken.symbol}-${borrowType}`}>
       <div className="migrator__input-view__content">
         <div className="migrator__input-view__left">
           <div className="migrator__input-view__header">
@@ -115,7 +115,7 @@ const AaveBorrowInputView = ({
               </div>
             )}
           </div>
-          <p className="meta text-color--2" style={{ marginTop: '0.75rem' }}>
+          <p className="meta text-color--2" style={{ marginTop: '0.25rem' }}>
             {repayAmountDollarValue}
           </p>
         </div>
@@ -123,7 +123,7 @@ const AaveBorrowInputView = ({
           <button className="button button--small" disabled={repayAmountRaw === 'max'} onClick={onMaxButtonClicked}>
             Max
           </button>
-          <p className="meta text-color--2" style={{ marginTop: '0.25rem' }}>
+          <p className="meta text-color--2" style={{ marginTop: '0.5rem' }}>
             <span style={{ fontWeight: '500' }}>Aave V2 balance:</span>{' '}
             {formatTokenBalance(tokenState.aToken.decimals, borrowBalance, false)}
           </p>

@@ -1,6 +1,7 @@
 import '../styles/main.scss';
 
 import { CometState } from '@compound-finance/comet-extension';
+import { BaseAssetWithAccountState } from '@compound-finance/comet-extension/dist/CometState';
 import { Contract } from '@ethersproject/contracts';
 import { JsonRpcProvider } from '@ethersproject/providers';
 import { Protocol } from '@uniswap/router-sdk';
@@ -292,6 +293,7 @@ export default function CompoundV2Migrator<N extends Network>({
   }, [rpc]);
 
   const timer = usePoll(5000);
+  const routerCache = useMemo(() => new Map<string, NodeJS.Timeout>(), [networkConfig.network]);
 
   const signer = useMemo(() => {
     return web3.getSigner().connectUnchecked();
@@ -648,12 +650,12 @@ export default function CompoundV2Migrator<N extends Network>({
     }
 
     const swaps: Swap[] = [];
-    for (let [symbol, { borrowBalance, repayAmount, swapRoute, underlying }] of state.data.cTokens.entries()) {
+    for (let [, { borrowBalance, repayAmount, swapRoute, underlying }] of state.data.cTokens.entries()) {
       const maybeRepayAmount =
         repayAmount === 'max' ? borrowBalance : maybeBigIntFromString(repayAmount, underlying.decimals);
 
       if (maybeRepayAmount !== undefined && maybeRepayAmount > 0n) {
-        if (symbol === 'cUSDC') {
+        if (underlying.symbol === cometData.baseAsset.symbol) {
           swaps.push({
             path: '0x',
             amountInMaximum: MAX_UINT256
@@ -718,13 +720,6 @@ export default function CompoundV2Migrator<N extends Network>({
     ? new JsonRpcProvider(import.meta.env.VITE_BYPASS_MAINNET_RPC_URL)
     : web3;
   const uniswapRouter = new AlphaRouter({ chainId: getIdByNetwork(networkConfig.network), provider: quoteProvider });
-  const BASE_ASSET = new Token(
-    getIdByNetwork(networkConfig.network),
-    cometData.baseAsset.address,
-    cometData.baseAsset.decimals,
-    cometData.baseAsset.symbol,
-    cometData.baseAsset.name
-  );
 
   let borrowEl;
   if (cTokensWithBorrowBalances.length > 0) {
@@ -810,6 +805,58 @@ export default function CompoundV2Migrator<N extends Network>({
                       type: ActionType.SetRepayAmount,
                       payload: { symbol: sym, repayAmount: e.target.value }
                     });
+
+                    const maybeValueBigInt = maybeBigIntFromString(e.target.value, tokenState.underlying.decimals);
+
+                    const cacheKey = tokenState.underlying.symbol;
+                    if (maybeValueBigInt !== undefined && maybeValueBigInt > 0n) {
+                      const prevTimeout = routerCache.get(cacheKey);
+                      if (prevTimeout) {
+                        clearTimeout(prevTimeout);
+                      }
+
+                      dispatch({
+                        type: ActionType.SetSwapRoute,
+                        payload: { symbol: sym, swapRoute: [StateType.Loading] }
+                      });
+
+                      routerCache.set(
+                        cacheKey,
+                        setTimeout(() => {
+                          getRoute(
+                            getIdByNetwork(networkConfig.network),
+                            migrator.address,
+                            cometData.baseAsset,
+                            tokenState,
+                            uniswapRouter,
+                            maybeValueBigInt
+                          )
+                            .then(swapInfo => {
+                              if (swapInfo !== null) {
+                                dispatch({
+                                  type: ActionType.SetSwapRoute,
+                                  payload: { symbol: sym, swapRoute: [StateType.Hydrated, swapInfo] }
+                                });
+                              }
+                            })
+                            .catch(e => {
+                              dispatch({
+                                type: ActionType.SetSwapRoute,
+                                payload: { symbol: sym, swapRoute: undefined }
+                              });
+                            });
+                        }, 300)
+                      );
+                    } else {
+                      const prevTimeout = routerCache.get(cacheKey);
+                      if (prevTimeout) {
+                        clearTimeout(prevTimeout);
+                      }
+                      dispatch({
+                        type: ActionType.SetSwapRoute,
+                        payload: { symbol: sym, swapRoute: undefined }
+                      });
+                    }
                   }}
                   type="text"
                   inputMode="decimal"
@@ -837,53 +884,16 @@ export default function CompoundV2Migrator<N extends Network>({
                       payload: { symbol: sym, swapRoute: [StateType.Loading] }
                     });
 
-                    const token = new Token(
+                    getRoute(
                       getIdByNetwork(networkConfig.network),
-                      tokenState.underlying.address,
-                      tokenState.underlying.decimals,
-                      tokenState.underlying.symbol,
-                      tokenState.underlying.name
-                    );
-                    const outputAmount = tokenState.borrowBalance.toString();
-                    const amount = CurrencyAmount.fromRawAmount(token, outputAmount);
-                    uniswapRouter
-                      .route(
-                        amount,
-                        BASE_ASSET,
-                        TradeType.EXACT_OUTPUT,
-                        {
-                          slippageTolerance: new Percent(SLIPPAGE_TOLERANCE.toString(), FACTOR_PRECISION.toString()),
-                          type: SwapType.SWAP_ROUTER_02,
-                          recipient: migrator.address,
-                          deadline: Math.floor(Date.now() / 1000 + 1800)
-                        },
-                        {
-                          protocols: [Protocol.V3],
-                          maxSplits: 1 // This only makes one path
-                        }
-                      )
-                      .then(route => {
-                        if (route !== null) {
-                          const swapInfo: SwapInfo = {
-                            tokenIn: {
-                              symbol: cometData.baseAsset.symbol,
-                              decimals: cometData.baseAsset.decimals,
-                              price: cometData.baseAsset.price,
-                              amount: BigInt(
-                                Number(route.quote.toFixed(cometData.baseAsset.decimals)) *
-                                  10 ** cometData.baseAsset.decimals
-                              )
-                            },
-                            tokenOut: {
-                              symbol: tokenState.underlying.symbol,
-                              decimals: tokenState.underlying.decimals,
-                              price: tokenState.price,
-                              amount: tokenState.borrowBalance
-                            },
-                            networkFee: `$${route.estimatedGasUsedUSD.toFixed(2)}`,
-                            path: encodeRouteToPath(route.route[0].route as V3Route, true)
-                          };
-
+                      migrator.address,
+                      cometData.baseAsset,
+                      tokenState,
+                      uniswapRouter,
+                      tokenState.borrowBalance
+                    )
+                      .then(swapInfo => {
+                        if (swapInfo !== null) {
                           dispatch({
                             type: ActionType.SetSwapRoute,
                             payload: { symbol: sym, swapRoute: [StateType.Hydrated, swapInfo] }
@@ -901,7 +911,7 @@ export default function CompoundV2Migrator<N extends Network>({
               >
                 Max
               </button>
-              <p className="meta text-color--2" style={{ marginTop: '0.75rem' }}>
+              <p className="meta text-color--2" style={{ marginTop: '0.5rem' }}>
                 <span style={{ fontWeight: '500' }}>V2 balance:</span>{' '}
                 {formatTokenBalance(tokenState.underlying.decimals, tokenState.borrowBalance, false)}
               </p>
@@ -1042,7 +1052,7 @@ export default function CompoundV2Migrator<N extends Network>({
                   Max
                 </button>
               )}
-              <p className="meta text-color--2" style={{ marginTop: '0.75rem' }}>
+              <p className="meta text-color--2" style={{ marginTop: '0.5rem' }}>
                 <span style={{ fontWeight: '500' }}>V2 balance:</span>{' '}
                 {formatTokenBalance(tokenState.underlying.decimals, tokenState.balanceUnderlying, false)}
               </p>
@@ -1085,8 +1095,9 @@ export default function CompoundV2Migrator<N extends Network>({
                 <h1 className="heading heading--emphasized">Balances</h1>
               </div>
               <p className="body">
-                Select a source and the balances you want to migrate to Compound V3. If you are supplying USDC on one
-                market while borrowing on the other, your ending balance will be the net of these two balances.
+                Select a source and the balances you want to migrate to Compound V3. If you are supplying{' '}
+                {cometData.baseAsset.symbol} on one market while borrowing on the other, your ending balance will be the
+                net of these two balances.
               </p>
               <div className="migrator__balances__section">
                 <label className="L1 label text-color--2 migrator__balances__section__header">Source</label>
@@ -1250,4 +1261,59 @@ export default function CompoundV2Migrator<N extends Network>({
       </div>
     </div>
   );
+}
+
+async function getRoute(
+  networkId: number,
+  migrator: string,
+  baseAsset: BaseAssetWithAccountState,
+  tokenState: CTokenState,
+  uniswapRouter: AlphaRouter,
+  outputAmount: bigint
+): Promise<SwapInfo | null> {
+  const BASE_ASSET = new Token(networkId, baseAsset.address, baseAsset.decimals, baseAsset.symbol, baseAsset.name);
+  const token = new Token(
+    networkId,
+    tokenState.underlying.address,
+    tokenState.underlying.decimals,
+    tokenState.underlying.symbol,
+    tokenState.underlying.symbol
+  );
+  const amount = CurrencyAmount.fromRawAmount(token, outputAmount.toString());
+  const route = await uniswapRouter.route(
+    amount,
+    BASE_ASSET,
+    TradeType.EXACT_OUTPUT,
+    {
+      slippageTolerance: new Percent(SLIPPAGE_TOLERANCE.toString(), FACTOR_PRECISION.toString()),
+      type: SwapType.SWAP_ROUTER_02,
+      recipient: migrator,
+      deadline: Math.floor(Date.now() / 1000 + 1800)
+    },
+    {
+      protocols: [Protocol.V3],
+      maxSplits: 1 // This only makes one path
+    }
+  );
+  if (route !== null) {
+    const swapInfo: SwapInfo = {
+      tokenIn: {
+        symbol: baseAsset.symbol,
+        decimals: baseAsset.decimals,
+        price: baseAsset.price,
+        amount: BigInt(Number(route.quote.toFixed(baseAsset.decimals)) * 10 ** baseAsset.decimals)
+      },
+      tokenOut: {
+        symbol: tokenState.underlying.symbol,
+        decimals: tokenState.underlying.decimals,
+        price: tokenState.price,
+        amount: outputAmount
+      },
+      networkFee: `$${route.estimatedGasUsedUSD.toFixed(2)}`,
+      path: encodeRouteToPath(route.route[0].route as V3Route, true)
+    };
+    return swapInfo;
+  } else {
+    return null;
+  }
 }
