@@ -71,7 +71,8 @@ export interface ATokenState {
   repayAmountStable: string | 'max';
   repayAmountVariable: string | 'max';
   transfer: string | 'max';
-  swapRoute: SwapRouteState;
+  swapRouteStable: SwapRouteState;
+  swapRouteVariable: SwapRouteState;
 }
 
 export type SwapInfo = {

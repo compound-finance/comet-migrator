@@ -129,6 +129,7 @@ type ActionSetSwapRoute = {
   type: ActionType.SetSwapRoute;
   payload: {
     symbol: ATokenSym<Network>;
+    type: 'stable' | 'variable';
     swapRoute: SwapRouteState;
   };
 };
@@ -215,9 +216,10 @@ function reducer(state: MigratorState, action: Action): MigratorState {
       if (state.type !== StateType.Hydrated) return state;
 
       const aTokenCopy: Map<ATokenSym<Network>, ATokenState> = new Map(Array.from(state.data.aTokens));
+      const swapRouteKey = action.payload.type === 'stable' ? 'swapRouteStable' : 'swapRouteVariable';
       aTokenCopy.set(action.payload.symbol, {
         ...(state.data.aTokens.get(action.payload.symbol) as ATokenState),
-        swapRoute: action.payload.swapRoute
+        [swapRouteKey]: action.payload.swapRoute
       });
 
       return {
@@ -391,7 +393,8 @@ export default function AaveV2Migrator<N extends Network>({
         const repayAmountStable: string = maybeTokenState?.repayAmountStable ?? '';
         const repayAmountVariable: string = maybeTokenState?.repayAmountVariable ?? '';
         const transfer: string = maybeTokenState?.transfer ?? '';
-        const swapRoute: SwapRouteState = maybeTokenState?.swapRoute;
+        const swapRouteStable: SwapRouteState = maybeTokenState?.swapRouteStable;
+        const swapRouteVariable: SwapRouteState = maybeTokenState?.swapRouteVariable;
         const price: bigint = prices[index];
 
         return [
@@ -407,7 +410,8 @@ export default function AaveV2Migrator<N extends Network>({
             repayAmountStable,
             repayAmountVariable,
             transfer,
-            swapRoute
+            swapRouteStable,
+            swapRouteVariable
           }
         ];
       })
@@ -718,7 +722,15 @@ export default function AaveV2Migrator<N extends Network>({
     const swaps: Swap[] = [];
     for (let [
       symbol,
-      { aToken, borrowBalanceStable, borrowBalanceVariable, repayAmountStable, repayAmountVariable, swapRoute }
+      {
+        aToken,
+        borrowBalanceStable,
+        borrowBalanceVariable,
+        repayAmountStable,
+        repayAmountVariable,
+        swapRouteStable,
+        swapRouteVariable
+      }
     ] of state.data.aTokens.entries()) {
       const maybeRepayAmountStable =
         repayAmountStable === 'max' ? borrowBalanceStable : maybeBigIntFromString(repayAmountStable, aToken.decimals);
@@ -733,9 +745,9 @@ export default function AaveV2Migrator<N extends Network>({
             path: '0x',
             amountInMaximum: MAX_UINT256
           });
-        } else if (swapRoute !== undefined && swapRoute[0] === StateType.Hydrated) {
+        } else if (swapRouteStable !== undefined && swapRouteStable[0] === StateType.Hydrated) {
           swaps.push({
-            path: swapRoute[1].path,
+            path: swapRouteStable[1].path,
             amountInMaximum: MAX_UINT256
           });
         } else {
@@ -749,9 +761,9 @@ export default function AaveV2Migrator<N extends Network>({
             path: '0x',
             amountInMaximum: MAX_UINT256
           });
-        } else if (swapRoute !== undefined && swapRoute[0] === StateType.Hydrated) {
+        } else if (swapRouteVariable !== undefined && swapRouteVariable[0] === StateType.Hydrated) {
           swaps.push({
-            path: swapRoute[1].path,
+            path: swapRouteVariable[1].path,
             amountInMaximum: MAX_UINT256
           });
         } else {
@@ -843,7 +855,7 @@ export default function AaveV2Migrator<N extends Network>({
                   console.log('We are here');
                   dispatch({
                     type: ActionType.SetSwapRoute,
-                    payload: { symbol: sym, swapRoute: [StateType.Loading] }
+                    payload: { symbol: sym, type: 'stable', swapRoute: [StateType.Loading] }
                   });
 
                   const token = new Token(
@@ -895,14 +907,14 @@ export default function AaveV2Migrator<N extends Network>({
 
                         dispatch({
                           type: ActionType.SetSwapRoute,
-                          payload: { symbol: sym, swapRoute: [StateType.Hydrated, swapInfo] }
+                          payload: { symbol: sym, type: 'stable', swapRoute: [StateType.Hydrated, swapInfo] }
                         });
                       }
                     })
                     .catch(e => {
                       dispatch({
                         type: ActionType.SetSwapRoute,
-                        payload: { symbol: sym, swapRoute: undefined }
+                        payload: { symbol: sym, type: 'stable', swapRoute: undefined }
                       });
                     });
                 }
@@ -930,7 +942,7 @@ export default function AaveV2Migrator<N extends Network>({
                   console.log('We are here');
                   dispatch({
                     type: ActionType.SetSwapRoute,
-                    payload: { symbol: sym, swapRoute: [StateType.Loading] }
+                    payload: { symbol: sym, type: 'variable', swapRoute: [StateType.Loading] }
                   });
 
                   const token = new Token(
@@ -982,14 +994,14 @@ export default function AaveV2Migrator<N extends Network>({
 
                         dispatch({
                           type: ActionType.SetSwapRoute,
-                          payload: { symbol: sym, swapRoute: [StateType.Hydrated, swapInfo] }
+                          payload: { symbol: sym, type: 'variable', swapRoute: [StateType.Hydrated, swapInfo] }
                         });
                       }
                     })
                     .catch(e => {
                       dispatch({
                         type: ActionType.SetSwapRoute,
-                        payload: { symbol: sym, swapRoute: undefined }
+                        payload: { symbol: sym, type: 'variable', swapRoute: undefined }
                       });
                     });
                 }

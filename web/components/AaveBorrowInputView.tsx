@@ -2,7 +2,7 @@ import { BaseAssetWithAccountState } from '@compound-finance/comet-extension/dis
 
 import { formatTokenBalance, maybeBigIntFromString, PRICE_PRECISION } from '../helpers/numbers';
 
-import { ATokenState, StateType } from '../types';
+import { ATokenState, StateType, SwapRouteState } from '../types';
 
 import { notEnoughLiquidityError, InputViewError } from './ErrorViews';
 import { ArrowRight } from './Icons';
@@ -23,10 +23,10 @@ const AaveBorrowInputView = ({
   onInputChange,
   onMaxButtonClicked
 }: AaveBorrowInputViewProps) => {
-  const [borrowBalance, repayAmountRaw]: [bigint, string] =
+  const [borrowBalance, repayAmountRaw, swapRoute]: [bigint, string, SwapRouteState ] =
     borrowType === 'stable'
-      ? [tokenState.borrowBalanceStable, tokenState.repayAmountStable]
-      : [tokenState.borrowBalanceVariable, tokenState.repayAmountVariable];
+      ? [tokenState.borrowBalanceStable, tokenState.repayAmountStable, tokenState.swapRouteStable]
+      : [tokenState.borrowBalanceVariable, tokenState.repayAmountVariable, tokenState.swapRouteVariable];
   let repayAmount: string;
   let repayAmountDollarValue: string;
   let errorTitle: string | undefined;
@@ -43,9 +43,9 @@ const AaveBorrowInputView = ({
 
     if (
       (tokenState.aToken.symbol === baseAsset.symbol && borrowBalance > baseAsset.balanceOfComet) ||
-      (tokenState.swapRoute !== undefined &&
-        tokenState.swapRoute[0] === StateType.Hydrated &&
-        tokenState.swapRoute[1].tokenIn.amount > baseAsset.balanceOfComet)
+      (swapRoute !== undefined &&
+        swapRoute[0] === StateType.Hydrated &&
+        swapRoute[1].tokenIn.amount > baseAsset.balanceOfComet)
     ) {
       [errorTitle, errorDescription] = notEnoughLiquidityError(baseAsset);
     }
@@ -72,9 +72,9 @@ const AaveBorrowInputView = ({
         )}`;
       } else if (
         (tokenState.aToken.symbol === baseAsset.symbol && maybeRepayAmount > baseAsset.balanceOfComet) ||
-        (tokenState.swapRoute !== undefined &&
-          tokenState.swapRoute[0] === StateType.Hydrated &&
-          tokenState.swapRoute[1].tokenIn.amount > baseAsset.balanceOfComet)
+        (swapRoute !== undefined &&
+          swapRoute[0] === StateType.Hydrated &&
+          swapRoute[1].tokenIn.amount > baseAsset.balanceOfComet)
       ) {
         [errorTitle, errorDescription] = notEnoughLiquidityError(baseAsset);
       }
@@ -137,7 +137,7 @@ const AaveBorrowInputView = ({
           </p>
         </div>
       </div>
-      <SwapDropdown baseAsset={baseAsset} state={tokenState.swapRoute} />
+      <SwapDropdown baseAsset={baseAsset} state={swapRoute} />
       {!!errorTitle && <InputViewError title={errorTitle} description={errorDescription} />}
     </div>
   );
