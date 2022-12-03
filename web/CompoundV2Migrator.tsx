@@ -418,7 +418,7 @@ export default function CompoundV2Migrator<N extends Network>({
   }, [timer, tracker, account, networkConfig.network]);
 
   if (state.type === StateType.Loading || cometState[0] !== StateType.Hydrated) {
-    return <LoadingView migrationSource={MigrationSource.CompoundV2} />;
+    return <LoadingView migrationSource={MigrationSource.CompoundV2} selectMigratorSource={selectMigratorSource} />;
   }
   const cometData = cometState[1];
 

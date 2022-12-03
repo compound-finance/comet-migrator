@@ -1,6 +1,7 @@
 import { RPC } from '@compound-finance/comet-extension';
 import { TransactionReceipt, JsonRpcProvider } from '@ethersproject/providers';
-import { SwapRoute } from '@uniswap/smart-order-router';
+
+import { AToken } from './Network';
 
 export type Token = {
   name: string;
@@ -57,7 +58,21 @@ export interface AppProps {
   rpc?: RPC;
   web3: JsonRpcProvider;
 }
+export type SwapRouteState = undefined | [StateType.Loading] | [StateType.Hydrated, SwapInfo];
 
+export interface ATokenState {
+  aToken: AToken;
+  allowance: bigint;
+  balance: bigint;
+  borrowBalanceStable: bigint;
+  borrowBalanceVariable: bigint;
+  collateralFactor: bigint;
+  price: bigint;
+  repayAmountStable: string | 'max';
+  repayAmountVariable: string | 'max';
+  transfer: string | 'max';
+  swapRoute: SwapRouteState;
+}
 
 export type SwapInfo = {
   tokenIn: {
@@ -74,4 +89,4 @@ export type SwapInfo = {
   };
   networkFee: string;
   path: string;
-}
+};

@@ -1,5 +1,14 @@
 export default [
   {
+    aTokenAddress: '0xBcca60bB61934080951369a648Fb03DF4F96263C',
+    aTokenSymbol: 'aUSDC',
+    stableDebtTokenAddress: '0xE4922afAB0BbaDd8ab2a88E0C79d884Ad337fcA6',
+    variableDebtTokenAddress: '0x619beb58998eD2278e08620f97007e1116D5D25b',
+    symbol: 'USDC',
+    address: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
+    decimals: 6
+  },
+  {
     aTokenAddress: '0x3Ed3B47Dd13EC9a98b44e6204A523E766B225811',
     aTokenSymbol: 'aUSDT',
     stableDebtTokenAddress: '0xe91D55AB2240594855aBd11b3faAE801Fd4c4687',
@@ -169,15 +178,6 @@ export default [
     symbol: 'TUSD',
     address: '0x0000000000085d4780B73119b644AE5ecd22b376',
     decimals: 18
-  },
-  {
-    aTokenAddress: '0xBcca60bB61934080951369a648Fb03DF4F96263C',
-    aTokenSymbol: 'aUSDC',
-    stableDebtTokenAddress: '0xE4922afAB0BbaDd8ab2a88E0C79d884Ad337fcA6',
-    variableDebtTokenAddress: '0x619beb58998eD2278e08620f97007e1116D5D25b',
-    symbol: 'USDC',
-    address: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
-    decimals: 6
   },
   {
     aTokenAddress: '0x8dAE6Cb04688C62d939ed9B68d32Bc62e49970b1',

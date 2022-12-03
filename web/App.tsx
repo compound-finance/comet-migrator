@@ -75,6 +75,6 @@ export default ({ rpc, web3 }: AppProps) => {
       />
     );
   } else {
-    return <LoadingView rpc={rpc} migrationSource={migrationSource} />;
+    return <LoadingView rpc={rpc} migrationSource={migrationSource} selectMigratorSource={selectMigratorSource} />;
   }
 };

@@ -107,7 +107,15 @@ export const LoadingPosition = () => {
   );
 };
 
-export const LoadingView = ({ rpc, migrationSource }: { rpc?: RPC; migrationSource: MigrationSource }) => {
+export const LoadingView = ({
+  rpc,
+  migrationSource,
+  selectMigratorSource
+}: {
+  rpc?: RPC;
+  migrationSource: MigrationSource;
+  selectMigratorSource: (source: MigrationSource) => void;
+}) => {
   useEffect(() => {
     if (rpc) {
       rpc.on({
@@ -145,7 +153,9 @@ export const LoadingView = ({ rpc, migrationSource }: { rpc?: RPC; migrationSour
                     migrationSourceToDisplayString(source)
                   ])}
                   selectedOption={migrationSourceToDisplayString(migrationSource)}
-                  selectOption={(option: [string, string]) => {}}
+                  selectOption={(option: [string, string]) => {
+                    selectMigratorSource(option[0] as MigrationSource);
+                  }}
                 />
               </div>
 

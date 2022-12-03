@@ -18,6 +18,7 @@ import AavePriceOracle from '../abis/Aave/PriceOracle';
 
 import Comet from '../abis/Comet';
 
+import AaveBorrowInputView from './components/AaveBorrowInputView';
 import ApproveModal from './components/ApproveModal';
 import Dropdown from './components/Dropdown';
 import { InputViewError, notEnoughLiquidityError, supplyCapError } from './components/ErrorViews';
@@ -44,8 +45,16 @@ import {
   useTransactionTracker
 } from './lib/useTransactionTracker';
 
-import { AToken, ATokenSym, Network, getIdByNetwork, AaveNetworkConfig } from './Network';
-import { AppProps, ApproveModalProps, MigrationSource, StateType, SwapInfo } from './types';
+import { ATokenSym, Network, getIdByNetwork, AaveNetworkConfig } from './Network';
+import {
+  AppProps,
+  ApproveModalProps,
+  ATokenState,
+  MigrationSource,
+  StateType,
+  SwapRouteState,
+  SwapInfo
+} from './types';
 import SwapDropdown from './components/SwapDropdown';
 
 const MAX_UINT256 = BigInt('115792089237316195423570985008687907853269984665640564039457584007913129639935');
@@ -71,22 +80,6 @@ interface Collateral {
 interface Swap {
   path: string;
   amountInMaximum: bigint;
-}
-
-type SwapRouteState = undefined | [StateType.Loading] | [StateType.Hydrated, SwapInfo];
-
-interface ATokenState {
-  aToken: AToken;
-  allowance: bigint;
-  balance: bigint;
-  borrowBalanceStable: bigint;
-  borrowBalanceVariable: bigint;
-  collateralFactor: bigint;
-  price: bigint;
-  repayAmountStable: string | 'max';
-  repayAmountVariable: string | 'max';
-  transfer: string | 'max';
-  swapRoute: SwapRouteState;
 }
 
 interface MigratorStateData<Network> {
@@ -430,7 +423,7 @@ export default function AaveV2Migrator<N extends Network>({
   }, [timer, tracker, account, networkConfig.network]);
 
   if (state.type === StateType.Loading || cometState[0] !== StateType.Hydrated) {
-    return <LoadingView migrationSource={MigrationSource.AaveV2} />;
+    return <LoadingView migrationSource={MigrationSource.AaveV2} selectMigratorSource={selectMigratorSource} />;
   }
   const cometData = cometState[1];
 
@@ -827,199 +820,183 @@ export default function AaveV2Migrator<N extends Network>({
   let borrowEl;
   if (aTokensWithBorrowBalances.length > 0) {
     borrowEl = aTokensWithBorrowBalances.map(([sym, tokenState]) => {
-      let repayAmount: string;
-      let repayAmountDollarValue: string;
-      let errorTitle: string | undefined;
-      let errorDescription: string | undefined;
-
-      if (tokenState.repayAmountVariable === 'max') {
-        repayAmount = formatTokenBalance(tokenState.aToken.decimals, tokenState.borrowBalanceVariable);
-        repayAmountDollarValue = formatTokenBalance(
-          tokenState.aToken.decimals + PRICE_PRECISION,
-          tokenState.borrowBalanceVariable * tokenState.price,
-          false,
-          true
-        );
-
-        if (
-          (tokenState.aToken.symbol === cometData.baseAsset.symbol &&
-            tokenState.borrowBalanceVariable > cometData.baseAsset.balanceOfComet) ||
-          (tokenState.swapRoute !== undefined &&
-            tokenState.swapRoute[0] === StateType.Hydrated &&
-            tokenState.swapRoute[1].tokenIn.amount > cometData.baseAsset.balanceOfComet)
-        ) {
-          [errorTitle, errorDescription] = notEnoughLiquidityError(cometData.baseAsset);
-        }
-      } else {
-        const maybeRepayAmount = maybeBigIntFromString(tokenState.repayAmountVariable, tokenState.aToken.decimals);
-
-        if (maybeRepayAmount === undefined) {
-          repayAmount = tokenState.repayAmountVariable;
-          repayAmountDollarValue = '$0.00';
-        } else {
-          repayAmount = tokenState.repayAmountVariable;
-          repayAmountDollarValue = formatTokenBalance(
-            tokenState.aToken.decimals + PRICE_PRECISION,
-            maybeRepayAmount * tokenState.price,
-            false,
-            true
-          );
-
-          if (maybeRepayAmount > tokenState.borrowBalanceVariable) {
-            errorTitle = 'Amount Exceeds Borrow Balance.';
-            errorDescription = `Value must be less than or equal to ${formatTokenBalance(
-              tokenState.aToken.decimals,
-              tokenState.borrowBalanceVariable,
-              false
-            )}`;
-          } else if (
-            (tokenState.aToken.symbol === cometData.baseAsset.symbol &&
-              maybeRepayAmount > cometData.baseAsset.balanceOfComet) ||
-            (tokenState.swapRoute !== undefined &&
-              tokenState.swapRoute[0] === StateType.Hydrated &&
-              tokenState.swapRoute[1].tokenIn.amount > cometData.baseAsset.balanceOfComet)
-          ) {
-            [errorTitle, errorDescription] = notEnoughLiquidityError(cometData.baseAsset);
-          }
-        }
-      }
-
       return (
-        <div className="migrator__input-view" key={tokenState.aToken.symbol}>
-          <div className="migrator__input-view__content">
-            <div className="migrator__input-view__left">
-              <div className="migrator__input-view__header">
-                <div className={`asset asset--${tokenState.aToken.symbol}`}></div>
-                <label className="L2 label text-color--1">{tokenState.aToken.symbol}</label>
-                {tokenState.aToken.symbol !== cometData.baseAsset.symbol && (
-                  <>
-                    <ArrowRight className="svg--icon--2" />
-                    <div className={`asset asset--${cometData.baseAsset.symbol}`}></div>
-                    <label className="L2 label text-color--1">{cometData.baseAsset.symbol}</label>
-                  </>
-                )}
-              </div>
-              <div className="migrator__input-view__holder">
-                <input
-                  placeholder="0.0000"
-                  value={repayAmount}
-                  onChange={e => {
-                    dispatch({
-                      type: ActionType.SetRepayAmount,
-                      payload: { symbol: sym, type: 'variable', repayAmount: e.target.value }
-                    });
-                  }}
-                  type="text"
-                  inputMode="decimal"
-                />
-                {tokenState.repayAmountVariable === '' && (
-                  <div className="migrator__input-view__placeholder text-color--2">
-                    <span className="text-color--1">0</span>.0000
-                  </div>
-                )}
-              </div>
-              <p className="meta text-color--2" style={{ marginTop: '0.75rem' }}>
-                {repayAmountDollarValue}
-              </p>
-            </div>
-            <div className="migrator__input-view__right">
-              <button
-                className="button button--small"
-                disabled={tokenState.repayAmountVariable === 'max'}
-                onClick={() => {
+        <>
+          {tokenState.borrowBalanceStable > 0n && (
+            <AaveBorrowInputView
+              baseAsset={cometData.baseAsset}
+              borrowType={'stable'}
+              tokenState={tokenState}
+              onInputChange={(value: string) => {
+                dispatch({
+                  type: ActionType.SetRepayAmount,
+                  payload: { symbol: sym, type: 'stable', repayAmount: value }
+                });
+              }}
+              onMaxButtonClicked={() => {
+                dispatch({
+                  type: ActionType.SetRepayAmount,
+                  payload: { symbol: sym, type: 'stable', repayAmount: 'max' }
+                });
+
+                if (tokenState.aToken.symbol !== cometData.baseAsset.symbol) {
+                  console.log('We are here');
                   dispatch({
-                    type: ActionType.SetRepayAmount,
-                    payload: { symbol: sym, type: 'variable', repayAmount: 'max' }
+                    type: ActionType.SetSwapRoute,
+                    payload: { symbol: sym, swapRoute: [StateType.Loading] }
                   });
 
-                  if (tokenState.aToken.symbol !== cometData.baseAsset.symbol) {
-                    console.log('We are here');
-                    dispatch({
-                      type: ActionType.SetSwapRoute,
-                      payload: { symbol: sym, swapRoute: [StateType.Loading] }
-                    });
+                  const token = new Token(
+                    getIdByNetwork(networkConfig.network),
+                    tokenState.aToken.address,
+                    tokenState.aToken.decimals,
+                    tokenState.aToken.symbol,
+                    tokenState.aToken.symbol
+                  );
+                  const outputAmount = tokenState.borrowBalanceVariable.toString();
+                  const amount = CurrencyAmount.fromRawAmount(token, outputAmount);
+                  uniswapRouter
+                    .route(
+                      amount,
+                      BASE_ASSET,
+                      TradeType.EXACT_OUTPUT,
+                      {
+                        slippageTolerance: new Percent(SLIPPAGE_TOLERANCE.toString(), FACTOR_PRECISION.toString()),
+                        type: SwapType.SWAP_ROUTER_02,
+                        recipient: migrator.address,
+                        deadline: Math.floor(Date.now() / 1000 + 1800)
+                      },
+                      {
+                        protocols: [Protocol.V3],
+                        maxSplits: 1 // This only makes one path
+                      }
+                    )
+                    .then(route => {
+                      if (route !== null) {
+                        const swapInfo: SwapInfo = {
+                          tokenIn: {
+                            symbol: cometData.baseAsset.symbol,
+                            decimals: cometData.baseAsset.decimals,
+                            price: cometData.baseAsset.price,
+                            amount: BigInt(
+                              Number(route.quote.toFixed(cometData.baseAsset.decimals)) *
+                                10 ** cometData.baseAsset.decimals
+                            )
+                          },
+                          tokenOut: {
+                            symbol: tokenState.aToken.symbol,
+                            decimals: tokenState.aToken.decimals,
+                            price: tokenState.price,
+                            amount: tokenState.borrowBalanceVariable
+                          },
+                          networkFee: `$${route.estimatedGasUsedUSD.toFixed(2)}`,
+                          path: encodeRouteToPath(route.route[0].route as V3Route, true)
+                        };
 
-                    const token = new Token(
-                      getIdByNetwork(networkConfig.network),
-                      tokenState.aToken.address,
-                      tokenState.aToken.decimals,
-                      tokenState.aToken.symbol,
-                      tokenState.aToken.symbol
-                    );
-                    const outputAmount = tokenState.borrowBalanceVariable.toString();
-                    const amount = CurrencyAmount.fromRawAmount(token, outputAmount);
-                    uniswapRouter
-                      .route(
-                        amount,
-                        BASE_ASSET,
-                        TradeType.EXACT_OUTPUT,
-                        {
-                          slippageTolerance: new Percent(SLIPPAGE_TOLERANCE.toString(), FACTOR_PRECISION.toString()),
-                          type: SwapType.SWAP_ROUTER_02,
-                          recipient: migrator.address,
-                          deadline: Math.floor(Date.now() / 1000 + 1800)
-                        },
-                        {
-                          protocols: [Protocol.V3],
-                          maxSplits: 1 // This only makes one path
-                        }
-                      )
-                      .then(route => {
-                        if (route !== null) {
-                          const swapInfo: SwapInfo = {
-                            tokenIn: {
-                              symbol: cometData.baseAsset.symbol,
-                              decimals: cometData.baseAsset.decimals,
-                              price: cometData.baseAsset.price,
-                              amount: BigInt(
-                                Number(route.quote.toFixed(cometData.baseAsset.decimals)) *
-                                  10 ** cometData.baseAsset.decimals
-                              )
-                            },
-                            tokenOut: {
-                              symbol: tokenState.aToken.symbol,
-                              decimals: tokenState.aToken.decimals,
-                              price: tokenState.price,
-                              amount: tokenState.borrowBalanceVariable
-                            },
-                            networkFee: `$${route.estimatedGasUsedUSD.toFixed(2)}`,
-                            path: encodeRouteToPath(route.route[0].route as V3Route, true)
-                          };
-
-                          dispatch({
-                            type: ActionType.SetSwapRoute,
-                            payload: { symbol: sym, swapRoute: [StateType.Hydrated, swapInfo] }
-                          });
-                        }
-                      })
-                      .catch(e => {
                         dispatch({
                           type: ActionType.SetSwapRoute,
-                          payload: { symbol: sym, swapRoute: undefined }
+                          payload: { symbol: sym, swapRoute: [StateType.Hydrated, swapInfo] }
                         });
+                      }
+                    })
+                    .catch(e => {
+                      dispatch({
+                        type: ActionType.SetSwapRoute,
+                        payload: { symbol: sym, swapRoute: undefined }
                       });
-                  }
-                }}
-              >
-                Max
-              </button>
-              <p className="meta text-color--2" style={{ marginTop: '0.25rem' }}>
-                <span style={{ fontWeight: '500' }}>Aave V2 balance:</span>{' '}
-                {formatTokenBalance(tokenState.aToken.decimals, tokenState.borrowBalanceVariable, false)}
-              </p>
-              <p className="meta text-color--2">
-                {formatTokenBalance(
-                  tokenState.aToken.decimals + PRICE_PRECISION,
-                  tokenState.borrowBalanceVariable * tokenState.price,
-                  false,
-                  true
-                )}
-              </p>
-            </div>
-          </div>
-          <SwapDropdown baseAsset={cometData.baseAsset} state={tokenState.swapRoute} />
-          {!!errorTitle && <InputViewError title={errorTitle} description={errorDescription} />}
-        </div>
+                    });
+                }
+              }}
+            />
+          )}
+          {tokenState.borrowBalanceVariable > 0n && (
+            <AaveBorrowInputView
+              baseAsset={cometData.baseAsset}
+              borrowType={'variable'}
+              tokenState={tokenState}
+              onInputChange={(value: string) => {
+                dispatch({
+                  type: ActionType.SetRepayAmount,
+                  payload: { symbol: sym, type: 'variable', repayAmount: value }
+                });
+              }}
+              onMaxButtonClicked={() => {
+                dispatch({
+                  type: ActionType.SetRepayAmount,
+                  payload: { symbol: sym, type: 'variable', repayAmount: 'max' }
+                });
+
+                if (tokenState.aToken.symbol !== cometData.baseAsset.symbol) {
+                  console.log('We are here');
+                  dispatch({
+                    type: ActionType.SetSwapRoute,
+                    payload: { symbol: sym, swapRoute: [StateType.Loading] }
+                  });
+
+                  const token = new Token(
+                    getIdByNetwork(networkConfig.network),
+                    tokenState.aToken.address,
+                    tokenState.aToken.decimals,
+                    tokenState.aToken.symbol,
+                    tokenState.aToken.symbol
+                  );
+                  const outputAmount = tokenState.borrowBalanceVariable.toString();
+                  const amount = CurrencyAmount.fromRawAmount(token, outputAmount);
+                  uniswapRouter
+                    .route(
+                      amount,
+                      BASE_ASSET,
+                      TradeType.EXACT_OUTPUT,
+                      {
+                        slippageTolerance: new Percent(SLIPPAGE_TOLERANCE.toString(), FACTOR_PRECISION.toString()),
+                        type: SwapType.SWAP_ROUTER_02,
+                        recipient: migrator.address,
+                        deadline: Math.floor(Date.now() / 1000 + 1800)
+                      },
+                      {
+                        protocols: [Protocol.V3],
+                        maxSplits: 1 // This only makes one path
+                      }
+                    )
+                    .then(route => {
+                      if (route !== null) {
+                        const swapInfo: SwapInfo = {
+                          tokenIn: {
+                            symbol: cometData.baseAsset.symbol,
+                            decimals: cometData.baseAsset.decimals,
+                            price: cometData.baseAsset.price,
+                            amount: BigInt(
+                              Number(route.quote.toFixed(cometData.baseAsset.decimals)) *
+                                10 ** cometData.baseAsset.decimals
+                            )
+                          },
+                          tokenOut: {
+                            symbol: tokenState.aToken.symbol,
+                            decimals: tokenState.aToken.decimals,
+                            price: tokenState.price,
+                            amount: tokenState.borrowBalanceVariable
+                          },
+                          networkFee: `$${route.estimatedGasUsedUSD.toFixed(2)}`,
+                          path: encodeRouteToPath(route.route[0].route as V3Route, true)
+                        };
+
+                        dispatch({
+                          type: ActionType.SetSwapRoute,
+                          payload: { symbol: sym, swapRoute: [StateType.Hydrated, swapInfo] }
+                        });
+                      }
+                    })
+                    .catch(e => {
+                      dispatch({
+                        type: ActionType.SetSwapRoute,
+                        payload: { symbol: sym, swapRoute: undefined }
+                      });
+                    });
+                }
+              }}
+            />
+          )}
+        </>
       );
     });
   }
