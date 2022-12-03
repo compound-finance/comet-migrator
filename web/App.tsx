@@ -1,8 +1,11 @@
 import '../styles/main.scss';
 
-import { useCallback, useState } from 'react';
+import { CometState } from '@compound-finance/comet-extension';
+import { useCallback, useEffect, useState } from 'react';
 
 import { LoadingView } from './components/LoadingViews';
+
+import { getDocument } from './helpers/utils';
 
 import { useAsyncEffect } from './lib/useAsyncEffect';
 import { usePoll } from './lib/usePoll';
@@ -17,14 +20,33 @@ import {
   AaveNetworkConfig,
   getAaveNetworkConfig
 } from './Network';
-import { AppProps, MigrationSource } from './types';
+import { AppProps, MigrationSource, StateType } from './types';
 
 export default ({ rpc, web3 }: AppProps) => {
   const [account, setAccount] = useState<string | null>(null);
+  const [cometState, setCometState] = useState<CometState>([StateType.Loading, undefined])
   const timer = usePoll(!!account ? 30000 : 3000);
   const [migrationSource, setMigrationSource] = useState<MigrationSource>(MigrationSource.CompoundV2);
   const [compoundNetworkConfig, setCompoundNetworkConfig] = useState<NetworkConfig<Network> | null>(null);
   const [aaveNetworkConfig, setAaveNetworkConfig] = useState<AaveNetworkConfig<Network> | null>(null);
+
+  useEffect(() => {
+    if (rpc) {
+      rpc.on({
+        setTheme: ({ theme }) => {
+          getDocument(document => {
+            document.body.classList.add('theme');
+            document.body.classList.remove(`theme--dark`);
+            document.body.classList.remove(`theme--light`);
+            document.body.classList.add(`theme--${theme.toLowerCase()}`);
+          });
+        },
+        setCometState: ({ cometState: cometStateNew }) => {
+          setCometState(cometStateNew);
+        }
+      });
+    }
+  }, [rpc]);
 
   const selectMigratorSource = useCallback(
     (source: MigrationSource) => {
@@ -59,6 +81,7 @@ export default ({ rpc, web3 }: AppProps) => {
       <CompoundV2Migrator
         rpc={rpc}
         web3={web3}
+        cometState={cometState}
         account={account}
         networkConfig={compoundNetworkConfig}
         selectMigratorSource={selectMigratorSource}
@@ -69,6 +92,7 @@ export default ({ rpc, web3 }: AppProps) => {
       <AaveV2Migrator
         rpc={rpc}
         web3={web3}
+        cometState={cometState}
         account={account}
         networkConfig={aaveNetworkConfig}
         selectMigratorSource={selectMigratorSource}

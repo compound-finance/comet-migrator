@@ -9,7 +9,7 @@ import { AlphaRouter, SwapType, V3Route } from '@uniswap/smart-order-router';
 import { CurrencyAmount, Percent, Token, TradeType } from '@uniswap/sdk-core';
 import { encodeRouteToPath } from '@uniswap/v3-sdk';
 import { Contract as MulticallContract, Provider } from 'ethers-multicall';
-import { ReactNode, useEffect, useMemo, useReducer, useState } from 'react';
+import { ReactNode, useMemo, useReducer, useState } from 'react';
 
 import ATokenAbi from '../abis/Aave/AToken';
 import AaveDebtToken from '../abis/Aave/DebtToken';
@@ -22,8 +22,8 @@ import Comet from '../abis/Comet';
 import AaveBorrowInputView from './components/AaveBorrowInputView';
 import ApproveModal from './components/ApproveModal';
 import Dropdown from './components/Dropdown';
-import { InputViewError, notEnoughLiquidityError, supplyCapError } from './components/ErrorViews';
-import { ArrowRight, CircleExclamation } from './components/Icons';
+import { InputViewError, supplyCapError } from './components/ErrorViews';
+import { CircleExclamation } from './components/Icons';
 import { LoadingView } from './components/LoadingViews';
 
 import { multicall } from './helpers/multicall';
@@ -36,7 +36,7 @@ import {
   SLIPPAGE_TOLERANCE,
   getLTVAsFactor
 } from './helpers/numbers';
-import { getDocument, migratorTrxKey, tokenApproveTrxKey, migrationSourceToDisplayString } from './helpers/utils';
+import { migratorTrxKey, tokenApproveTrxKey, migrationSourceToDisplayString } from './helpers/utils';
 
 import { useAsyncEffect } from './lib/useAsyncEffect';
 import { usePoll } from './lib/usePoll';
@@ -63,6 +63,7 @@ const PRICE_PRECISION = 8;
 
 type AaveV2MigratorProps<N extends Network> = AppProps & {
   account: string;
+  cometState: CometState;
   networkConfig: AaveNetworkConfig<N>;
   selectMigratorSource: (source: MigrationSource) => void;
 };
@@ -254,36 +255,17 @@ function reducer(state: MigratorState, action: Action): MigratorState {
 const initialState: MigratorState = { type: StateType.Loading, data: { error: null } };
 
 export default function AaveV2Migrator<N extends Network>({
-  rpc,
   web3,
+  cometState,
   account,
   networkConfig,
   selectMigratorSource
 }: AaveV2MigratorProps<N>) {
   const [state, dispatch] = useReducer(reducer, initialState);
-  const [cometState, setCometState] = useState<CometState>([StateType.Loading, undefined]);
   const [approveModal, setApproveModal] = useState<Omit<ApproveModalProps, 'transactionTracker'> | undefined>(
     undefined
   );
   const { tracker, trackTransaction } = useTransactionTracker(web3);
-
-  useEffect(() => {
-    if (rpc) {
-      rpc.on({
-        setTheme: ({ theme }) => {
-          getDocument(document => {
-            document.body.classList.add('theme');
-            document.body.classList.remove(`theme--dark`);
-            document.body.classList.remove(`theme--light`);
-            document.body.classList.add(`theme--${theme.toLowerCase()}`);
-          });
-        },
-        setCometState: ({ cometState: cometStateNew }) => {
-          setCometState(cometStateNew);
-        }
-      });
-    }
-  }, [rpc]);
 
   const timer = usePoll(5000);
   const routerCache = useMemo(() => new Map<string, NodeJS.Timeout>(), [networkConfig.network]);

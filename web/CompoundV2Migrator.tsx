@@ -34,7 +34,7 @@ import {
   SLIPPAGE_TOLERANCE,
   BASE_FACTOR
 } from './helpers/numbers';
-import { getDocument, migratorTrxKey, tokenApproveTrxKey, migrationSourceToDisplayString } from './helpers/utils';
+import { migratorTrxKey, tokenApproveTrxKey, migrationSourceToDisplayString } from './helpers/utils';
 
 import { useAsyncEffect } from './lib/useAsyncEffect';
 import { usePoll } from './lib/usePoll';
@@ -51,6 +51,7 @@ import Dropdown from './components/Dropdown';
 
 type CompoundV2MigratorProps<N extends Network> = AppProps & {
   account: string;
+  cometState: CometState;
   networkConfig: NetworkConfig<N>;
   selectMigratorSource: (source: MigrationSource) => void;
 };
@@ -261,36 +262,17 @@ function reducer(state: MigratorState, action: Action): MigratorState {
 const initialState: MigratorState = { type: StateType.Loading, data: { error: null } };
 
 export default function CompoundV2Migrator<N extends Network>({
-  rpc,
   web3,
   account,
+  cometState,
   networkConfig,
   selectMigratorSource
 }: CompoundV2MigratorProps<N>) {
   const [state, dispatch] = useReducer(reducer, initialState);
-  const [cometState, setCometState] = useState<CometState>([StateType.Loading, undefined]);
   const [approveModal, setApproveModal] = useState<Omit<ApproveModalProps, 'transactionTracker'> | undefined>(
     undefined
   );
   const { tracker, trackTransaction } = useTransactionTracker(web3);
-
-  useEffect(() => {
-    if (rpc) {
-      rpc.on({
-        setTheme: ({ theme }) => {
-          getDocument(document => {
-            document.body.classList.add('theme');
-            document.body.classList.remove(`theme--dark`);
-            document.body.classList.remove(`theme--light`);
-            document.body.classList.add(`theme--${theme.toLowerCase()}`);
-          });
-        },
-        setCometState: ({ cometState: cometStateNew }) => {
-          setCometState(cometStateNew);
-        }
-      });
-    }
-  }, [rpc]);
 
   const timer = usePoll(5000);
   const routerCache = useMemo(() => new Map<string, NodeJS.Timeout>(), [networkConfig.network]);
