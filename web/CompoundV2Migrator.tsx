@@ -489,21 +489,21 @@ export default function CompoundV2Migrator<N extends Network>({
 
   const v3BorrowCapacityValue = cometData.collateralAssets.reduce(
     (acc, { balance, collateralFactor, decimals, price, symbol }) => {
-      const maybeCToken = cTokens.find(([sym]) => sym.slice(1) === symbol)?.[1];
-      const maybeTransfer =
-        maybeCToken === undefined
-          ? undefined
-          : maybeCToken.transfer === 'max'
-          ? maybeCToken.balanceUnderlying
-          : maybeBigIntFromString(maybeCToken.transfer, maybeCToken.underlying.decimals);
-      const transferBigInt =
-        maybeTransfer === undefined
-          ? 0n
-          : maybeCToken !== undefined && maybeTransfer > maybeCToken.balanceUnderlying
-          ? maybeCToken.balanceUnderlying
-          : maybeTransfer;
+      const filteredTokens = cTokens.filter(([, tokenState]) => tokenState.underlying.symbol === symbol);
+      const transfer = filteredTokens.reduce((acc, [, tokenState]) => {
+        if (tokenState.transfer === 'max') {
+          return acc + tokenState.balanceUnderlying;
+        } else {
+          const maybeTransfer = maybeBigIntFromString(tokenState.transfer, tokenState.underlying.decimals);
+          return maybeTransfer === undefined
+            ? acc
+            : maybeTransfer > tokenState.balanceUnderlying
+            ? acc + tokenState.balanceUnderlying
+            : acc + maybeTransfer;
+        }
+      }, 0n);
 
-      const dollarValue = ((balance + transferBigInt) * price) / BigInt(10 ** decimals);
+      const dollarValue = ((balance + transfer) * price) / BigInt(10 ** decimals);
       const capacity = (dollarValue * collateralFactor) / BigInt(10 ** FACTOR_PRECISION);
 
       return acc + capacity;
@@ -514,20 +514,21 @@ export default function CompoundV2Migrator<N extends Network>({
 
   const v3LiquidationCapacityValue = cometData.collateralAssets.reduce(
     (acc, { balance, liquidateCollateralFactor, decimals, price, symbol }) => {
-      const maybeCToken = cTokens.find(([sym]) => sym.slice(1) === symbol)?.[1];
-      const maybeTransfer =
-        maybeCToken === undefined
-          ? undefined
-          : maybeCToken.transfer === 'max'
-          ? maybeCToken.balanceUnderlying
-          : maybeBigIntFromString(maybeCToken.transfer, maybeCToken.underlying.decimals);
-      const transferBigInt =
-        maybeTransfer === undefined
-          ? 0n
-          : maybeCToken !== undefined && maybeTransfer > maybeCToken.balanceUnderlying
-          ? maybeCToken.balanceUnderlying
-          : maybeTransfer;
-      const dollarValue = ((balance + transferBigInt) * price) / BigInt(10 ** decimals);
+      const filteredTokens = cTokens.filter(([, tokenState]) => tokenState.underlying.symbol === symbol);
+      const transfer = filteredTokens.reduce((acc, [, tokenState]) => {
+        if (tokenState.transfer === 'max') {
+          return acc + tokenState.balanceUnderlying;
+        } else {
+          const maybeTransfer = maybeBigIntFromString(tokenState.transfer, tokenState.underlying.decimals);
+          return maybeTransfer === undefined
+            ? acc
+            : maybeTransfer > tokenState.balanceUnderlying
+            ? acc + tokenState.balanceUnderlying
+            : acc + maybeTransfer;
+        }
+      }, 0n);
+
+      const dollarValue = ((balance + transfer) * price) / BigInt(10 ** decimals);
       const capacity = (dollarValue * liquidateCollateralFactor) / BigInt(10 ** FACTOR_PRECISION);
       return acc + capacity;
     },
@@ -712,7 +713,7 @@ export default function CompoundV2Migrator<N extends Network>({
       let errorDescription: string | undefined;
 
       if (tokenState.repayAmount === 'max') {
-        repayAmount = formatTokenBalance(tokenState.underlying.decimals, tokenState.borrowBalance);
+        repayAmount = formatTokenBalance(tokenState.underlying.decimals, tokenState.borrowBalance, false);
         repayAmountDollarValue = formatTokenBalance(
           tokenState.underlying.decimals + PRICE_PRECISION,
           tokenState.borrowBalance * tokenState.price,
@@ -925,7 +926,7 @@ export default function CompoundV2Migrator<N extends Network>({
       const collateralAsset = cometData.collateralAssets.find(asset => asset.symbol === tokenState.underlying.symbol);
 
       if (tokenState.transfer === 'max') {
-        transfer = formatTokenBalance(tokenState.underlying.decimals, tokenState.balanceUnderlying);
+        transfer = formatTokenBalance(tokenState.underlying.decimals, tokenState.balanceUnderlying, false);
         transferDollarValue = formatTokenBalance(
           tokenState.underlying.decimals + PRICE_PRECISION,
           tokenState.balanceUnderlying * tokenState.price,

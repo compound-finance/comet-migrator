@@ -1029,7 +1029,7 @@ export default function AaveV2Migrator<N extends Network>({
       const collateralAsset = cometData.collateralAssets.find(asset => asset.symbol === tokenState.aToken.symbol);
 
       if (tokenState.transfer === 'max') {
-        transfer = formatTokenBalance(tokenState.aToken.decimals, tokenState.balance);
+        transfer = formatTokenBalance(tokenState.aToken.decimals, tokenState.balance, false);
         transferDollarValue = formatTokenBalance(
           tokenState.aToken.decimals + PRICE_PRECISION,
           tokenState.balance * tokenState.price,

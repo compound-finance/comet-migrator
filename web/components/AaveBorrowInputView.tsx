@@ -33,7 +33,7 @@ const AaveBorrowInputView = ({
   let errorDescription: string | undefined;
 
   if (repayAmountRaw === 'max') {
-    repayAmount = formatTokenBalance(tokenState.aToken.decimals, borrowBalance);
+    repayAmount = formatTokenBalance(tokenState.aToken.decimals, borrowBalance, false);
     repayAmountDollarValue = formatTokenBalance(
       tokenState.aToken.decimals + PRICE_PRECISION,
       borrowBalance * tokenState.price,
