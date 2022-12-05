@@ -7,6 +7,7 @@ function set_constants() {
   export mnemonic="panel capable wet impulse ozone asset forget stamp stand long nose talk"
   export fork_block="15542274"
   export v1_mainnet_deploy_block="15749484"
+  export v2_mainnet_deploy_block="16116420"
 
   [ -f ".env" ] && source .env
   [ -f ".env.local" ] && source .env.local
