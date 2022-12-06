@@ -417,7 +417,7 @@ export default function AaveV2Migrator<N extends Network>({
   const aTokensWithBorrowBalances = Array.from(state.data.aTokens.entries()).filter(([, tokenState]) => {
     return (
       (tokenState.borrowBalanceStable > 0n || tokenState.borrowBalanceVariable > 0n) &&
-      !stableCoins.find(coin => coin === tokenState.aToken.symbol)
+      !!stableCoins.find(coin => coin === tokenState.aToken.symbol)
     );
   });
   const collateralWithBalances = Array.from(state.data.aTokens.entries()).filter(([, tokenState]) => {

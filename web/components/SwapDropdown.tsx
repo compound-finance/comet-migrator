@@ -63,7 +63,7 @@ const SwapDropdown = ({ baseAsset, state }: SwapDropdownProps) => {
           1.0000 {swapInfo.tokenIn.symbol} = {`${exchangeRate} ${swapInfo.tokenOut.symbol}`}
         </label>
         <label className="label label--secondary text-color--2" style={{ marginLeft: '0.25rem' }}>
-          ({formatRateFactor(SLIPPAGE_TOLERANCE)} slippage)
+          ({formatRateFactor(SLIPPAGE_TOLERANCE)} max slippage)
         </label>
       </>
     );
