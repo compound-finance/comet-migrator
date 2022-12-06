@@ -436,7 +436,8 @@ export default function CompoundV2Migrator<N extends Network>({
 
   const v2UnsupportedCollateralValue = cTokens.reduce((acc, [, { balanceUnderlying, underlying, price }]) => {
     const v3CollateralAsset = cometData.collateralAssets.find(asset => asset.symbol === underlying.symbol);
-    const balance = v3CollateralAsset === undefined ? balanceUnderlying : 0n;
+    const balance =
+      v3CollateralAsset === undefined && underlying.symbol !== cometData.baseAsset.symbol ? balanceUnderlying : 0n;
     return acc + (balance * price) / BigInt(10 ** underlying.decimals);
   }, BigInt(0));
   const displayV2UnsupportedCollateralValue = formatTokenBalance(

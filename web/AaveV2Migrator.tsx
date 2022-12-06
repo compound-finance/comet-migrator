@@ -415,7 +415,10 @@ export default function AaveV2Migrator<N extends Network>({
   const cometData = cometState[1];
 
   const aTokensWithBorrowBalances = Array.from(state.data.aTokens.entries()).filter(([, tokenState]) => {
-    return (tokenState.borrowBalanceStable > 0n || tokenState.borrowBalanceVariable > 0n) && !stableCoins.find(coin => coin === tokenState.aToken.symbol);;
+    return (
+      (tokenState.borrowBalanceStable > 0n || tokenState.borrowBalanceVariable > 0n) &&
+      !stableCoins.find(coin => coin === tokenState.aToken.symbol)
+    );
   });
   const collateralWithBalances = Array.from(state.data.aTokens.entries()).filter(([, tokenState]) => {
     const v3CollateralAsset = cometData.collateralAssets.find(asset => asset.address === tokenState.aToken.address);
@@ -467,7 +470,8 @@ export default function AaveV2Migrator<N extends Network>({
 
   const v2UnsupportedCollateralValue = aTokens.reduce((acc, [, { aToken, balance, price }]) => {
     const v3CollateralAsset = cometData.collateralAssets.find(asset => asset.address === aToken.address);
-    const collateralBalance = v3CollateralAsset === undefined ? balance : 0n;
+    const collateralBalance =
+      v3CollateralAsset === undefined && aToken.address !== cometData.baseAsset.address ? balance : 0n;
     return acc + (collateralBalance * price) / BigInt(10 ** aToken.decimals);
   }, BigInt(0));
   const displayV2UnsupportedCollateralValue = formatTokenBalance(
