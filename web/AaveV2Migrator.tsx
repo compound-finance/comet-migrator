@@ -625,13 +625,14 @@ export default function AaveV2Migrator<N extends Network>({
     const collateral: Collateral[] = [];
     for (let [, { aToken, balance, transfer }] of state.data.aTokens.entries()) {
       const collateralAsset = cometData.collateralAssets.find(asset => asset.address === aToken.address);
+      const isBaseAsset = aToken.address === cometData.baseAsset.address;
 
-      if (!collateralAsset) {
+      if (!collateralAsset && !isBaseAsset) {
         continue;
       }
 
       if (transfer === 'max') {
-        if (collateralAsset.totalSupply + balance > collateralAsset.supplyCap) {
+        if (!isBaseAsset && !!collateralAsset && collateralAsset.totalSupply + balance > collateralAsset.supplyCap) {
           return undefined;
         }
 
@@ -645,6 +646,8 @@ export default function AaveV2Migrator<N extends Network>({
           return undefined;
         } else if (
           maybeTransfer !== undefined &&
+          !isBaseAsset &&
+          !!collateralAsset &&
           collateralAsset.totalSupply + maybeTransfer > collateralAsset.supplyCap
         ) {
           return undefined;

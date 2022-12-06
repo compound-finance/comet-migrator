@@ -575,13 +575,14 @@ export default function CompoundV2Migrator<N extends Network>({
       { address, balance, balanceUnderlying, underlying, transfer, exchangeRate }
     ] of state.data.cTokens.entries()) {
       const collateralAsset = cometData.collateralAssets.find(asset => asset.symbol === underlying.symbol);
+      const isBaseAsset = underlying.symbol === cometData.baseAsset.symbol;
 
-      if (!collateralAsset) {
+      if (!collateralAsset && !isBaseAsset) {
         continue;
       }
 
       if (transfer === 'max') {
-        if (collateralAsset.totalSupply + balance > collateralAsset.supplyCap) {
+        if (!isBaseAsset && !!collateralAsset && collateralAsset.totalSupply + balance > collateralAsset.supplyCap) {
           return undefined;
         }
 
@@ -595,6 +596,8 @@ export default function CompoundV2Migrator<N extends Network>({
           return undefined;
         } else if (
           maybeTransfer !== undefined &&
+          !isBaseAsset &&
+          !!collateralAsset &&
           collateralAsset.totalSupply + maybeTransfer > collateralAsset.supplyCap
         ) {
           return undefined;
