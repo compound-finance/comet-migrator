@@ -411,7 +411,10 @@ export default function CompoundV2Migrator<N extends Network>({
   });
   const collateralWithBalances = Array.from(state.data.cTokens.entries()).filter(([, tokenState]) => {
     const v3CollateralAsset = cometData.collateralAssets.find(asset => asset.symbol === tokenState.underlying.symbol);
-    return v3CollateralAsset !== undefined && tokenState.balance > 0n;
+    return (
+      (v3CollateralAsset !== undefined || tokenState.underlying.symbol === cometData.baseAsset.symbol) &&
+      tokenState.balance > 0n
+    );
   });
   const cTokens = Array.from(state.data.cTokens.entries());
   const v2BorrowValue = cTokens.reduce((acc, [, { borrowBalance, underlying, price, repayAmount }]) => {

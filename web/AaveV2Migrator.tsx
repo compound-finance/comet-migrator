@@ -419,7 +419,10 @@ export default function AaveV2Migrator<N extends Network>({
   });
   const collateralWithBalances = Array.from(state.data.aTokens.entries()).filter(([, tokenState]) => {
     const v3CollateralAsset = cometData.collateralAssets.find(asset => asset.address === tokenState.aToken.address);
-    return v3CollateralAsset !== undefined && tokenState.balance > 0n;
+    return (
+      (v3CollateralAsset !== undefined || tokenState.aToken.address === cometData.baseAsset.address) &&
+      tokenState.balance > 0n
+    );
   });
   const aTokens = Array.from(state.data.aTokens.entries());
   const v2BorrowValue = aTokens.reduce(
