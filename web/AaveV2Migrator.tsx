@@ -535,13 +535,26 @@ export default function AaveV2Migrator<N extends Network>({
   const existinBorrowBalance = cometData.baseAsset.balance < 0n ? -cometData.baseAsset.balance : 0n;
   const existingBorrowValue: bigint =
     (existinBorrowBalance * cometData.baseAsset.price) / BigInt(10 ** cometData.baseAsset.decimals);
-  const v3BorrowValue = existingBorrowValue + v2ToV3MigrateBorrowValue;
+  const baseAssetTransferValue = aTokens.reduce((acc, [, { aToken, balance, price, transfer }]) => {
+    if (aToken.address === cometData.baseAsset.address) {
+      const maybeTransfer = transfer === 'max' ? balance : maybeBigIntFromString(transfer, aToken.decimals);
+      const transferBigInt = maybeTransfer === undefined ? 0n : maybeTransfer > balance ? balance : maybeTransfer;
+      return acc + (transferBigInt * price) / BigInt(10 ** aToken.decimals);
+    }
+    return acc;
+  }, BigInt(0));
+  const v3BorrowValue = existingBorrowValue + v2ToV3MigrateBorrowValue - baseAssetTransferValue;
 
   const displayV3BorrowValue = formatTokenBalance(PRICE_PRECISION, v3BorrowValue, false, true);
 
   const v2ToV3MigrateCollateralValue = aTokens.reduce((acc, [, { aToken, balance, price, transfer }]) => {
     const maybeTransfer = transfer === 'max' ? balance : maybeBigIntFromString(transfer, aToken.decimals);
-    const transferBigInt = maybeTransfer === undefined ? 0n : maybeTransfer > balance ? balance : maybeTransfer;
+    const transferBigInt =
+      maybeTransfer === undefined || aToken.address === cometData.baseAsset.address
+        ? 0n
+        : maybeTransfer > balance
+        ? balance
+        : maybeTransfer;
     return acc + (transferBigInt * price) / BigInt(10 ** aToken.decimals);
   }, BigInt(0));
   const v3CollateralValuePreMigrate = cometData.collateralAssets.reduce((acc, { balance, decimals, price }) => {

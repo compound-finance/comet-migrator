@@ -477,17 +477,31 @@ export default function CompoundV2Migrator<N extends Network>({
       maybeRepayAmount === undefined ? 0n : maybeRepayAmount > borrowBalance ? borrowBalance : maybeRepayAmount;
     return acc + (repayAmountBigInt * price) / BigInt(10 ** underlying.decimals);
   }, BigInt(0));
-  const existinBorrowBalance = cometData.baseAsset.balance < 0n ? -cometData.baseAsset.balance : 0n;
+  const existingBorrowBalance = cometData.baseAsset.balance < 0n ? -cometData.baseAsset.balance : 0n;
   const existingBorrowValue: bigint =
-    (existinBorrowBalance * cometData.baseAsset.price) / BigInt(10 ** cometData.baseAsset.decimals);
-  const v3BorrowValue = existingBorrowValue + v2ToV3MigrateBorrowValue;
+    (existingBorrowBalance * cometData.baseAsset.price) / BigInt(10 ** cometData.baseAsset.decimals);
+  const baseAssetTransferValue = cTokens.reduce((acc, [, { balanceUnderlying, underlying, price, transfer }]) => {
+    if (underlying.symbol === cometData.baseAsset.symbol) {
+      const maybeTransfer =
+        transfer === 'max' ? balanceUnderlying : maybeBigIntFromString(transfer, underlying.decimals);
+      const transferBigInt =
+        maybeTransfer === undefined ? 0n : maybeTransfer > balanceUnderlying ? balanceUnderlying : maybeTransfer;
+      return acc + (transferBigInt * price) / BigInt(10 ** underlying.decimals);
+    }
+    return acc;
+  }, BigInt(0));
+  const v3BorrowValue = existingBorrowValue + v2ToV3MigrateBorrowValue - baseAssetTransferValue;
 
   const displayV3BorrowValue = formatTokenBalance(PRICE_PRECISION, v3BorrowValue, false, true);
 
   const v2ToV3MigrateCollateralValue = cTokens.reduce((acc, [, { balanceUnderlying, underlying, price, transfer }]) => {
     const maybeTransfer = transfer === 'max' ? balanceUnderlying : maybeBigIntFromString(transfer, underlying.decimals);
     const transferBigInt =
-      maybeTransfer === undefined ? 0n : maybeTransfer > balanceUnderlying ? balanceUnderlying : maybeTransfer;
+      maybeTransfer === undefined || underlying.symbol === cometData.baseAsset.symbol
+        ? 0n
+        : maybeTransfer > balanceUnderlying
+        ? balanceUnderlying
+        : maybeTransfer;
     return acc + (transferBigInt * price) / BigInt(10 ** underlying.decimals);
   }, BigInt(0));
   const v3CollateralValuePreMigrate = cometData.collateralAssets.reduce((acc, { balance, decimals, price }) => {
