@@ -46,7 +46,7 @@ import {
   useTransactionTracker
 } from './lib/useTransactionTracker';
 
-import { ATokenSym, Network, getIdByNetwork, AaveNetworkConfig } from './Network';
+import { ATokenSym, Network, getIdByNetwork, AaveNetworkConfig, stableCoins } from './Network';
 import {
   AppProps,
   ApproveModalProps,
@@ -415,7 +415,7 @@ export default function AaveV2Migrator<N extends Network>({
   const cometData = cometState[1];
 
   const aTokensWithBorrowBalances = Array.from(state.data.aTokens.entries()).filter(([, tokenState]) => {
-    return tokenState.borrowBalanceStable > 0n || tokenState.borrowBalanceVariable > 0n;
+    return (tokenState.borrowBalanceStable > 0n || tokenState.borrowBalanceVariable > 0n) && !stableCoins.find(coin => coin === tokenState.aToken.symbol);;
   });
   const collateralWithBalances = Array.from(state.data.aTokens.entries()).filter(([, tokenState]) => {
     const v3CollateralAsset = cometData.collateralAssets.find(asset => asset.address === tokenState.aToken.address);
