@@ -47,8 +47,6 @@
 
   --asset-table--gradient: linear-gradient(90deg, #{rgba($neutral--85, 0.2)} 0%, #{rgba($neutral--85, 1)} 80%);
 
-  @include extension-icons-urls('dark');
-
   &--light {
     --ui--background: #{$neutral--10};
     --ui--foreground--1: #{$neutral--00};
