@@ -90,8 +90,10 @@ const SwapDropdown = ({ baseAsset, state }: SwapDropdownProps) => {
   return (
     <div className={`swap-dropdown L2${active ? ' swap-dropdown--active' : ''}`} onClick={() => setActive(!active)}>
       <div className="swap-dropdown__row">
-        <div className="swap-dropdown__row__left">{exchangeRateLabel}</div>
-        <div className="swap-dropdown__row__right">
+        <div className="swap-dropdown__row__left" style={{ flexBasis: '90%' }}>
+          {exchangeRateLabel}
+        </div>
+        <div className="swap-dropdown__row__right" style={{ flexBasis: '10%' }}>
           <ChevronDown className="svg--icon--2" />
         </div>
       </div>
