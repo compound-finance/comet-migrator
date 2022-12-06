@@ -969,7 +969,7 @@ export default function AaveV2Migrator<N extends Network>({
                     }
                     dispatch({
                       type: ActionType.SetSwapRoute,
-                      payload: { symbol: sym, type: 'stable', swapRoute: undefined }
+                      payload: { symbol: sym, type: 'variable', swapRoute: undefined }
                     });
                   }
                 }
@@ -998,14 +998,14 @@ export default function AaveV2Migrator<N extends Network>({
                       if (swapInfo !== null) {
                         dispatch({
                           type: ActionType.SetSwapRoute,
-                          payload: { symbol: sym, type: 'stable', swapRoute: [StateType.Hydrated, swapInfo] }
+                          payload: { symbol: sym, type: 'variable', swapRoute: [StateType.Hydrated, swapInfo] }
                         });
                       }
                     })
                     .catch(e => {
                       dispatch({
                         type: ActionType.SetSwapRoute,
-                        payload: { symbol: sym, type: 'stable', swapRoute: undefined }
+                        payload: { symbol: sym, type: 'variable', swapRoute: undefined }
                       });
                     });
                 }
