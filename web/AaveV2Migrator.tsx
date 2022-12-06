@@ -607,7 +607,7 @@ export default function AaveV2Migrator<N extends Network>({
 
     const collateral: Collateral[] = [];
     for (let [, { aToken, balance, transfer }] of state.data.aTokens.entries()) {
-      const collateralAsset = cometData.collateralAssets.find(asset => asset.symbol === aToken.symbol);
+      const collateralAsset = cometData.collateralAssets.find(asset => asset.address === aToken.address);
 
       if (!collateralAsset) {
         continue;
