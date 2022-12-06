@@ -1123,7 +1123,7 @@ export default function CompoundV2Migrator<N extends Network>({
                       >
                         <CircleExclamation className="svg--icon--2" />
                         <p className="meta text-color--2">
-                          {displayV2UnsupportedBorrowValue} of non stable V2 borrow value
+                          {displayV2UnsupportedBorrowValue} of non-stable Compound V2 borrow value
                         </p>
                       </div>
                     )}

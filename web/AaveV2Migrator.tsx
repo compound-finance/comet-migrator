@@ -471,7 +471,7 @@ export default function AaveV2Migrator<N extends Network>({
   const v2UnsupportedBorrowValue = aTokens.reduce(
     (acc, [, { aToken, borrowBalanceStable, borrowBalanceVariable, price }]) => {
       const unsupported =
-        (borrowBalanceStable > 0n || borrowBalanceVariable > 0n) && !!stableCoins.find(coin => coin === aToken.symbol);
+        (borrowBalanceStable > 0n || borrowBalanceVariable > 0n) && !stableCoins.find(coin => coin === aToken.symbol);
       const balance = unsupported ? borrowBalanceStable + borrowBalanceVariable : 0n;
       return acc + (balance * price) / BigInt(10 ** aToken.decimals);
     },
@@ -1232,7 +1232,7 @@ export default function AaveV2Migrator<N extends Network>({
                       >
                         <CircleExclamation className="svg--icon--2" />
                         <p className="meta text-color--2">
-                          {displayV2UnsupportedBorrowValue} of non stable V2 borrow value
+                          {displayV2UnsupportedBorrowValue} of non-stable Aave V2 borrow value
                         </p>
                       </div>
                     )}
