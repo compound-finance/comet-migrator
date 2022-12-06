@@ -8,10 +8,10 @@ import { CircleExclamation } from './Icons';
 
 export const InputViewError = ({ title, description }: { title: string; description?: string }) => {
   return (
-    <div className="migrator__input-view__error">
+    <div className="migrator__input-view__error L2">
       <CircleExclamation />
       <label className="label label--secondary">
-        <span className="label" style={{ fontWeight: '500' }}>{title}</span> {description}
+        <span style={{ fontWeight: '500' }}>{title}</span> {description}
       </label>
     </div>
   );
