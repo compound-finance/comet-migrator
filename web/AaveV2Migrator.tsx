@@ -468,6 +468,16 @@ export default function AaveV2Migrator<N extends Network>({
   }, BigInt(0));
   const displayV2CollateralValue = formatTokenBalance(PRICE_PRECISION, v2CollateralValue, false, true);
 
+  const v2UnsupportedBorrowValue = aTokens.reduce(
+    (acc, [, { aToken, borrowBalanceStable, borrowBalanceVariable, price }]) => {
+      const unsupported =
+        (borrowBalanceStable > 0n || borrowBalanceVariable > 0n) && !!stableCoins.find(coin => coin === aToken.symbol);
+      const balance = unsupported ? borrowBalanceStable + borrowBalanceVariable : 0n;
+      return acc + (balance * price) / BigInt(10 ** aToken.decimals);
+    },
+    BigInt(0)
+  );
+  const displayV2UnsupportedBorrowValue = formatTokenBalance(PRICE_PRECISION, v2UnsupportedBorrowValue, false, true);
   const v2UnsupportedCollateralValue = aTokens.reduce((acc, [, { aToken, balance, price }]) => {
     const v3CollateralAsset = cometData.collateralAssets.find(asset => asset.address === aToken.address);
     const collateralBalance =
@@ -1215,6 +1225,17 @@ export default function AaveV2Migrator<N extends Network>({
                   <div className="migrator__balances__section">
                     <label className="L1 label text-color--2 migrator__balances__section__header">Borrowing</label>
                     {borrowEl}
+                    {v2UnsupportedBorrowValue > 0n && (
+                      <div
+                        className="migrator__balances__alert"
+                        style={{ marginTop: collateralWithBalances.length > 0 ? '1rem' : '0rem' }}
+                      >
+                        <CircleExclamation className="svg--icon--2" />
+                        <p className="meta text-color--2">
+                          {displayV2UnsupportedBorrowValue} of non stable V2 borrow value
+                        </p>
+                      </div>
+                    )}
                   </div>
                   <div className="migrator__balances__section">
                     <label className="L1 label text-color--2 migrator__balances__section__header">Supplying</label>
