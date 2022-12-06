@@ -778,8 +778,6 @@ export default function AaveV2Migrator<N extends Network>({
   async function migrate() {
     if (migrateParams !== undefined && typeof migrateParams !== 'string') {
       try {
-        console.log('Migrate Params', migrateParams, migrator.address);
-
         await trackTransaction(
           migratorTrxKey(migrator.address),
           migrator.migrate([[], [], []], migrateParams[0], migrateParams[1]),
@@ -922,56 +920,58 @@ export default function AaveV2Migrator<N extends Network>({
                   payload: { symbol: sym, type: 'variable', repayAmount: value }
                 });
 
-                const maybeValueBigInt = maybeBigIntFromString(value, tokenState.aToken.decimals);
+                if (tokenState.aToken.address !== cometData.baseAsset.address) {
+                  const maybeValueBigInt = maybeBigIntFromString(value, tokenState.aToken.decimals);
 
-                const cacheKey = `variable-${tokenState.aToken.symbol}`;
-                if (maybeValueBigInt !== undefined) {
-                  const prevTimeout = routerCache.get(cacheKey);
-                  if (prevTimeout) {
-                    clearTimeout(prevTimeout);
-                  }
+                  const cacheKey = `variable-${tokenState.aToken.symbol}`;
+                  if (maybeValueBigInt !== undefined) {
+                    const prevTimeout = routerCache.get(cacheKey);
+                    if (prevTimeout) {
+                      clearTimeout(prevTimeout);
+                    }
 
-                  dispatch({
-                    type: ActionType.SetSwapRoute,
-                    payload: { symbol: sym, type: 'variable', swapRoute: [StateType.Loading] }
-                  });
+                    dispatch({
+                      type: ActionType.SetSwapRoute,
+                      payload: { symbol: sym, type: 'variable', swapRoute: [StateType.Loading] }
+                    });
 
-                  routerCache.set(
-                    cacheKey,
-                    setTimeout(() => {
-                      getRoute(
-                        getIdByNetwork(networkConfig.network),
-                        migrator.address,
-                        cometData.baseAsset,
-                        tokenState,
-                        uniswapRouter,
-                        maybeValueBigInt
-                      )
-                        .then(swapInfo => {
-                          if (swapInfo !== null) {
+                    routerCache.set(
+                      cacheKey,
+                      setTimeout(() => {
+                        getRoute(
+                          getIdByNetwork(networkConfig.network),
+                          migrator.address,
+                          cometData.baseAsset,
+                          tokenState,
+                          uniswapRouter,
+                          maybeValueBigInt
+                        )
+                          .then(swapInfo => {
+                            if (swapInfo !== null) {
+                              dispatch({
+                                type: ActionType.SetSwapRoute,
+                                payload: { symbol: sym, type: 'variable', swapRoute: [StateType.Hydrated, swapInfo] }
+                              });
+                            }
+                          })
+                          .catch(e => {
                             dispatch({
                               type: ActionType.SetSwapRoute,
-                              payload: { symbol: sym, type: 'variable', swapRoute: [StateType.Hydrated, swapInfo] }
+                              payload: { symbol: sym, type: 'variable', swapRoute: undefined }
                             });
-                          }
-                        })
-                        .catch(e => {
-                          dispatch({
-                            type: ActionType.SetSwapRoute,
-                            payload: { symbol: sym, type: 'variable', swapRoute: undefined }
                           });
-                        });
-                    }, 300)
-                  );
-                } else {
-                  const prevTimeout = routerCache.get(cacheKey);
-                  if (prevTimeout) {
-                    clearTimeout(prevTimeout);
+                      }, 300)
+                    );
+                  } else {
+                    const prevTimeout = routerCache.get(cacheKey);
+                    if (prevTimeout) {
+                      clearTimeout(prevTimeout);
+                    }
+                    dispatch({
+                      type: ActionType.SetSwapRoute,
+                      payload: { symbol: sym, type: 'stable', swapRoute: undefined }
+                    });
                   }
-                  dispatch({
-                    type: ActionType.SetSwapRoute,
-                    payload: { symbol: sym, type: 'stable', swapRoute: undefined }
-                  });
                 }
               }}
               onMaxButtonClicked={() => {
@@ -981,7 +981,6 @@ export default function AaveV2Migrator<N extends Network>({
                 });
 
                 if (tokenState.aToken.symbol !== cometData.baseAsset.symbol) {
-                  console.log('We are here');
                   dispatch({
                     type: ActionType.SetSwapRoute,
                     payload: { symbol: sym, type: 'variable', swapRoute: [StateType.Loading] }

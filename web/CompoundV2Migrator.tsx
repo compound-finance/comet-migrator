@@ -677,8 +677,6 @@ export default function CompoundV2Migrator<N extends Network>({
   async function migrate() {
     if (migrateParams !== undefined && typeof migrateParams !== 'string') {
       try {
-        console.log('Migrate Params', migrateParams);
-
         await trackTransaction(
           migratorTrxKey(migrator.address),
           migrator.migrate(migrateParams[0], [[], [], []], migrateParams[1]),
@@ -789,56 +787,58 @@ export default function CompoundV2Migrator<N extends Network>({
                       payload: { symbol: sym, repayAmount: e.target.value }
                     });
 
-                    const maybeValueBigInt = maybeBigIntFromString(e.target.value, tokenState.underlying.decimals);
+                    if (tokenState.underlying.address !== cometData.baseAsset.address) {
+                      const maybeValueBigInt = maybeBigIntFromString(e.target.value, tokenState.underlying.decimals);
 
-                    const cacheKey = tokenState.underlying.symbol;
-                    if (maybeValueBigInt !== undefined && maybeValueBigInt > 0n) {
-                      const prevTimeout = routerCache.get(cacheKey);
-                      if (prevTimeout) {
-                        clearTimeout(prevTimeout);
-                      }
+                      const cacheKey = tokenState.underlying.symbol;
+                      if (maybeValueBigInt !== undefined && maybeValueBigInt > 0n) {
+                        const prevTimeout = routerCache.get(cacheKey);
+                        if (prevTimeout) {
+                          clearTimeout(prevTimeout);
+                        }
 
-                      dispatch({
-                        type: ActionType.SetSwapRoute,
-                        payload: { symbol: sym, swapRoute: [StateType.Loading] }
-                      });
+                        dispatch({
+                          type: ActionType.SetSwapRoute,
+                          payload: { symbol: sym, swapRoute: [StateType.Loading] }
+                        });
 
-                      routerCache.set(
-                        cacheKey,
-                        setTimeout(() => {
-                          getRoute(
-                            getIdByNetwork(networkConfig.network),
-                            migrator.address,
-                            cometData.baseAsset,
-                            tokenState,
-                            uniswapRouter,
-                            maybeValueBigInt
-                          )
-                            .then(swapInfo => {
-                              if (swapInfo !== null) {
+                        routerCache.set(
+                          cacheKey,
+                          setTimeout(() => {
+                            getRoute(
+                              getIdByNetwork(networkConfig.network),
+                              migrator.address,
+                              cometData.baseAsset,
+                              tokenState,
+                              uniswapRouter,
+                              maybeValueBigInt
+                            )
+                              .then(swapInfo => {
+                                if (swapInfo !== null) {
+                                  dispatch({
+                                    type: ActionType.SetSwapRoute,
+                                    payload: { symbol: sym, swapRoute: [StateType.Hydrated, swapInfo] }
+                                  });
+                                }
+                              })
+                              .catch(e => {
                                 dispatch({
                                   type: ActionType.SetSwapRoute,
-                                  payload: { symbol: sym, swapRoute: [StateType.Hydrated, swapInfo] }
+                                  payload: { symbol: sym, swapRoute: undefined }
                                 });
-                              }
-                            })
-                            .catch(e => {
-                              dispatch({
-                                type: ActionType.SetSwapRoute,
-                                payload: { symbol: sym, swapRoute: undefined }
                               });
-                            });
-                        }, 300)
-                      );
-                    } else {
-                      const prevTimeout = routerCache.get(cacheKey);
-                      if (prevTimeout) {
-                        clearTimeout(prevTimeout);
+                          }, 300)
+                        );
+                      } else {
+                        const prevTimeout = routerCache.get(cacheKey);
+                        if (prevTimeout) {
+                          clearTimeout(prevTimeout);
+                        }
+                        dispatch({
+                          type: ActionType.SetSwapRoute,
+                          payload: { symbol: sym, swapRoute: undefined }
+                        });
                       }
-                      dispatch({
-                        type: ActionType.SetSwapRoute,
-                        payload: { symbol: sym, swapRoute: undefined }
-                      });
                     }
                   }}
                   type="text"
