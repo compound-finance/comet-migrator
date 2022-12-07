@@ -348,6 +348,8 @@ export default function CompoundV2Migrator<N extends Network>({
       collateralFactorCalls,
       priceCalls
     ]);
+    console.log('WHAT ARE RESPONSES', balanceResponses, borrowBalanceResponses, exchangeRateResponses, allowanceResponses, collateralFactorResponses, priceResponses);
+    
     const balances = balanceResponses.map((balance: any) => balance.toBigInt());
     const borrowBalances = borrowBalanceResponses.map((borrowBalance: any) => borrowBalance.toBigInt());
     const exchangeRates = exchangeRateResponses.map((exchangeRate: any) => exchangeRate.toBigInt());
