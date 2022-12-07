@@ -686,7 +686,7 @@ export default function CompoundV2Migrator<N extends Network>({
       return 'Insufficient Collateral';
     }
 
-    if (!hasMigratePosition) {
+    if (collateral.length === 0 && borrows.length === 0) {
       return;
     }
 
