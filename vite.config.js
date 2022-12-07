@@ -4,8 +4,6 @@ import react from '@vitejs/plugin-react';
 import { NodeGlobalsPolyfillPlugin } from '@esbuild-plugins/node-globals-polyfill';
 import { NodeModulesPolyfillPlugin } from '@esbuild-plugins/node-modules-polyfill';
 import nodePolyfills from 'rollup-plugin-polyfill-node';
-import { nodeResolve } from '@rollup/plugin-node-resolve';
-import commonjs from '@rollup/plugin-commonjs';
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -25,7 +23,7 @@ export default defineConfig({
         index: resolve(__dirname, 'index.html'),
         embedded: resolve(__dirname, 'embedded.html')
       },
-      plugins: [commonjs(), nodePolyfills(), nodeResolve()]
+      plugins: [nodePolyfills()]
     }
   },
   base: '',
@@ -38,7 +36,7 @@ export default defineConfig({
   resolve: {
     alias: {
       events: 'rollup-plugin-node-polyfills/polyfills/events',
-      '/fonts': resolve(__dirname, 'node_modules/compound-styles/public/fonts')
+      '/fonts': resolve(__dirname, 'node_modules/compound-styles/public/fonts'),
     }
   },
   optimizeDeps: {
