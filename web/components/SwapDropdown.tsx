@@ -42,11 +42,11 @@ const SwapDropdown = ({ baseAsset, state, onRefetchClicked }: SwapDropdownProps)
       <div className="swap-dropdown swap-dropdown--error L2">
         <div className="swap-dropdown__row">
           <div className="swap-dropdown__row__left">
-            <label className="label text-color--2">Failed to fetch prices</label>
+            <label className="label text-color--2">Failed to fetch prices. Try Again.</label>
           </div>
           <div className="swap-dropdown__row__right">
             <button className="button button--small" onClick={onRefetchClicked}>
-              Refetch
+              Reload
             </button>
           </div>
         </div>
