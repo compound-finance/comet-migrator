@@ -37,7 +37,7 @@ const mainnetTokens = [
   'cAAVE',
   'cYFI',
   'cMKR',
-  'cUSDP',
+  'cUSDP'
 ] as const;
 
 const mainnetAaveTokens = [
@@ -71,7 +71,9 @@ const mainnetAaveTokens = [
   'aUSDP',
   'aDPI',
   'aFRAX',
-  'aFEI'
+  'aFEI',
+  'aENS',
+  'aSTETH'
 ] as const;
 
 const goerliTokens = ['cETH', 'cDAI', 'cUSDC', 'cWBTC'] as const;
