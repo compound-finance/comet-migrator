@@ -23,7 +23,7 @@ const AaveBorrowInputView = ({
   onInputChange,
   onMaxButtonClicked
 }: AaveBorrowInputViewProps) => {
-  const [borrowBalance, repayAmountRaw, swapRoute]: [bigint, string, SwapRouteState ] =
+  const [borrowBalance, repayAmountRaw, swapRoute]: [bigint, string, SwapRouteState] =
     borrowType === 'stable'
       ? [tokenState.borrowBalanceStable, tokenState.repayAmountStable, tokenState.swapRouteStable]
       : [tokenState.borrowBalanceVariable, tokenState.repayAmountVariable, tokenState.swapRouteVariable];
@@ -137,7 +137,13 @@ const AaveBorrowInputView = ({
           </p>
         </div>
       </div>
-      <SwapDropdown baseAsset={baseAsset} state={swapRoute} />
+      <SwapDropdown
+        baseAsset={baseAsset}
+        state={swapRoute}
+        onRefetchClicked={() => {
+          onInputChange(repayAmount);
+        }}
+      />
       {!!errorTitle && <InputViewError title={errorTitle} description={errorDescription} />}
     </div>
   );

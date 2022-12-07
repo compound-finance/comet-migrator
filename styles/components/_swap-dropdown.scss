@@ -23,6 +23,11 @@
     cursor: unset;
   }
 
+  &--error {
+    cursor: unset;
+    height: fit-content;
+  }
+
   label {
     cursor: inherit;
   }
@@ -42,6 +47,7 @@
   &__row {
     align-items: center;
     display: flex;
+    position: relative;
 
     &__left {
       align-items: center;

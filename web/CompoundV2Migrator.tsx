@@ -1,7 +1,10 @@
 import '../styles/main.scss';
 
 import { CometState } from '@compound-finance/comet-extension';
-import { BaseAssetWithAccountState } from '@compound-finance/comet-extension/dist/CometState';
+import {
+  BaseAssetWithAccountState,
+  StateType as CometStateType
+} from '@compound-finance/comet-extension/dist/CometState';
 import { Contract } from '@ethersproject/contracts';
 import { JsonRpcProvider } from '@ethersproject/providers';
 import { Protocol } from '@uniswap/router-sdk';
@@ -45,7 +48,7 @@ import {
 } from './lib/useTransactionTracker';
 
 import { CTokenSym, Network, NetworkConfig, getIdByNetwork, stableCoins } from './Network';
-import { AppProps, ApproveModalProps, MigrationSource, StateType, SwapInfo } from './types';
+import { AppProps, ApproveModalProps, MigrationSource, StateType, SwapRouteState, SwapInfo } from './types';
 import SwapDropdown from './components/SwapDropdown';
 import Dropdown from './components/Dropdown';
 
@@ -70,8 +73,6 @@ interface Swap {
   path: string;
   amountInMaximum: bigint;
 }
-
-type SwapRouteState = undefined | [StateType.Loading] | [StateType.Hydrated, SwapInfo];
 
 interface CTokenState {
   address: string;
@@ -348,7 +349,7 @@ export default function CompoundV2Migrator<N extends Network>({
       collateralFactorCalls,
       priceCalls
     ]);
-    
+
     const balances = balanceResponses.map((balance: any) => balance.toBigInt());
     const borrowBalances = borrowBalanceResponses.map((borrowBalance: any) => borrowBalance.toBigInt());
     const exchangeRates = exchangeRateResponses.map((exchangeRate: any) => exchangeRate.toBigInt());
@@ -402,7 +403,7 @@ export default function CompoundV2Migrator<N extends Network>({
     });
   }, [timer, tracker, account, networkConfig.network]);
 
-  if (state.type === StateType.Loading || cometState[0] !== StateType.Hydrated) {
+  if (state.type === StateType.Loading || cometState[0] !== CometStateType.Hydrated) {
     return <LoadingView migrationSource={MigrationSource.CompoundV2} selectMigratorSource={selectMigratorSource} />;
   }
   const cometData = cometState[1];
@@ -852,7 +853,7 @@ export default function CompoundV2Migrator<N extends Network>({
                               .catch(e => {
                                 dispatch({
                                   type: ActionType.SetSwapRoute,
-                                  payload: { symbol: sym, swapRoute: undefined }
+                                  payload: { symbol: sym, swapRoute: [StateType.Error, 'Failed to fetch prices'] }
                                 });
                               });
                           }, 300)
@@ -914,7 +915,7 @@ export default function CompoundV2Migrator<N extends Network>({
                       .catch(e => {
                         dispatch({
                           type: ActionType.SetSwapRoute,
-                          payload: { symbol: sym, swapRoute: undefined }
+                          payload: { symbol: sym, swapRoute: [StateType.Error, 'Failed to fetch prices'] }
                         });
                       });
                   }
@@ -936,7 +937,54 @@ export default function CompoundV2Migrator<N extends Network>({
               </p>
             </div>
           </div>
-          <SwapDropdown baseAsset={cometData.baseAsset} state={tokenState.swapRoute} />
+          <SwapDropdown
+            baseAsset={cometData.baseAsset}
+            state={tokenState.swapRoute}
+            onRefetchClicked={() => {
+              const maybeValueBigInt = maybeBigIntFromString(repayAmount, tokenState.underlying.decimals);
+
+              const cacheKey = tokenState.underlying.symbol;
+              if (maybeValueBigInt !== undefined && maybeValueBigInt > 0n) {
+                const prevTimeout = routerCache.get(cacheKey);
+                if (prevTimeout) {
+                  clearTimeout(prevTimeout);
+                }
+
+                dispatch({
+                  type: ActionType.SetSwapRoute,
+                  payload: { symbol: sym, swapRoute: [StateType.Loading] }
+                });
+
+                routerCache.set(
+                  cacheKey,
+                  setTimeout(() => {
+                    getRoute(
+                      getIdByNetwork(networkConfig.network),
+                      migrator.address,
+                      cometData.baseAsset,
+                      tokenState,
+                      uniswapRouter,
+                      maybeValueBigInt
+                    )
+                      .then(swapInfo => {
+                        if (swapInfo !== null) {
+                          dispatch({
+                            type: ActionType.SetSwapRoute,
+                            payload: { symbol: sym, swapRoute: [StateType.Hydrated, swapInfo] }
+                          });
+                        }
+                      })
+                      .catch(e => {
+                        dispatch({
+                          type: ActionType.SetSwapRoute,
+                          payload: { symbol: sym, swapRoute: [StateType.Error, 'Failed to fetch prices'] }
+                        });
+                      });
+                  }, 300)
+                );
+              }
+            }}
+          />
           {!!errorTitle && <InputViewError title={errorTitle} description={errorDescription} />}
         </div>
       );

@@ -1,7 +1,10 @@
 import '../styles/main.scss';
 
 import { CometState } from '@compound-finance/comet-extension';
-import { BaseAssetWithAccountState } from '@compound-finance/comet-extension/dist/CometState';
+import {
+  BaseAssetWithAccountState,
+  StateType as CometStateType
+} from '@compound-finance/comet-extension/dist/CometState';
 import { Contract } from '@ethersproject/contracts';
 import { JsonRpcProvider } from '@ethersproject/providers';
 import { Protocol } from '@uniswap/router-sdk';
@@ -409,7 +412,7 @@ export default function AaveV2Migrator<N extends Network>({
     });
   }, [timer, tracker, account, networkConfig.network]);
 
-  if (state.type === StateType.Loading || cometState[0] !== StateType.Hydrated) {
+  if (state.type === StateType.Loading || cometState[0] !== CometStateType.Hydrated) {
     return <LoadingView migrationSource={MigrationSource.AaveV2} selectMigratorSource={selectMigratorSource} />;
   }
   const cometData = cometState[1];
@@ -888,7 +891,11 @@ export default function AaveV2Migrator<N extends Network>({
                         .catch(e => {
                           dispatch({
                             type: ActionType.SetSwapRoute,
-                            payload: { symbol: sym, type: 'stable', swapRoute: undefined }
+                            payload: {
+                              symbol: sym,
+                              type: 'stable',
+                              swapRoute: [StateType.Error, 'Failed to fetch prices']
+                            }
                           });
                         });
                     }, 300)
@@ -935,7 +942,7 @@ export default function AaveV2Migrator<N extends Network>({
                     .catch(e => {
                       dispatch({
                         type: ActionType.SetSwapRoute,
-                        payload: { symbol: sym, type: 'stable', swapRoute: undefined }
+                        payload: { symbol: sym, type: 'stable', swapRoute: [StateType.Error, 'Failed to fetch prices'] }
                       });
                     });
                 }
@@ -990,7 +997,11 @@ export default function AaveV2Migrator<N extends Network>({
                           .catch(e => {
                             dispatch({
                               type: ActionType.SetSwapRoute,
-                              payload: { symbol: sym, type: 'variable', swapRoute: undefined }
+                              payload: {
+                                symbol: sym,
+                                type: 'variable',
+                                swapRoute: [StateType.Error, 'Failed to fetch prices']
+                              }
                             });
                           });
                       }, 300)
@@ -1002,7 +1013,7 @@ export default function AaveV2Migrator<N extends Network>({
                     }
                     dispatch({
                       type: ActionType.SetSwapRoute,
-                      payload: { symbol: sym, type: 'variable', swapRoute: undefined }
+                      payload: { symbol: sym, type: 'variable', swapRoute: [StateType.Error, 'Failed to fetch prices'] }
                     });
                   }
                 }

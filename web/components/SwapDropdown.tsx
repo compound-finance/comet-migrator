@@ -1,4 +1,4 @@
-import { StateType, BaseAsset } from '@compound-finance/comet-extension/dist/CometState';
+import { BaseAsset } from '@compound-finance/comet-extension/dist/CometState';
 import { useState, ReactNode } from 'react';
 
 import {
@@ -9,20 +9,19 @@ import {
   SLIPPAGE_TOLERANCE
 } from '../helpers/numbers';
 
-import { SwapInfo } from '../types';
+import { StateType, SwapRouteState } from '../types';
 
 import { InputViewError } from './ErrorViews';
 import LoadSpinner from './LoadSpinner';
 import { ChevronDown } from './Icons';
 
-type SwapDropdownState = undefined | [StateType.Loading] | [StateType.Hydrated, SwapInfo];
-
 type SwapDropdownProps = {
   baseAsset: BaseAsset;
-  state: SwapDropdownState;
+  state: SwapRouteState;
+  onRefetchClicked: () => void;
 };
 
-const SwapDropdown = ({ baseAsset, state }: SwapDropdownProps) => {
+const SwapDropdown = ({ baseAsset, state, onRefetchClicked }: SwapDropdownProps) => {
   const [active, setActive] = useState(false);
 
   if (state === undefined) return null;
@@ -34,6 +33,21 @@ const SwapDropdown = ({ baseAsset, state }: SwapDropdownProps) => {
           <div className="swap-dropdown__row__left">
             <LoadSpinner size={12} />
             <label className="label text-color--2">Calculating best price...</label>
+          </div>
+        </div>
+      </div>
+    );
+  } else if (state[0] === StateType.Error) {
+    return (
+      <div className="swap-dropdown swap-dropdown--error L2">
+        <div className="swap-dropdown__row">
+          <div className="swap-dropdown__row__left">
+            <label className="label text-color--2">Failed to fetch prices</label>
+          </div>
+          <div className="swap-dropdown__row__right">
+            <button className="button button--small" onClick={onRefetchClicked}>
+              Refetch
+            </button>
           </div>
         </div>
       </div>

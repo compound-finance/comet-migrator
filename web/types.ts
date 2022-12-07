@@ -50,6 +50,7 @@ export enum MigrationSource {
 }
 
 export enum StateType {
+  Error = 'error',
   Loading = 'loading',
   Hydrated = 'hydrated'
 }
@@ -58,7 +59,11 @@ export interface AppProps {
   rpc?: RPC;
   web3: JsonRpcProvider;
 }
-export type SwapRouteState = undefined | [StateType.Loading] | [StateType.Hydrated, SwapInfo];
+export type SwapRouteState =
+  | undefined
+  | [StateType.Loading]
+  | [StateType.Error, string]
+  | [StateType.Hydrated, SwapInfo];
 
 export interface ATokenState {
   aToken: AToken;
