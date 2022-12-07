@@ -77,17 +77,16 @@ export default ({ rpc, web3 }: AppProps) => {
   }, [web3, timer]);
 
   if (migrationSource === MigrationSource.CompoundV2 && compoundNetworkConfig !== null && account) {
-    return <div>Do I still break?</div>
-    // return (
-    //   <CompoundV2Migrator
-    //     rpc={rpc}
-    //     web3={web3}
-    //     cometState={cometState}
-    //     account={account}
-    //     networkConfig={compoundNetworkConfig}
-    //     selectMigratorSource={selectMigratorSource}
-    //   />
-    // );
+    return (
+      <CompoundV2Migrator
+        rpc={rpc}
+        web3={web3}
+        cometState={cometState}
+        account={account}
+        networkConfig={compoundNetworkConfig}
+        selectMigratorSource={selectMigratorSource}
+      />
+    );
   // } else if (migrationSource === MigrationSource.AaveV2 && aaveNetworkConfig !== null && account) {
   //   return (
   //     <AaveV2Migrator

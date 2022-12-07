@@ -268,6 +268,8 @@ export default function CompoundV2Migrator<N extends Network>({
   networkConfig,
   selectMigratorSource
 }: CompoundV2MigratorProps<N>) {
+  console.log('WE HERE 1');
+
   const [state, dispatch] = useReducer(reducer, initialState);
   const [approveModal, setApproveModal] = useState<Omit<ApproveModalProps, 'transactionTracker'> | undefined>(
     undefined
@@ -276,6 +278,7 @@ export default function CompoundV2Migrator<N extends Network>({
 
   const timer = usePoll(5000);
   const routerCache = useMemo(() => new Map<string, NodeJS.Timeout>(), [networkConfig.network]);
+  console.log('WE HERE 2');
 
   const signer = useMemo(() => {
     return web3.getSigner().connectUnchecked();
@@ -296,6 +299,7 @@ export default function CompoundV2Migrator<N extends Network>({
     signer,
     networkConfig.network
   ]);
+  console.log('WE HERE 3');
   const comptrollerRead = useMemo(() => new MulticallContract(networkConfig.comptrollerAddress, Comptroller), []);
   const compoundOraclePromise = useMemo(async () => {
     const oracleAddress = await comptroller.oracle();
@@ -314,8 +318,10 @@ export default function CompoundV2Migrator<N extends Network>({
       tokenContract.approve(migrator.address, MAX_UINT256)
     );
   }
+  console.log('WE HERE 4');
 
   useAsyncEffect(async () => {
+    console.log('WE HERE 5');
     const cTokenContracts = networkConfig.cTokens.map(({ address }) => new MulticallContract(address, CToken));
     const oracle = await compoundOraclePromise;
 
@@ -331,6 +337,7 @@ export default function CompoundV2Migrator<N extends Network>({
       return oracle.price(priceSymbol);
     });
 
+    console.log('WE HERE 6');
     const [
       migratorEnabled,
       balanceResponses,
@@ -348,8 +355,16 @@ export default function CompoundV2Migrator<N extends Network>({
       collateralFactorCalls,
       priceCalls
     ]);
-    console.log('WHAT ARE RESPONSES', balanceResponses, borrowBalanceResponses, exchangeRateResponses, allowanceResponses, collateralFactorResponses, priceResponses);
-    
+    console.log(
+      'WHAT ARE RESPONSES',
+      balanceResponses,
+      borrowBalanceResponses,
+      exchangeRateResponses,
+      allowanceResponses,
+      collateralFactorResponses,
+      priceResponses
+    );
+
     const balances = balanceResponses.map((balance: any) => balance.toBigInt());
     const borrowBalances = borrowBalanceResponses.map((borrowBalance: any) => borrowBalance.toBigInt());
     const exchangeRates = exchangeRateResponses.map((exchangeRate: any) => exchangeRate.toBigInt());
