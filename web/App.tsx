@@ -10,7 +10,7 @@ import { getDocument } from './helpers/utils';
 import { useAsyncEffect } from './lib/useAsyncEffect';
 import { usePoll } from './lib/usePoll';
 
-import AaveV2Migrator from './AaveV2Migrator';
+// import AaveV2Migrator from './AaveV2Migrator';
 import CompoundV2Migrator from './CompoundV2Migrator';
 import {
   Network,
