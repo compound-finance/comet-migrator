@@ -1,6 +1,7 @@
 import '../styles/main.scss';
 
 import { CometState } from '@compound-finance/comet-extension';
+import { StateType } from '@compound-finance/comet-extension/dist/CometState';
 import { useCallback, useEffect, useState } from 'react';
 
 import { LoadingView } from './components/LoadingViews';
@@ -20,11 +21,11 @@ import {
   AaveNetworkConfig,
   getAaveNetworkConfig
 } from './Network';
-import { AppProps, MigrationSource, StateType } from './types';
+import { AppProps, MigrationSource } from './types';
 
 export default ({ rpc, web3 }: AppProps) => {
   const [account, setAccount] = useState<string | null>(null);
-  const [cometState, setCometState] = useState<CometState>([StateType.Loading, undefined])
+  const [cometState, setCometState] = useState<CometState>([StateType.Loading, undefined]);
   const timer = usePoll(!!account ? 30000 : 3000);
   const [migrationSource, setMigrationSource] = useState<MigrationSource>(MigrationSource.CompoundV2);
   const [compoundNetworkConfig, setCompoundNetworkConfig] = useState<NetworkConfig<Network> | null>(null);
