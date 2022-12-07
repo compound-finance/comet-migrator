@@ -834,7 +834,7 @@ export default function AaveV2Migrator<N extends Network>({
   const quoteProvider = import.meta.env.VITE_BYPASS_MAINNET_RPC_URL
     ? new JsonRpcProvider(import.meta.env.VITE_BYPASS_MAINNET_RPC_URL)
     : web3;
-  const uniswapRouter = new AlphaRouter({ chainId: getIdByNetwork(networkConfig.network), provider: quoteProvider });
+  const uniswapRouter = null;
 
   let borrowEl;
   if (aTokensWithBorrowBalances.length > 0) {
@@ -1397,7 +1397,7 @@ async function getRoute(
   migrator: string,
   baseAsset: BaseAssetWithAccountState,
   tokenState: ATokenState,
-  uniswapRouter: AlphaRouter,
+  uniswapRouter: AlphaRouter | null,
   outputAmount: bigint
 ): Promise<SwapInfo | null> {
   const BASE_ASSET = new Token(networkId, baseAsset.address, baseAsset.decimals, baseAsset.symbol, baseAsset.name);
@@ -1409,21 +1409,7 @@ async function getRoute(
     tokenState.aToken.symbol
   );
   const amount = CurrencyAmount.fromRawAmount(token, outputAmount.toString());
-  const route = await uniswapRouter.route(
-    amount,
-    BASE_ASSET,
-    TradeType.EXACT_OUTPUT,
-    {
-      slippageTolerance: new Percent(SLIPPAGE_TOLERANCE.toString(), FACTOR_PRECISION.toString()),
-      type: SwapType.SWAP_ROUTER_02,
-      recipient: migrator,
-      deadline: Math.floor(Date.now() / 1000 + 1800)
-    },
-    {
-      protocols: [Protocol.V3],
-      maxSplits: 1 // This only makes one path
-    }
-  );
+  const route: any = null;
   if (route !== null) {
     const swapInfo: SwapInfo = {
       tokenIn: {
