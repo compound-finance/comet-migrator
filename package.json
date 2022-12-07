@@ -18,13 +18,17 @@
   },
   "dependencies": {
     "@compound-finance/comet-extension": "^0.0.5",
-    "@esbuild-plugins/node-globals-polyfill": "^0.1.1",
     "@ethersproject/abi": "^5.6.2",
     "@ethersproject/bignumber": "^5.4.2",
     "@ethersproject/contracts": "^5.6.1",
     "@ethersproject/experimental": "^5.5.0",
     "@ethersproject/providers": "^5.7.0",
     "@ethersproject/units": "^5.4.0",
+    "@uniswap/router-sdk": "^1.4.0",
+    "@uniswap/sdk-core": "^3.1.0",
+    "@uniswap/smart-order-router": "^3.0.3",
+    "@uniswap/v3-core": "^1.0.1",
+    "@uniswap/v3-sdk": "^3.9.0",
     "@web3-react/core": "8.0.35-beta.0",
     "@web3-react/metamask": "8.0.28-beta.0",
     "@web3-react/network": "8.0.27-beta.0",
@@ -32,13 +36,16 @@
     "@web3-react/url": "8.0.25-beta.0",
     "comet": "https://github.com/compound-finance/comet.git#c54ccc62e06186bdf237048ac7c9f3ce34d813b4",
     "compound-config": "https://github.com/compound-finance/compound-config.git#0815f079ebe6c7421361b3334f7b8eaab50722b0",
-    "compound-styles": "https://github.com/compound-finance/compound-styles.git#f922f4b7fdfaab4f2dc2d65f966397524107ae2d",
+    "compound-styles": "https://github.com/compound-finance/compound-styles.git#fc29b8a832c698920f2fcf7a06d978c4580a48e1",
     "ethers-multicall": "^0.2.3",
+    "jsbi": "^3.2.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "rollup-plugin-polyfill-node": "^0.10.2"
   },
   "devDependencies": {
+    "@esbuild-plugins/node-globals-polyfill": "^0.1.1",
+    "@esbuild-plugins/node-modules-polyfill": "^0.1.4",
     "@testing-library/jest-dom": "^5.16.2",
     "@testing-library/react": "^13.3.0",
     "@types/jest": "^27.4.1",
@@ -57,10 +64,10 @@
     "ts-jest": "^28.0.8",
     "typescript": "4.5.5",
     "vendoza": "0.0.4",
-    "vite": "^3.0.7"
+    "vite": "^3.2.5"
   },
   "packageManager": "yarn@3.2.0",
   "volta": {
-    "node": "18.8.0"
+    "node": "16.17.0"
   }
 }

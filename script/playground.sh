@@ -8,12 +8,12 @@ set -exo pipefail
 case "$1" in
   mainnet)
     export redeploy=false
-    playground_script=script/PlaygroundV1.s.sol
+    playground_script=script/PlaygroundV2.s.sol
 
-    if [ $(($fork_block < $v1_mainnet_deploy_block)) ]
+    if [ $(($fork_block < $v2_mainnet_deploy_block)) ]
     then
-      echo "Fork block too early, overwriting with block number $v1_mainnet_deploy_block"
-      fork_block=$v1_mainnet_deploy_block
+      echo "Fork block too early, overwriting with block number $v2_mainnet_deploy_block"
+      fork_block=$v2_mainnet_deploy_block
     fi
     ;;
   v1)
@@ -32,7 +32,7 @@ case "$1" in
     ;;
 esac
 
-anvil --mnemonic "$mnemonic" --fork-url "$fork_url" --fork-block-number "$fork_block" --chain-id 1 --port 8545 &
+anvil --mnemonic "$mnemonic" --fork-url "$fork_url" --fork-block-number "$fork_block" --chain-id 1 --port 8545 --gas-limit 1500000000 &
 anvil_pid="$!"
 sleep 3
 

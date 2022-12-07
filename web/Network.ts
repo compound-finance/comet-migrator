@@ -1,4 +1,3 @@
-import cometMigratorAbi from '../abis/CometMigrator';
 import { JsonFragment } from '@ethersproject/abi';
 
 import mainnetV3Roots from '../node_modules/comet/deployments/mainnet/usdc/roots.json';
@@ -8,6 +7,10 @@ import mainnetV2Abi from '../node_modules/compound-config/networks/mainnet-abi.j
 import goerliV3Roots from '../node_modules/comet/deployments/goerli/usdc/roots.json';
 import goerliV2Roots from '../node_modules/compound-config/networks/goerli.json';
 import goerliV2Abi from '../node_modules/compound-config/networks/goerli-abi.json';
+
+import cometMigratorAbi from '../abis/CometMigratorV2';
+
+import ATokens from './helpers/Aave/config';
 
 type ConstTupleItems<Tuple extends readonly [...any]> = Tuple[Exclude<keyof Tuple, keyof Array<any>>];
 
@@ -23,16 +26,61 @@ const mainnetTokens = [
   'cUSDT',
   'cUSDC',
   'cETH',
-  // "cSAI",
   'cREP',
   'cBAT',
   'cCOMP',
   'cLINK',
   'cUNI',
   'cDAI',
+  'cTUSD',
+  'cSUSHI',
+  'cAAVE',
+  'cYFI',
+  'cMKR',
+  'cUSDP'
+] as const;
+
+const mainnetAaveTokens = [
+  'aUSDT',
+  'aWBTC',
+  'aWETH',
+  'aYFI',
+  'aZRX',
+  'aUNI',
+  'aAAVE',
+  'aBAT',
+  'aBUSD',
+  'aDAI',
+  'aENJ',
+  'aKNC',
+  'aLINK',
+  'aMANA',
+  'aMKR',
+  'aREN',
+  'aSNX',
+  'aSUSD',
+  'aTUSD',
+  'aUSDC',
+  'aCRV',
+  'aGUSD',
+  'aBAL',
+  'aXSUSHI',
+  'aRENFIL',
+  'aRAI',
+  'aAMPL',
+  'aUSDP',
+  'aDPI',
+  'aFRAX',
+  'aFEI',
+  'aENS',
+  'aSTETH'
 ] as const;
 
 const goerliTokens = ['cETH', 'cDAI', 'cUSDC', 'cWBTC'] as const;
+
+export const stableCoins = ['USDC', 'USDT', 'DAI', 'BUSD', 'SUSD', 'TUSD', 'GUSD', 'USDP', 'RAI'] as const;
+
+export type ATokenSym<Network> = Network extends 'mainnet' ? ConstTupleItems<typeof mainnetAaveTokens> : never;
 
 export type CTokenSym<Network> = Network extends 'mainnet'
   ? ConstTupleItems<typeof mainnetTokens>
@@ -53,14 +101,27 @@ export type RootsV3<Network> = Network extends 'mainnet'
   : never;
 
 interface CToken<Network> {
-  abi: JsonFragment[]
+  abi: JsonFragment[];
   address: string;
   decimals: number;
   name: string;
   symbol: CTokenSym<Network>;
-  underlyingDecimals: number;
-  underlyingName: string;
-  underlyingSymbol: string;
+  underlying: {
+    address: string;
+    decimals: number;
+    name: string;
+    symbol: string;
+  };
+}
+
+export interface AToken {
+  aTokenAddress: string;
+  aTokenSymbol: ATokenSym<Network>;
+  stableDebtTokenAddress: string;
+  variableDebtTokenAddress: string;
+  symbol: string;
+  address: string;
+  decimals: number;
 }
 
 export interface NetworkConfig<Network> {
@@ -70,6 +131,16 @@ export interface NetworkConfig<Network> {
   migratorAbi: typeof cometMigratorAbi;
   cTokens: CToken<Network>[];
   rootsV2: RootsV2<Network>;
+  rootsV3: RootsV3<Network>;
+}
+
+export interface AaveNetworkConfig<Network> {
+  aTokens: AToken[];
+  lendingPoolAddressesProviderAddress: string;
+  lendingPoolAddress: string;
+  migratorAbi: typeof cometMigratorAbi;
+  migratorAddress: string;
+  network: Network;
   rootsV3: RootsV3<Network>;
 }
 
@@ -151,36 +222,39 @@ export function mainnetConfig<N extends 'mainnet'>(network: N): NetworkConfig<'m
   const migratorAbi = cometMigratorAbi;
   const rootsV3: RootsV3<'mainnet'> = mainnetV3Roots;
   const cTokens: CToken<'mainnet'>[] = cTokenSymbols.map(symbol => {
-      const { address, decimals, name } = mainnetV2Roots.cTokens[symbol] as {
-        address: string;
-        decimals: number;
-        name: string;
-        underlying: string;
-      };
-      const abi = mainnetV2Abi[symbol] as JsonFragment[];
+    const { address, decimals, name } = mainnetV2Roots.cTokens[symbol] as {
+      address: string;
+      decimals: number;
+      name: string;
+      underlying: string;
+    };
+    const abi = mainnetV2Abi[symbol] as JsonFragment[];
 
-      const underlyingSymbol = symbol === 'cWBTC2' ? 'WBTC' : symbol.slice(1);
-      const underlying =
-        symbol === 'cETH'
-          ? { decimals: 18, name: 'Ether', symbol: 'ETH' }
-          : ((mainnetV2Roots.Tokens as any)[underlyingSymbol] as {
-              address: string;
-              decimals: number;
-              name: string;
-              underlying: string;
-            });
+    const underlyingSymbol = symbol === 'cWBTC2' ? 'WBTC' : symbol.slice(1);
+    const underlying =
+      symbol === 'cETH'
+        ? {
+            address: '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2', // THIS IS WETH ADDRESS
+            decimals: 18,
+            name: 'Ether',
+            symbol: 'ETH'
+          }
+        : ((mainnetV2Roots.Tokens as any)[underlyingSymbol] as {
+            address: string;
+            decimals: number;
+            name: string;
+            symbol: string;
+          });
 
-      return {
-        abi,
-        address,
-        decimals,
-        name,
-        symbol,
-        underlyingSymbol,
-        underlyingDecimals: underlying.decimals,
-        underlyingName: underlying.name
-      };
-    });
+    return {
+      abi,
+      address,
+      decimals,
+      name,
+      symbol,
+      underlying
+    };
+  });
 
   return {
     network,
@@ -213,12 +287,17 @@ export function goerliConfig<N extends 'goerli'>(network: N): NetworkConfig<'goe
     const underlyingSymbol = symbol.slice(1);
     const underlying =
       symbol === 'cETH'
-        ? { decimals: 18, name: 'Ether', symbol: 'ETH' }
+        ? {
+            address: '0xD4a33860578De61DBAbDc8BFdb98FD742fA7028e', // THIS IS WETH ADDRESS
+            decimals: 18,
+            name: 'Ether',
+            symbol: 'ETH'
+          }
         : ((goerliV2Roots.Tokens as any)[underlyingSymbol] as {
             address: string;
             decimals: number;
             name: string;
-            underlying: string;
+            symbol: string;
           });
 
     return {
@@ -227,9 +306,7 @@ export function goerliConfig<N extends 'goerli'>(network: N): NetworkConfig<'goe
       decimals,
       name,
       symbol,
-      underlyingSymbol,
-      underlyingDecimals: underlying.decimals,
-      underlyingName: underlying.name
+      underlying
     };
   });
 
@@ -251,4 +328,30 @@ export function getNetworkConfig<N extends Network>(network: N): NetworkConfig<N
     return goerliConfig(network) as NetworkConfig<N>;
   }
   return null as never;
+}
+
+export function aaveMainnetConfig<N extends 'mainnet'>(network: N): AaveNetworkConfig<'mainnet'> {
+  const migratorAbi = cometMigratorAbi;
+  const migratorAddress: string = getMigratorAddress(network);
+  const lendingPoolAddressesProviderAddress = '0xB53C1a33016B2DC2fF3653530bfF1848a515c8c5';
+  const lendingPoolAddress = '0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9';
+  const rootsV3: RootsV3<'mainnet'> = mainnetV3Roots;
+
+  return {
+    aTokens: ATokens as AToken[],
+    lendingPoolAddressesProviderAddress,
+    lendingPoolAddress,
+    migratorAbi,
+    migratorAddress,
+    network,
+    rootsV3
+  };
+}
+
+export function getAaveNetworkConfig<N extends Network>(network: N): AaveNetworkConfig<N> | null {
+  if (isMainnet(network)) {
+    return aaveMainnetConfig(network) as AaveNetworkConfig<N>;
+  }
+
+  return null;
 }

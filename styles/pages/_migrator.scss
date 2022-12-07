@@ -130,11 +130,16 @@
     &__header {
       align-items: center;
       display: flex;
+      gap: 0.25rem;
 
       .asset {
         height: 0.75rem;
         width: 0.75rem;
-        margin-right: 0.5rem;
+      }
+
+      .svg {
+        height: 1rem;
+        width: 1rem;
       }
     }
 
@@ -179,6 +184,10 @@
       }
     }
 
+    .swap-dropdown {
+      margin-top: 1.25rem;
+    }
+
     &__error {
       background-color: $red--90;
       border-radius: 0.25rem;
@@ -187,7 +196,13 @@
       margin-top: 1.25rem;
       padding: 0.5rem;
 
+      label {
+        width: fit-content;
+        display: inline-block;
+      }
+
       .svg {
+        flex-shrink: 0;
         margin-right: 0.5rem;
         &__path {
           fill: var(--data--caution);

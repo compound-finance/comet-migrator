@@ -7,9 +7,15 @@ import "forge-std/Test.sol";
 import "../test/MainnetConstantsV2.t.sol";
 import "forge-std/console2.sol";
 
+// TODO:
+// -Have non-stable supply positions and check they don't appear on UI
+// -Increase positions to migrate
+// -Migrate USDC supply
+// -Test other borrows (USDP?)
+
 contract PlaygroundV2 is Script, Test, MainnetConstants {
     address public constant account = address(0xEacB91408a77824bfd2D9eF1D0773Cf0966d526C);
-    uint256 public constant targetNonce = 10;
+    uint256 public constant targetNonce = 50;
 
     function setUp() public {}
 
@@ -33,14 +39,14 @@ contract PlaygroundV2 is Script, Test, MainnetConstants {
         }
 
         console.log("Wrapping WETH");
-        weth.deposit{value: 50 ether}();
-        require(weth.balanceOf(account) == 50 ether, "invalid weth balance");
+        weth.deposit{value: 150 ether}();
+        require(weth.balanceOf(account) == 150 ether, "invalid weth balance");
         console.log("Wrapped WETH");
 
         console.log("Trading WETH for UNI");
         uint256 uniBalance = swap(weth, uni, 3000, account, 20 ether);
-        require(uni.balanceOf(account) == uniBalance, "invalid uni balance [0]");
-        require(uni.balanceOf(account) > 0, "invalid uni balance [1]");
+        // require(uni.balanceOf(account) == uniBalance, "invalid uni balance [0]");
+        // require(uni.balanceOf(account) > 0, "invalid uni balance [1]");
         console.log("Traded WETH for UNI", uniBalance);
 
         console.log("Supplying UNI to Compound");
@@ -49,6 +55,18 @@ contract PlaygroundV2 is Script, Test, MainnetConstants {
         require(cUNI.balanceOf(account) > 0, "invalid cUNI balance");
         console.log("Supplied UNI to Compound");
 
+        console.log("Supplying ETH to Compound");
+        cETH.mint{value: 20 ether}();
+        require(cETH.balanceOf(account) > 0, "invalid cETH balance");
+        console.log("Supplied ETH to Compound");
+
+        console.log("Supplying USDC to Compound");
+        usdc.approve(address(cUSDC), type(uint256).max);
+        uint256 usdcBalance = swap(weth, usdc, 3000, account, 20 ether);
+        require(cUSDC.mint(usdcBalance) == 0, "cUSDC mint failed");
+        require(cUSDC.balanceOf(account) > 0, "invalid cUSDC balance");
+        console.log("Supplied USDC to Compound");
+
         console.log("Entering cUNI market");
         // Next, we need to borrow cUSDC
         address[] memory markets = new address[](1);
@@ -56,10 +74,99 @@ contract PlaygroundV2 is Script, Test, MainnetConstants {
         comptroller.enterMarkets(markets);
         console.log("Entered cUNI market");
 
+        console.log("Borrowing ETH");
+        require(cETH.borrow(10 ether) == 0, "failed to borrow");
+        // require(usdc.balanceOf(account) == 5000000000, "incorrect borrow");
+        console.log("Borrowed ETH");
+
+        console.log("Borrowing UNI");
+        require(cUNI.borrow(100e18) == 0, "failed to borrow");
+        require(uni.balanceOf(account) == 100e18, "incorrect borrow");
+        console.log("Borrowed UNI");
+
+        // XXX NEW TEST THIS. test migrate works (TUSD OR USDP)
+        console.log("Borrowing TUSD");
+        require(cTUSD.borrow(5000e18) == 0, "failed to borrow");
+        require(tusd.balanceOf(account) == 5000e18, "incorrect borrow");
+        console.log("Borrowed TUSD");
+
         console.log("Borrowing USDC");
-        require(cUSDC.borrow(10000000000) == 0, "failed to borrow"); // 100 USDC
-        require(usdc.balanceOf(account) == 10000000000, "incorrect borrow");
+        require(cUSDC.borrow(5000000000) == 0, "failed to borrow");
+        require(usdc.balanceOf(account) == 5000000000, "incorrect borrow");
         console.log("Borrowed USDC");
+
+        console.log("Borrowing DAI");
+        require(cDAI.borrow(5000000000000000000000) == 0, "failed to borrow");
+        require(dai.balanceOf(account) == 5000000000000000000000, "incorrect borrow");
+        console.log("Borrowed DAI");
+
+        // AAVE
+
+        console.log("Trading WETH for UNI");
+        uint256 newUniBalance = swap(weth, uni, 3000, account, 20 ether);
+        // require(uni.balanceOf(account) == newUniBalance, "invalid uni balance [0]");
+        // require(uni.balanceOf(account) > 0, "invalid uni balance [1]");
+        console.log("Traded WETH for UNI", newUniBalance);
+
+        console.log("Supplying UNI to Aave");
+        uni.approve(address(aaveV2LendingPool), type(uint256).max);
+        aaveV2LendingPool.deposit(address(uni), newUniBalance, account, 0);
+        require(aUNI.balanceOf(account) > 0, "invalid aUNI balance");
+        require(aUNI.balanceOf(account) == newUniBalance, "invalid aUNI balance");
+        console.log("Supplied UNI to Aave");
+
+        console.log("Supplying WETH to Aave");
+        weth.approve(address(aaveV2LendingPool), type(uint256).max);
+        aaveV2LendingPool.deposit(address(weth), 20 ether, account, 0);
+        require(aWETH.balanceOf(account) > 0, "invalid aWETH balance");
+        require(aWETH.balanceOf(account) == 20 ether, "invalid aWETH balance");
+        console.log("Supplied WETH to Aave");
+
+        console.log("Supplying USDC to Aave");
+        uint256 usdcBalance2 = swap(weth, usdc, 100, account, 20 ether);
+        usdc.approve(address(aaveV2LendingPool), type(uint256).max);
+        aaveV2LendingPool.deposit(address(usdc), usdcBalance2, account, 0);
+        require(aUSDC.balanceOf(account) > 0, "invalid aUSDC balance");
+        // require(aUSDC.balanceOf(account) == usdcBalance, "invalid aUSDC balance");
+        console.log("Supplied USDC to Aave");
+
+        console.log("Borrowing WETH");
+        aaveV2LendingPool.borrow(address(weth), 10 ether, 2, 0, account);
+        // require(variableDebtUSDC.balanceOf(account) >= 5000000000, "incorrect borrow");
+        console.log("Borrowed WETH");
+
+        console.log("Borrowing WBTC");
+        aaveV2LendingPool.borrow(address(wbtc), 1e8, 2, 0, account);
+        // require(variableDebtUSDC.balanceOf(account) >= 5000000000, "incorrect borrow");
+        console.log("Borrowed WBTC");
+
+        console.log("Borrowing USDC");
+        aaveV2LendingPool.borrow(address(usdc), 5000000000, 2, 0, account);
+        // require(variableDebtUSDC.balanceOf(account) >= 5000000000, "incorrect borrow");
+        console.log("Borrowed USDC");
+
+        // XXX NEW TEST THIS. test migrate works (TUSD OR USDP)
+        console.log("Borrowing Variable TUSD");
+        aaveV2LendingPool.borrow(address(tusd), 5000e18, 2, 0, account);
+        require(variableDebtTUSD.balanceOf(account) >= 5000e18, "incorrect borrow");
+        console.log("Borrowed Variable TUSD");
+
+        // XXX NEW TEST THIS. test migrate works (TUSD OR USDP)
+        console.log("Borrowing Stable TUSD");
+        aaveV2LendingPool.borrow(address(tusd), 5000e18, 1, 0, account);
+        require(stableDebtTUSD.balanceOf(account) >= 5000e18, "incorrect borrow");
+        console.log("Borrowed Stable TUSD");
+
+
+        console.log("Borrowing Variable DAI");
+        aaveV2LendingPool.borrow(address(dai), 2500000000000000000000, 2, 0, account);
+        require(variableDebtDAI.balanceOf(account) >= 2500000000000000000000, "incorrect borrow");
+        console.log("Borrowed Variable DAI");
+
+        console.log("Borrowing Stable DAI");
+        aaveV2LendingPool.borrow(address(dai), 2500000000000000000000, 1, 0, account);
+        require(variableDebtDAI.balanceOf(account) >= 2500000000000000000000, "incorrect borrow");
+        console.log("Borrowed Stable DAI");
 
         // Setting nonce to target nonce
         console.log("Setting account nonce to target nonce", targetNonce);
@@ -79,7 +186,7 @@ contract PlaygroundV2 is Script, Test, MainnetConstants {
             cETH,
             weth,
             aaveV2LendingPool,
-            pool_DAI_USDC,
+            pool_USDT_USDC,
             swapRouter,
             sweepee
         );

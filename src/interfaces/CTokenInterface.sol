@@ -26,4 +26,5 @@ interface CErc20 is CTokenLike {
 
 interface CEther is CTokenLike {
   function repayBorrowBehalf(address borrower) external payable;
+  function mint() external payable;
 }

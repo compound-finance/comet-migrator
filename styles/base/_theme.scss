@@ -4,21 +4,28 @@
   --ui--background: #{$neutral--100};
   --ui--foreground--1: #{$neutral--85};
   --ui--foreground--2: #{$neutral--90};
-  --ui--border: #{rgba($neutral--05, 0.1)};
+  --ui--border: #{rgba($neutral--05, 0.15)};
+  // TODO: these 3 new and unused, should it replace something else?
+  --ui--scrim: #{rgba($neutral--100, 0.6)};
+  --ui--hover-overlay: #{rgba($neutral--05, 0.05)};
+  --ui--active-overlay: #{rgba($neutral--05, 0.025)};
 
   --text--1: #{$neutral--00};
-  --text--2: #{$neutral--40};
+  --text--2: #{$neutral--50};
   --text--3: #{$neutral--60};
   --text--button-label: #{$neutral--00};
+  --text--button-label--emphasized: #{$neutral--00};
   --text--button-label--disabled: #{$neutral--60};
-  --text--borrow: #{$purple--50};
   --text--supply: #{$green--30};
+  --text--supply--deemphasized: #{$green--30};
+  --text--borrow: #{$purple--50};
+  --text--borrow--deemphasized: #{$purple--30};
 
   --icon--1: #{$neutral--00};
-  --icon--2: #{$neutral--40};
+  --icon--2: #{$neutral--50};
   --icon--3: #{$neutral--60};
-  --icon--borrow: #{$purple--50};
   --icon--supply: #{$green--30};
+  --icon--borrow: #{$purple--50};
 
   --data--supply: #{$green--30};
   --data--borrow: #{$purple--50};
@@ -41,39 +48,45 @@
   --asset-table--gradient: linear-gradient(90deg, #{rgba($neutral--85, 0.2)} 0%, #{rgba($neutral--85, 1)} 80%);
 
   &--light {
-    --ui--background: #{$neutral--05};
+    --ui--background: #{$neutral--10};
     --ui--foreground--1: #{$neutral--00};
-    --ui--foreground--2: #{$neutral--10};
-    --ui--border: #{rgba($neutral--100, 0.1)};
+    --ui--foreground--2: #{$neutral--05};
+    --ui--border: #{rgba($neutral--100, 0.15)};
+
+    // TODO: these 3 new and unused, should it replace something else?
+    --ui--scrim: #{rgba($neutral--100, 0.6)};
+    --ui--hover-overlay: #{rgba($neutral--100, 0.05)};
+    --ui--active-overlay: #{rgba($neutral--100, 0.075)};
 
     --text--1: #{$neutral--90};
-    --text--2: #{$neutral--40};
-    --text--3: #{$neutral--30};
+    --text--2: #{$neutral--50};
+    --text--3: #{$neutral--40};
     --text--button-label: #{$neutral--90};
-    --text--button-label--disabled: #{$neutral--30};
-    --text--borrow: #{$purple--70};
-    --text--borrow--deemphasized: #{$purple--50};
+    --text--button-label--emphasized: #{$neutral--00};
+    --text--button-label--disabled: #{$neutral--40};
     --text--supply: #{$green--50};
-    --text--supply--deemphasized: #{$green--50};
+    --text--supply--deemphasized: #{$green--70};
+    --text--borrow: #{$purple--70};
+    --text--borrow--deemphasized: #{$purple--70};
 
     --icon--1: #{$neutral--90};
-    --icon--2: #{$neutral--40};
+    --icon--2: #{$neutral--50};
     --icon--3: #{$neutral--30};
-    --icon--borrow: #{$purple--50};
-    --icon--supply: #{$green--30};
+    --icon--supply: #{$green--50};
+    --icon--borrow: #{$purple--70};
 
     --data--supply: #{$green--30};
     --data--borrow: #{$purple--50};
     --data--warning: #{$gold--30};
     --data--caution: #{$red--50};
     --data--neutral: #{$neutral--100};
-    --data--neutral--1: #{$neutral--40};
-    --data--neutral--2: #{$neutral--20};
+    --data--neutral--1: #{$neutral--60};
+    --data--neutral--2: #{$neutral--30};
 
-    --button--neutral: #{$neutral--15};
+    --button--neutral: #{$neutral--20};
     --button--neutral--disabled--1: #{$neutral--10};
     --button--neutral--disabled--2: #{$neutral--15};
-    --button--borrow: #{$purple--50};
+    --button--borrow: #{$purple--70};
     --button--borrow--deemphasized: #{$purple--10};
     --button--supply: #{$green--30};
     --button--supply--deemphasized: #{$green--10};
