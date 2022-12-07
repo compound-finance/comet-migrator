@@ -31,7 +31,13 @@ const mainnetTokens = [
   'cCOMP',
   'cLINK',
   'cUNI',
-  'cDAI'
+  'cDAI',
+  'cTUSD',
+  'cSUSHI',
+  'cAAVE',
+  'cYFI',
+  'cMKR',
+  'cUSDP',
 ] as const;
 
 const mainnetAaveTokens = [
