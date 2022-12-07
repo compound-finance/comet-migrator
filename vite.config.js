@@ -4,6 +4,7 @@ import react from '@vitejs/plugin-react';
 import { NodeGlobalsPolyfillPlugin } from '@esbuild-plugins/node-globals-polyfill';
 import { NodeModulesPolyfillPlugin } from '@esbuild-plugins/node-modules-polyfill'
 import nodePolyfills from "rollup-plugin-polyfill-node";
+import rollupResolve from '@rollup/plugin-node-resolve';
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -23,7 +24,7 @@ export default defineConfig({
         index: resolve(__dirname, 'index.html'),
         embedded: resolve(__dirname, 'embedded.html'),
       },
-      plugins: [nodePolyfills()],
+      plugins: [nodePolyfills(), rollupResolve()],
     },
   },
   base: '',
