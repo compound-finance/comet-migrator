@@ -5,7 +5,7 @@ import { BaseAssetWithAccountState } from '@compound-finance/comet-extension/dis
 import { Contract } from '@ethersproject/contracts';
 import { JsonRpcProvider } from '@ethersproject/providers';
 import { Protocol } from '@uniswap/router-sdk';
-import { AlphaRouter, SwapType, V3Route } from '@uniswap/smart-order-router';
+// import { AlphaRouter, SwapType, V3Route } from '@uniswap/smart-order-router';
 import { CurrencyAmount, Percent, Token, TradeType } from '@uniswap/sdk-core';
 import { encodeRouteToPath } from '@uniswap/v3-sdk';
 import { Contract as MulticallContract, Provider } from 'ethers-multicall';
@@ -1302,57 +1302,57 @@ export default function CompoundV2Migrator<N extends Network>({
   // );
 }
 
-async function getRoute(
-  networkId: number,
-  migrator: string,
-  baseAsset: BaseAssetWithAccountState,
-  tokenState: CTokenState,
-  uniswapRouter: AlphaRouter,
-  outputAmount: bigint
-): Promise<SwapInfo | null> {
-  const BASE_ASSET = new Token(networkId, baseAsset.address, baseAsset.decimals, baseAsset.symbol, baseAsset.name);
-  const token = new Token(
-    networkId,
-    tokenState.underlying.address,
-    tokenState.underlying.decimals,
-    tokenState.underlying.symbol,
-    tokenState.underlying.symbol
-  );
-  const amount = CurrencyAmount.fromRawAmount(token, outputAmount.toString());
-  const route = await uniswapRouter.route(
-    amount,
-    BASE_ASSET,
-    TradeType.EXACT_OUTPUT,
-    {
-      slippageTolerance: new Percent(SLIPPAGE_TOLERANCE.toString(), FACTOR_PRECISION.toString()),
-      type: SwapType.SWAP_ROUTER_02,
-      recipient: migrator,
-      deadline: Math.floor(Date.now() / 1000 + 1800)
-    },
-    {
-      protocols: [Protocol.V3],
-      maxSplits: 1 // This only makes one path
-    }
-  );
-  if (route !== null) {
-    const swapInfo: SwapInfo = {
-      tokenIn: {
-        symbol: baseAsset.symbol,
-        decimals: baseAsset.decimals,
-        price: baseAsset.price,
-        amount: BigInt(Number(route.quote.toFixed(baseAsset.decimals)) * 10 ** baseAsset.decimals)
-      },
-      tokenOut: {
-        symbol: tokenState.underlying.symbol,
-        decimals: tokenState.underlying.decimals,
-        price: tokenState.price,
-        amount: outputAmount
-      },
-      networkFee: `$${route.estimatedGasUsedUSD.toFixed(2)}`,
-      path: encodeRouteToPath(route.route[0].route as V3Route, true)
-    };
-    return swapInfo;
-  } else {
-    return null;
-  }
-}
+// async function getRoute(
+//   networkId: number,
+//   migrator: string,
+//   baseAsset: BaseAssetWithAccountState,
+//   tokenState: CTokenState,
+//   uniswapRouter: AlphaRouter,
+//   outputAmount: bigint
+// ): Promise<SwapInfo | null> {
+//   const BASE_ASSET = new Token(networkId, baseAsset.address, baseAsset.decimals, baseAsset.symbol, baseAsset.name);
+//   const token = new Token(
+//     networkId,
+//     tokenState.underlying.address,
+//     tokenState.underlying.decimals,
+//     tokenState.underlying.symbol,
+//     tokenState.underlying.symbol
+//   );
+//   const amount = CurrencyAmount.fromRawAmount(token, outputAmount.toString());
+//   const route = await uniswapRouter.route(
+//     amount,
+//     BASE_ASSET,
+//     TradeType.EXACT_OUTPUT,
+//     {
+//       slippageTolerance: new Percent(SLIPPAGE_TOLERANCE.toString(), FACTOR_PRECISION.toString()),
+//       type: SwapType.SWAP_ROUTER_02,
+//       recipient: migrator,
+//       deadline: Math.floor(Date.now() / 1000 + 1800)
+//     },
+//     {
+//       protocols: [Protocol.V3],
+//       maxSplits: 1 // This only makes one path
+//     }
+//   );
+//   if (route !== null) {
+//     const swapInfo: SwapInfo = {
+//       tokenIn: {
+//         symbol: baseAsset.symbol,
+//         decimals: baseAsset.decimals,
+//         price: baseAsset.price,
+//         amount: BigInt(Number(route.quote.toFixed(baseAsset.decimals)) * 10 ** baseAsset.decimals)
+//       },
+//       tokenOut: {
+//         symbol: tokenState.underlying.symbol,
+//         decimals: tokenState.underlying.decimals,
+//         price: tokenState.price,
+//         amount: outputAmount
+//       },
+//       networkFee: `$${route.estimatedGasUsedUSD.toFixed(2)}`,
+//       path: encodeRouteToPath(route.route[0].route as V3Route, true)
+//     };
+//     return swapInfo;
+//   } else {
+//     return null;
+//   }
+// }
