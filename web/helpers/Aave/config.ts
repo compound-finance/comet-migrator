@@ -277,5 +277,23 @@ export default [
     symbol: 'FEI',
     address: '0x956F47F50A910163D8BF957Cf5846D573E7f87CA',
     decimals: 18
+  },
+  {
+    aTokenAddress: '0x9a14e23A58edf4EFDcB360f68cd1b95ce2081a2F',
+    aTokenSymbol: 'aENS',
+    stableDebtTokenAddress: '0x34441FFD1948E49dC7a607882D0c38Efd0083815',
+    variableDebtTokenAddress: '0x176808047cc9b7A2C9AE202c593ED42dDD7C0D13',
+    symbol: 'ENS',
+    address: '0xC18360217D8F7Ab5e7c516566761Ea12Ce7F9D72',
+    decimals: 18
+  },
+  {
+    aTokenAddress: '0x1982b2F5814301d4e9a8b0201555376e62F82428',
+    aTokenSymbol: 'aSTETH',
+    stableDebtTokenAddress: '0x66457616Dd8489dF5D0AFD8678F4A260088aAF55',
+    variableDebtTokenAddress: '0xA9DEAc9f00Dc4310c35603FCD9D34d1A750f81Db',
+    symbol: 'stETH',
+    address: '0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84',
+    decimals: 18
   }
 ];
