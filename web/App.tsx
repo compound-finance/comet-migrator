@@ -1,7 +1,7 @@
 import '../styles/main.scss';
 
 import { CometState } from '@compound-finance/comet-extension';
-import { StateType } from '@compound-finance/comet-extension/dist/CometState';
+import { StateType as CometStateType } from '@compound-finance/comet-extension/dist/CometState';
 import { useCallback, useEffect, useState } from 'react';
 
 import { LoadingView } from './components/LoadingViews';
@@ -13,22 +13,15 @@ import { usePoll } from './lib/usePoll';
 
 import AaveV2Migrator from './AaveV2Migrator';
 import CompoundV2Migrator from './CompoundV2Migrator';
-import {
-  Network,
-  NetworkConfig,
-  getNetworkById,
-  getNetworkConfig,
-  AaveNetworkConfig,
-  getAaveNetworkConfig
-} from './Network';
-import { AppProps, MigrationSource } from './types';
+import { getNetworkById, getCompoundNetworkConfig, getAaveNetworkConfig } from './Network';
+import { AaveNetworkConfig, AppProps, CompoundNetworkConfig, Network, MigrationSource } from './types';
 
 export default ({ rpc, web3 }: AppProps) => {
   const [account, setAccount] = useState<string | null>(null);
-  const [cometState, setCometState] = useState<CometState>([StateType.Loading, undefined]);
+  const [cometState, setCometState] = useState<CometState>([CometStateType.Loading, undefined]);
   const timer = usePoll(!!account ? 30000 : 3000);
   const [migrationSource, setMigrationSource] = useState<MigrationSource>(MigrationSource.CompoundV2);
-  const [compoundNetworkConfig, setCompoundNetworkConfig] = useState<NetworkConfig<Network> | null>(null);
+  const [compoundNetworkConfig, setCompoundNetworkConfig] = useState<CompoundNetworkConfig<Network> | null>(null);
   const [aaveNetworkConfig, setAaveNetworkConfig] = useState<AaveNetworkConfig<Network> | null>(null);
 
   useEffect(() => {
@@ -70,7 +63,7 @@ export default ({ rpc, web3 }: AppProps) => {
     let networkWeb3 = await web3.getNetwork();
     let network = getNetworkById(networkWeb3.chainId);
     if (network) {
-      setCompoundNetworkConfig(getNetworkConfig(network));
+      setCompoundNetworkConfig(getCompoundNetworkConfig(network));
       setAaveNetworkConfig(getAaveNetworkConfig(network));
     } else {
       setCompoundNetworkConfig(null);
