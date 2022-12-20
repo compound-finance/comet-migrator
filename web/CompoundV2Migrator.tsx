@@ -1,6 +1,7 @@
 import '../styles/main.scss';
 
 import { CometState } from '@compound-finance/comet-extension';
+import { Sleuth } from '@compound-finance/sleuth';
 import { Contract } from '@ethersproject/contracts';
 import { JsonRpcProvider } from '@ethersproject/providers';
 import { Contract as MulticallContract, Provider } from 'ethers-multicall';
@@ -26,7 +27,6 @@ import {
   StateType,
   SwapRouteState
 } from './types';
-
 
 type CompoundV2MigratorProps<N extends Network> = AppProps & {
   account: string;

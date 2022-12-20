@@ -18,6 +18,7 @@
   },
   "dependencies": {
     "@compound-finance/comet-extension": "^0.0.5",
+    "@compound-finance/sleuth": "^1.0.1-alpha1",
     "@ethersproject/abi": "^5.6.2",
     "@ethersproject/bignumber": "^5.4.2",
     "@ethersproject/contracts": "^5.6.1",
