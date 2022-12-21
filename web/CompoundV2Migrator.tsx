@@ -12,6 +12,7 @@ import Comptroller from '../abis/Comptroller';
 import CToken from '../abis/CToken';
 import CompoundV2Oracle from '../abis/Oracle';
 
+import CompoundV2Query from './helpers/Sleuth/out/CompoundV2Query.sol/CompoundV2Query.json';
 import { multicall } from './helpers/multicall';
 
 import Migrator, { MigratorState } from './Migrator';
@@ -27,6 +28,8 @@ import {
   StateType,
   SwapRouteState
 } from './types';
+
+const QUERY = Sleuth.querySol(CompoundV2Query);
 
 type CompoundV2MigratorProps<N extends Network> = AppProps & {
   account: string;
@@ -51,6 +54,9 @@ export default function CompoundV2Migrator<N extends Network>({
     const oracleAddress = await comptroller.oracle();
     return new MulticallContract(oracleAddress, CompoundV2Oracle);
   }, [comptroller]);
+
+  const sleuth = useMemo(() => new Sleuth(web3), [web3]);
+
   return (
     <Migrator
       rpc={rpc}
@@ -60,6 +66,14 @@ export default function CompoundV2Migrator<N extends Network>({
       migrationSourceInfo={[MigrationSource.CompoundV2, networkConfig]}
       getMigrateData={async (web3: JsonRpcProvider, [, networkConfig]: MigrationSourceInfo, state: MigratorState) => {
         const compoundNetworkConfig = networkConfig as CompoundNetworkConfig<typeof networkConfig.network>;
+        const response = await sleuth.fetch(QUERY, [
+          compoundNetworkConfig.comptrollerAddress,
+          compoundNetworkConfig.cTokens.map(ctoken => ctoken.address),
+          account,
+          compoundNetworkConfig.migratorAddress
+        ]);
+        console.log('SLEUTHING....', response);
+        
         const ethcallProvider = new Provider(web3, getIdByNetwork(compoundNetworkConfig.network));
         const comet = new MulticallContract(compoundNetworkConfig.rootsV3.comet, Comet);
         const comptroller = new MulticallContract(compoundNetworkConfig.comptrollerAddress, Comptroller);
