@@ -18,7 +18,8 @@ import {
   Network,
   networks,
   RootsV2,
-  RootsV3
+  RootsV3,
+  Token
 } from './types';
 
 export function isNetwork(network: string): network is Network {
@@ -47,6 +48,17 @@ export function showNetwork(network: Network): string {
 export function getIdByNetwork(network: Network): number {
   if (network === 'mainnet') {
     return 1;
+  }
+  throw 'invalid';
+}
+
+export function getNativeTokenByNetwork(network: Network): Token {
+  if (network === 'mainnet') {
+    return {
+      decimals: 18,
+      name: 'Ether',
+      symbol: 'ETH'
+    };
   }
   throw 'invalid';
 }

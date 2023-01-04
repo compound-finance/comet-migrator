@@ -67,6 +67,7 @@ export interface AaveNetworkConfig<Network> {
 }
 
 export type Token = {
+  decimals: number;
   name: string;
   symbol: string;
 };
@@ -224,6 +225,7 @@ export type CometQueryResponse = {
   bulkerAllowance: BigNumber;
   collateralAssets: CometCollateralAsset[];
   earnAPR: BigNumber;
+  nativeAssetWalletBalance: BigNumber;
   totalBorrow: BigNumber;
   totalBorrowPrincipal: BigNumber;
   totalSupply: BigNumber;

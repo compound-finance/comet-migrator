@@ -16,7 +16,8 @@ import {
   MigrateCollateralTokenState,
   MigrationSource,
   StateType,
-  SwapInfo
+  SwapInfo,
+  Token as TokenType
 } from '../types';
 
 import {
@@ -145,44 +146,80 @@ const getCollateralValue = (collateralAssets: TokenWithAccountState[]): bigint =
   );
 };
 
-export function cometQueryResponseToCometData(response: CometQueryResponse): ProtocolAndAccountState {
+export function cometQueryResponseToCometData(
+  response: CometQueryResponse,
+  nativeToken: TokenType
+): ProtocolAndAccountState {
   const collateralAssets: TokenWithAccountState[] = response.collateralAssets.map(asset => {
+    let allowance: bigint;
+    let name: string;
+    let symbol: string;
+    let walletBalance: bigint;
+    // Custom logic to transform wrapped native token to native token (e.g. WETH to ETH)
+    if (asset.symbol === `W${nativeToken.symbol}`) {
+      allowance = MAX_UINT256;
+      name = nativeToken.name;
+      symbol = nativeToken.symbol;
+      walletBalance = response.nativeAssetWalletBalance.toBigInt();
+    } else {
+      allowance = asset.allowance.toBigInt();
+      name = asset.name;
+      symbol = asset.symbol;
+      walletBalance = asset.walletBalance.toBigInt();
+    }
+
     return {
       address: asset.collateralAsset,
-      allowance: asset.allowance.toBigInt(),
+      allowance,
       balance: asset.balance.toBigInt(),
       collateralFactor: asset.collateralFactor.toBigInt(),
       decimals: asset.decimals.toNumber(),
       liquidateCollateralFactor: asset.liquidateCollateralFactor.toBigInt(),
       liquidationFactor: asset.liquidationFactor.toBigInt(),
-      name: asset.name,
+      name,
       price: asset.price.toBigInt(),
       priceFeed: asset.priceFeed,
-      symbol: asset.symbol,
+      symbol,
       supplyCap: asset.supplyCap.toBigInt(),
       totalSupply: asset.totalSupply.toBigInt(),
-      walletBalance: asset.walletBalance.toBigInt()
+      walletBalance
     };
   });
 
+  let baseAssetAllowance: bigint;
+  let baseAssetName: string;
+  let baseAssetSymbol: string;
+  let baseAssetWalletBalance: bigint;
   const baseAssetDecimals = response.baseAsset.decimals.toNumber();
   const baseAssetPrice = response.baseAsset.price.toBigInt();
-
   const borrowCapacity = getCapacity('borrow', baseAssetDecimals, baseAssetPrice, collateralAssets);
+
+  if (response.baseAsset.symbol === `W${nativeToken.symbol}`) {
+    baseAssetAllowance = MAX_UINT256;
+    baseAssetName = nativeToken.name;
+    baseAssetSymbol = nativeToken.symbol;
+    baseAssetWalletBalance = response.nativeAssetWalletBalance.toBigInt();
+  } else {
+    baseAssetAllowance = response.baseAsset.allowance.toBigInt();
+    baseAssetName = response.baseAsset.name;
+    baseAssetSymbol = response.baseAsset.symbol;
+    baseAssetWalletBalance = response.baseAsset.walletBalance.toBigInt();
+  }
+
   return {
     baseAsset: {
       address: response.baseAsset.baseAsset,
-      allowance: response.baseAsset.allowance.toBigInt(),
+      allowance: baseAssetAllowance,
       balance: response.baseAsset.balance.toBigInt(),
       balanceOfComet: response.baseAsset.balanceOfComet.toBigInt(),
       borrowCapacity: borrowCapacity,
       decimals: baseAssetDecimals,
-      name: response.baseAsset.name,
-      symbol: response.baseAsset.symbol,
+      name: baseAssetName,
+      symbol: baseAssetSymbol,
       minBorrow: response.baseAsset.minBorrow.toBigInt(),
       priceFeed: response.baseAsset.priceFeed,
       price: baseAssetPrice,
-      walletBalance: response.baseAsset.walletBalance.toBigInt()
+      walletBalance: baseAssetWalletBalance
     },
     borrowAPR: response.borrowAPR.toBigInt(),
     borrowRewardsAPR: 0n,

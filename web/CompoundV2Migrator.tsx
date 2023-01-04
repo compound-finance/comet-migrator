@@ -10,6 +10,7 @@ import CompoundV2Query from './helpers/Sleuth/out/CompoundV2Query.sol/CompoundV2
 import { cometQueryResponseToCometData } from './helpers/utils';
 
 import Migrator, { MigratorState } from './Migrator';
+import { getNativeTokenByNetwork } from './Network';
 import {
   AppProps,
   CompoundNetworkConfig,
@@ -146,7 +147,7 @@ export default function CompoundV2Migrator<N extends Network>({
           migratorEnabled: migratorEnabled.toBigInt() > 0n,
           borrowTokens,
           collateralTokens,
-          cometState: cometQueryResponseToCometData(cometState)
+          cometState: cometQueryResponseToCometData(cometState, getNativeTokenByNetwork(compoundNetworkConfig.network))
         };
       }}
       selectMigratorSource={selectMigratorSource}

@@ -214,6 +214,7 @@ contract CometQuery {
     uint bulkerAllowance;
     CollateralAssetWithAccountState[] collateralAssets;
     uint earnAPR;
+    uint nativeAssetWalletBalance;
     uint totalBorrow;
     uint totalBorrowPrincipal;
     uint totalSupply;
@@ -311,6 +312,7 @@ contract CometQuery {
         bulkerAllowance: comet.allowance(account, bulker),
         collateralAssets: tokens,
         earnAPR: response.earnAPR,
+        nativeAssetWalletBalance: account.balance,
         totalBorrow: response.totalBorrow,
         totalBorrowPrincipal: response.totalBorrowPrincipal,
         totalSupply: response.totalSupply,

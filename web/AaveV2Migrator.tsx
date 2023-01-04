@@ -10,6 +10,7 @@ import AaveV2Query from './helpers/Sleuth/out/AaveV2Query.sol/AaveV2Query.json';
 import { cometQueryResponseToCometData } from './helpers/utils';
 
 import Migrator, { MigratorState } from './Migrator';
+import { getNativeTokenByNetwork } from './Network';
 import {
   AaveNetworkConfig,
   AppProps,
@@ -199,7 +200,7 @@ export default function AaveV2Migrator<N extends Network>({
           migratorEnabled: migratorEnabled.toBigInt() > 0n,
           borrowTokens,
           collateralTokens,
-          cometState: cometQueryResponseToCometData(cometState)
+          cometState: cometQueryResponseToCometData(cometState, getNativeTokenByNetwork(aaveNetworkConfig.network))
         };
       }}
       selectMigratorSource={selectMigratorSource}

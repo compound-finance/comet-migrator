@@ -1,6 +1,9 @@
 import '../styles/main.scss';
 
-import { StateType as CometStateType, ProtocolAndAccountState } from '@compound-finance/comet-extension/dist/CometState';
+import {
+  StateType as CometStateType,
+  ProtocolAndAccountState
+} from '@compound-finance/comet-extension/dist/CometState';
 import { Contract } from '@ethersproject/contracts';
 import { JsonRpcProvider } from '@ethersproject/providers';
 import { AlphaRouter } from '@uniswap/smart-order-router';
@@ -275,7 +278,11 @@ export default function Migrator({
   ]);
 
   useAsyncEffect(async () => {
-    const { borrowTokens, collateralTokens, migratorEnabled, cometState } = await getMigrateData(web3, migrationSourceInfo, state);
+    const { borrowTokens, collateralTokens, migratorEnabled, cometState } = await getMigrateData(
+      web3,
+      migrationSourceInfo,
+      state
+    );
 
     dispatch({
       type: ActionType.SetAccountState,
@@ -299,6 +306,7 @@ export default function Migrator({
   });
   const tokensWithCollateralBalances = collateralTokens.filter(tokenState => {
     const v3CollateralAsset = cometData.collateralAssets.find(asset => asset.symbol === tokenState.underlying.symbol);
+
     return (
       (v3CollateralAsset !== undefined || tokenState.underlying.symbol === cometData.baseAsset.symbol) &&
       tokenState.balance > 0n
@@ -731,6 +739,7 @@ export default function Migrator({
                   onClick={() => {
                     setApproveModal({
                       asset: {
+                        decimals: tokenState.underlying.decimals,
                         name: tokenState.underlying.name,
                         symbol: tokenState.underlying.symbol
                       },
