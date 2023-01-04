@@ -1,7 +1,9 @@
 # Compiler files
 cache/
 out/
-!/web/**/out/
+!/web/**/out/AaveV2Query.sol/AaveV2Query.json
+!/web/**/out/CometQuery.sol/CometQuery.json
+!/web/**/out/CompoundV2Query.sol/CompoundV2Query.json
 
 # Ignores development broadcast logs
 !/broadcast
