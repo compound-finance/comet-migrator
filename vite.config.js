@@ -18,7 +18,7 @@ function fixBigIntIssue() {
         if (file) {
           let fullFile = join(resolve(dir), 'assets', file);
           let f = await readFile(fullFile, { encoding: 'utf8' });
-          await writeFile(fullFile, f.replaceAll(/[al]\.BigInt\(/g, 'A.BigInt('));
+          await writeFile(fullFile, f.replaceAll(/[Et]\.BigInt\(/g, 'S.BigInt('));
           console.log("Updated App file");
         } else {
           console.error("App file not found");
