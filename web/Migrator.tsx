@@ -1,7 +1,6 @@
 import '../styles/main.scss';
 
-import { CometState } from '@compound-finance/comet-extension';
-import { StateType as CometStateType } from '@compound-finance/comet-extension/dist/CometState';
+import { StateType as CometStateType, ProtocolAndAccountState } from '@compound-finance/comet-extension/dist/CometState';
 import { Contract } from '@ethersproject/contracts';
 import { JsonRpcProvider } from '@ethersproject/providers';
 import { AlphaRouter } from '@uniswap/smart-order-router';
@@ -51,7 +50,6 @@ import Dropdown from './components/Dropdown';
 
 type MigratorProps = AppProps & {
   account: string;
-  cometState: CometState;
   migrationSourceInfo: MigrationSourceInfo;
   getMigrateData: (
     web3: JsonRpcProvider,
@@ -61,6 +59,7 @@ type MigratorProps = AppProps & {
     migratorEnabled: boolean;
     borrowTokens: MigrateBorrowTokenState[];
     collateralTokens: MigrateCollateralTokenState[];
+    cometState: ProtocolAndAccountState;
   }>;
   selectMigratorSource: (source: MigrationSource) => void;
 };
@@ -70,6 +69,7 @@ export interface MigratorStateData {
   migratorEnabled: boolean;
   borrowTokens: MigrateBorrowTokenState[];
   collateralTokens: MigrateCollateralTokenState[];
+  cometState: ProtocolAndAccountState;
 }
 
 export type MigratorStateLoading = { type: StateType.Loading; data: { error: null | string } };
@@ -94,6 +94,7 @@ type ActionSetAccountState = {
     migratorEnabled: boolean;
     borrowTokens: MigrateBorrowTokenState[];
     collateralTokens: MigrateCollateralTokenState[];
+    cometState: ProtocolAndAccountState;
   };
 };
 type ActionSetError = {
@@ -249,7 +250,6 @@ const initialState: MigratorState = { type: StateType.Loading, data: { error: nu
 export default function Migrator({
   web3,
   account,
-  cometState,
   migrationSourceInfo,
   getMigrateData,
   selectMigratorSource
@@ -275,23 +275,24 @@ export default function Migrator({
   ]);
 
   useAsyncEffect(async () => {
-    const { borrowTokens, collateralTokens, migratorEnabled } = await getMigrateData(web3, migrationSourceInfo, state);
+    const { borrowTokens, collateralTokens, migratorEnabled, cometState } = await getMigrateData(web3, migrationSourceInfo, state);
 
     dispatch({
       type: ActionType.SetAccountState,
       payload: {
         borrowTokens,
         collateralTokens,
+        cometState,
         migratorEnabled
       }
     });
   }, [timer, tracker, account, networkConfig.network]);
 
-  if (state.type === StateType.Loading || cometState[0] !== CometStateType.Hydrated) {
+  if (state.type === StateType.Loading) {
     return <LoadingView migrationSource={migrationSource} selectMigratorSource={selectMigratorSource} />;
   }
-  const cometData = cometState[1];
   const { borrowTokens, collateralTokens, migratorEnabled } = state.data;
+  const cometData = state.data.cometState;
 
   const tokensWithBorrowBalances = borrowTokens.filter(tokenState => {
     return tokenState.borrowBalance > 0n && !!stableCoins.find(coin => coin === tokenState.underlying.symbol);
@@ -348,8 +349,6 @@ export default function Migrator({
       v3BorrowValue,
       stateType: state.type
     });
-  console.log('MIgrate Params', migrateParams);
-
   const quoteProvider = import.meta.env.VITE_BYPASS_MAINNET_RPC_URL
     ? new JsonRpcProvider(import.meta.env.VITE_BYPASS_MAINNET_RPC_URL)
     : web3;
@@ -643,14 +642,6 @@ export default function Migrator({
       let errorDescription: string | undefined;
       const disabled = tokenState.allowance === 0n;
       const collateralAsset = cometData.collateralAssets.find(asset => asset.symbol === tokenState.underlying.symbol);
-
-      if (tokenState.underlying.symbol === 'UNI') {
-        console.log(
-          tokenState.underlying.decimals,
-          tokenState.balanceUnderlying,
-          formatTokenBalance(tokenState.underlying.decimals, tokenState.balanceUnderlying, false)
-        );
-      }
 
       if (tokenState.transfer === 'max') {
         transfer = formatTokenBalance(tokenState.underlying.decimals, tokenState.balanceUnderlying, false);

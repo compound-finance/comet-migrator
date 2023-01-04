@@ -1,5 +1,6 @@
 import { RPC } from '@compound-finance/comet-extension';
 import { TransactionReceipt, JsonRpcProvider } from '@ethersproject/providers';
+import { BigNumber } from 'ethers';
 
 import mainnetV3Roots from '../node_modules/comet/deployments/mainnet/usdc/roots.json';
 import mainnetV2Roots from '../node_modules/compound-config/networks/mainnet.json';
@@ -185,3 +186,47 @@ export type SwapInfo = {
 export type MigrationSourceInfoAave = [MigrationSource.AaveV2, AaveNetworkConfig<Network>];
 export type MigrationSourceInfoCompound = [MigrationSource.CompoundV2, CompoundNetworkConfig<Network>];
 export type MigrationSourceInfo = MigrationSourceInfoAave | MigrationSourceInfoCompound;
+
+export type CometCollateralAsset = {
+  allowance: BigNumber;
+  balance: BigNumber;
+  collateralAsset: string;
+  collateralFactor: BigNumber;
+  decimals: BigNumber;
+  liquidateCollateralFactor: BigNumber;
+  liquidationFactor: BigNumber;
+  name: string;
+  price: BigNumber;
+  priceFeed: string;
+  supplyCap: BigNumber;
+  symbol: string;
+  totalSupply: BigNumber;
+  walletBalance: BigNumber;
+};
+export type CometQueryResponse = {
+  baseAsset: {
+    allowance: BigNumber;
+    baseAsset: string;
+    balance: BigNumber;
+    balanceOfComet: BigNumber;
+    symbol: string;
+    decimals: BigNumber;
+    minBorrow: BigNumber;
+    name: string;
+    price: BigNumber;
+    priceFeed: string;
+    walletBalance: BigNumber;
+  };
+  baseMinForRewards: BigNumber;
+  baseTrackingBorrowSpeed: BigNumber;
+  baseTrackingSupplySpeed: BigNumber;
+  borrowAPR: BigNumber;
+  bulkerAllowance: BigNumber;
+  collateralAssets: CometCollateralAsset[];
+  earnAPR: BigNumber;
+  totalBorrow: BigNumber;
+  totalBorrowPrincipal: BigNumber;
+  totalSupply: BigNumber;
+  totalSupplyPrincipal: BigNumber;
+  trackingIndexScale: BigNumber;
+};

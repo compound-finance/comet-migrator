@@ -1,4 +1,8 @@
-import { BaseAssetWithAccountState, ProtocolAndAccountState } from '@compound-finance/comet-extension/dist/CometState';
+import {
+  BaseAssetWithAccountState,
+  ProtocolAndAccountState,
+  TokenWithAccountState
+} from '@compound-finance/comet-extension/dist/CometState';
 import { Contract } from '@ethersproject/contracts';
 import { TransactionResponse } from '@ethersproject/providers';
 import { Protocol } from '@uniswap/router-sdk';
@@ -6,7 +10,14 @@ import { CurrencyAmount, Percent, Token, TradeType } from '@uniswap/sdk-core';
 import { AlphaRouter, SwapType, V3Route } from '@uniswap/smart-order-router';
 import { encodeRouteToPath } from '@uniswap/v3-sdk';
 
-import { MigrateBorrowTokenState, MigrateCollateralTokenState, MigrationSource, StateType, SwapInfo } from '../types';
+import {
+  CometQueryResponse,
+  MigrateBorrowTokenState,
+  MigrateCollateralTokenState,
+  MigrationSource,
+  StateType,
+  SwapInfo
+} from '../types';
 
 import {
   BASE_FACTOR,
@@ -106,6 +117,82 @@ export function migrationSourceToDisplayString(migrationSource: MigrationSource)
     case MigrationSource.CompoundV2:
       return 'Compound V2';
   }
+}
+
+const getCapacity = (
+  capacity: 'borrow' | 'liquidation',
+  baseAssetDecimals: number,
+  baseAssetPrice: bigint,
+  collateralAssets: TokenWithAccountState[]
+): bigint => {
+  const sum = collateralAssets.reduce(
+    (acc, { balance, collateralFactor, decimals, liquidateCollateralFactor, price }) => {
+      const dollarValue = (balance * price) / BigInt(10 ** decimals);
+      const factor = capacity === 'borrow' ? collateralFactor : liquidateCollateralFactor;
+      const borrowValue = (dollarValue * factor) / BASE_FACTOR;
+      return acc + borrowValue;
+    },
+    BigInt(0)
+  );
+
+  return (sum * BigInt(10 ** baseAssetDecimals)) / baseAssetPrice;
+};
+
+const getCollateralValue = (collateralAssets: TokenWithAccountState[]): bigint => {
+  return collateralAssets.reduce(
+    (acc, { balance, decimals, price }) => acc + (balance * price) / BigInt(10 ** decimals),
+    BigInt(0)
+  );
+};
+
+export function cometQueryResponseToCometData(response: CometQueryResponse): ProtocolAndAccountState {
+  const collateralAssets: TokenWithAccountState[] = response.collateralAssets.map(asset => {
+    return {
+      address: asset.collateralAsset,
+      allowance: asset.allowance.toBigInt(),
+      balance: asset.balance.toBigInt(),
+      collateralFactor: asset.collateralFactor.toBigInt(),
+      decimals: asset.decimals.toNumber(),
+      liquidateCollateralFactor: asset.liquidateCollateralFactor.toBigInt(),
+      liquidationFactor: asset.liquidationFactor.toBigInt(),
+      name: asset.name,
+      price: asset.price.toBigInt(),
+      priceFeed: asset.priceFeed,
+      symbol: asset.symbol,
+      supplyCap: asset.supplyCap.toBigInt(),
+      totalSupply: asset.totalSupply.toBigInt(),
+      walletBalance: asset.walletBalance.toBigInt()
+    };
+  });
+
+  const baseAssetDecimals = response.baseAsset.decimals.toNumber();
+  const baseAssetPrice = response.baseAsset.price.toBigInt();
+
+  const borrowCapacity = getCapacity('borrow', baseAssetDecimals, baseAssetPrice, collateralAssets);
+  return {
+    baseAsset: {
+      address: response.baseAsset.baseAsset,
+      allowance: response.baseAsset.allowance.toBigInt(),
+      balance: response.baseAsset.balance.toBigInt(),
+      balanceOfComet: response.baseAsset.balanceOfComet.toBigInt(),
+      borrowCapacity: borrowCapacity,
+      decimals: baseAssetDecimals,
+      name: response.baseAsset.name,
+      symbol: response.baseAsset.symbol,
+      minBorrow: response.baseAsset.minBorrow.toBigInt(),
+      priceFeed: response.baseAsset.priceFeed,
+      price: baseAssetPrice,
+      walletBalance: response.baseAsset.walletBalance.toBigInt()
+    },
+    borrowAPR: response.borrowAPR.toBigInt(),
+    borrowRewardsAPR: 0n,
+    bulkerAllowance: response.bulkerAllowance.toBigInt(),
+    collateralAssets,
+    earnAPR: response.earnAPR.toBigInt(),
+    earnRewardsAPR: 0n,
+    collateralValue: getCollateralValue(collateralAssets),
+    liquidationCapacity: getCapacity('liquidation', baseAssetDecimals, baseAssetPrice, collateralAssets)
+  };
 }
 
 type DataToFormatArgs = {
@@ -459,7 +546,7 @@ export function validateForm({
   }
 
   const collateral: Collateral[] = [];
-  for (let { address, balance, balanceUnderlying, underlying, transfer, exchangeRate } of collateralTokens) {
+  for (let { address, balanceUnderlying, underlying, transfer, exchangeRate } of collateralTokens) {
     const collateralAsset = cometData.collateralAssets.find(asset => asset.symbol === underlying.symbol);
     const isBaseAsset = underlying.symbol === cometData.baseAsset.symbol;
     const collateralKey = migrationSource === MigrationSource.AaveV2 ? ATokenKey : CTokenKey;

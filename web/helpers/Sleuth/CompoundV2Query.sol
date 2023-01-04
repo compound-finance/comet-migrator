@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.16;
 
+import './CometQuery.sol';
+
 interface CToken {
   function comptroller() external returns (Comptroller);
 
@@ -19,6 +21,8 @@ interface CToken {
   function borrowBalanceCurrent(address account) external returns (uint);
 
   function exchangeRateCurrent() external returns (uint);
+
+  function underlying() external returns (address);
 }
 
 interface Comptroller {
@@ -44,10 +48,10 @@ interface Comptroller {
 }
 
 interface PriceOracle {
-  function getUnderlyingPrice(CToken cToken) external view returns (uint);
+  function price(string memory price) external view returns (uint);
 }
 
-contract CompoundV2Query {
+contract CompoundV2Query is CometQuery {
   struct CTokenMetadata {
     address cToken;
     uint allowance;
@@ -59,28 +63,47 @@ contract CompoundV2Query {
     uint price;
   }
 
-  function query(
+  struct QueryResponse {
+    uint migratorEnabled;
+    CTokenMetadata[] tokens;
+    CometStateWithAccountState cometState;
+  }
+
+  struct CTokenRequest {
+    CToken cToken;
+    string priceOracleSymbol;
+  }
+
+  function getMigratorData(
     Comptroller comptroller,
-    CToken[] calldata cTokens,
+    Comet comet,
+    CTokenRequest[] calldata cTokens,
     address payable account,
     address payable spender
-  ) external returns (CTokenMetadata[] memory) {
+  ) external returns (QueryResponse memory) {
     PriceOracle priceOracle = comptroller.oracle();
     uint cTokenCount = cTokens.length;
-    CTokenMetadata[] memory res = new CTokenMetadata[](cTokenCount);
+    CTokenMetadata[] memory tokens = new CTokenMetadata[](cTokenCount);
     for (uint i = 0; i < cTokenCount; i++) {
-      res[i] = cTokenMetadata(comptroller, priceOracle, cTokens[i], account, spender);
+      tokens[i] = cTokenMetadata(comptroller, priceOracle, cTokens[i], account, spender);
     }
-    return res;
+
+    return
+      QueryResponse({
+        migratorEnabled: comet.allowance(account, spender),
+        tokens: tokens,
+        cometState: queryWithAccount(comet, account, payable(0))
+      });
   }
 
   function cTokenMetadata(
     Comptroller comptroller,
     PriceOracle priceOracle,
-    CToken cToken,
+    CTokenRequest memory cTokenRequest,
     address payable account,
     address payable spender
   ) public returns (CTokenMetadata memory) {
+    CToken cToken = cTokenRequest.cToken;
     (, uint collateralFactor) = comptroller.markets(address(cToken));
 
     return
@@ -92,7 +115,7 @@ contract CompoundV2Query {
         borrowBalance: cToken.borrowBalanceCurrent(account),
         collateralFactor: collateralFactor,
         exchangeRate: cToken.exchangeRateCurrent(),
-        price: priceOracle.getUnderlyingPrice(cToken)
+        price: priceOracle.price(cTokenRequest.priceOracleSymbol)
       });
   }
 }

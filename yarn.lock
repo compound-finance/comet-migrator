@@ -356,10 +356,10 @@
     "@ethersproject/abi" "^5.7.0"
     "@ethersproject/providers" "^5.7.1"
 
-"@compound-finance/sleuth@^1.0.1-alpha5":
-  version "1.0.1-alpha5"
-  resolved "https://registry.yarnpkg.com/@compound-finance/sleuth/-/sleuth-1.0.1-alpha5.tgz#3987066c0e0fdf9fdfce5449e5c6de59c20258ae"
-  integrity sha512-0oZymUHs3sYZemxa130Ip3rl23O6BIid9b9UBLyvtt3FSQGCIKckFmGRiQOOXxUQFZQYbC43EY7aKPbMygWCHg==
+"@compound-finance/sleuth@^1.0.1-alpha6":
+  version "1.0.1-alpha6"
+  resolved "https://registry.yarnpkg.com/@compound-finance/sleuth/-/sleuth-1.0.1-alpha6.tgz#3be7ee20f69ff1ea0c05e45debd9f57219476398"
+  integrity sha512-yHpsOKZcSaPwlWqWceNwTmvYkezAsD+uWlEgdViNweMECfIA8RtYYGE+gzr/wNZztqfRMP7Tdgreb8L7apdehw==
   dependencies:
     "@ethersproject/contracts" "^5.7.0"
     "@ethersproject/providers" "^5.7.2"
