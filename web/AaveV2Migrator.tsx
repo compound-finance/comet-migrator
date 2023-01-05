@@ -36,6 +36,7 @@ type AaveV2MigratorProps<N extends Network> = AppProps & {
 type ATokenRequest = {
   aToken: string;
   stableDebtToken: string;
+  underlying: string;
   variableDebtToken: string;
 };
 
@@ -86,6 +87,7 @@ export default function AaveV2Migrator<N extends Network>({
             return {
               aToken: atoken.aTokenAddress,
               stableDebtToken: atoken.stableDebtTokenAddress,
+              underlying: atoken.address,
               variableDebtToken: atoken.variableDebtTokenAddress
             };
           }),

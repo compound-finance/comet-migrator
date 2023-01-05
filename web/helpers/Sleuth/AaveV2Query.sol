@@ -62,6 +62,7 @@ contract AaveV2Query is CometQuery {
   struct ATokenRequest {
     AToken aToken;
     DebtToken stableDebtToken;
+    address underlying;
     DebtToken variableDebtToken;
   }
 
@@ -101,7 +102,7 @@ contract AaveV2Query is CometQuery {
     DebtToken stableDebtToken = aTokenRequest.stableDebtToken;
     DebtToken variableDebtToken = aTokenRequest.variableDebtToken;
 
-    LendingPool.ReserveConfigurationMap memory configuration = pool.getConfiguration(address(aToken));
+    LendingPool.ReserveConfigurationMap memory configuration = pool.getConfiguration(aTokenRequest.underlying);
 
     return
       ATokenMetadata({
@@ -111,9 +112,9 @@ contract AaveV2Query is CometQuery {
         allowance: aToken.allowance(account, spender),
         balance: aToken.balanceOf(account),
         stableDebtBalance: stableDebtToken.balanceOf(account),
-        variableDebtBalance: stableDebtToken.balanceOf(account),
+        variableDebtBalance: variableDebtToken.balanceOf(account),
         configuration: configuration.data,
-        priceInETH: priceOracle.getAssetPrice(address(aToken))
+        priceInETH: priceOracle.getAssetPrice(aTokenRequest.underlying)
       });
   }
 }
