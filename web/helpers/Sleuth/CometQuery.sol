@@ -148,7 +148,7 @@ contract CometQuery {
   struct BaseAssetWithAccountState {
     address baseAsset;
     uint allowance;
-    uint balance;
+    int balance;
     uint balanceOfComet;
     uint decimals;
     uint minBorrow;
@@ -284,7 +284,7 @@ contract CometQuery {
     BaseAssetWithAccountState memory baseAsset = BaseAssetWithAccountState({
       baseAsset: response.baseAsset.baseAsset,
       allowance: ERC20(response.baseAsset.baseAsset).allowance(account, address(comet)),
-      balance: baseAssetSupplyBalance - baseAssetBorrowBalance,
+      balance: int(baseAssetSupplyBalance) - int(baseAssetBorrowBalance),
       symbol: response.baseAsset.symbol,
       decimals: response.baseAsset.decimals,
       minBorrow: response.baseAsset.minBorrow,

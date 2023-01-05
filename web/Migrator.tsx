@@ -305,10 +305,13 @@ export default function Migrator({
     return tokenState.borrowBalance > 0n && !!stableCoins.find(coin => coin === tokenState.underlying.symbol);
   });
   const tokensWithCollateralBalances = collateralTokens.filter(tokenState => {
-    const v3CollateralAsset = cometData.collateralAssets.find(asset => asset.symbol === tokenState.underlying.symbol);
+    const v3CollateralAsset = cometData.collateralAssets.find(
+      asset => asset.address.toLowerCase() === tokenState.underlying.address.toLowerCase()
+    );
 
     return (
-      (v3CollateralAsset !== undefined || tokenState.underlying.symbol === cometData.baseAsset.symbol) &&
+      (v3CollateralAsset !== undefined ||
+        tokenState.underlying.address.toLowerCase() === cometData.baseAsset.address.toLowerCase()) &&
       tokenState.balance > 0n
     );
   });
