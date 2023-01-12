@@ -31,7 +31,7 @@ export default [
     aTokenSymbol: 'aWETH',
     stableDebtTokenAddress: '0x4e977830ba4bd783C0BB7F15d3e243f73FF57121',
     variableDebtTokenAddress: '0xF63B34710400CAd3e044cFfDcAb00a0f32E33eCf',
-    symbol: 'WETH',
+    symbol: 'ETH',
     address: '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2',
     decimals: 18
   },

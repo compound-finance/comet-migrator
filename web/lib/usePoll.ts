@@ -15,7 +15,7 @@ export function usePoll(timeout: number) {
     }
     loop(1, timeout);
     return () => clearTimeout(t);
-  }, []);
+  }, [timeout]);
 
   return timer;
 }

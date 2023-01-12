@@ -96,7 +96,7 @@ const SwapDropdown = ({ baseAsset, state, onRefetchClicked }: SwapDropdownProps)
     error = (
       <InputViewError
         title="Slippage for this swap is high."
-        description=" A swap of this size may have a high price impact, given the current liquidity in the pool. There may be a larger difference between the amount of your input token and what you will recieve in the output token."
+        description=" A swap of this size may have a high price impact, given the current liquidity in the pool. There may be a larger difference between the amount of your input token and what you will receive in the output token."
       />
     );
   }

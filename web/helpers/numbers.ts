@@ -82,8 +82,7 @@ export const formatRateFactor = (
 };
 
 export const getRiskLevelAndPercentage = (numerator: bigint, denominator: bigint): [MeterRiskLevel, number, string] => {
-  const percentage =
-    denominator === 0n ? 0 : Math.round(Number((numerator * 10_000n) / denominator) / 100);
+  const percentage = denominator === 0n ? 0 : Math.round(Number((numerator * 10_000n) / denominator) / 100);
   let riskLevel: MeterRiskLevel;
 
   if (percentage > 80) {

@@ -14,10 +14,12 @@
     "forge:lint": "solhint '{src,script,test}/**/*.sol'",
     "playground:mainnet": "script/playground.sh mainnet",
     "playground:v1": "script/playground.sh v1",
-    "playground:v2": "script/playground.sh v2"
+    "playground:v2": "script/playground.sh v2",
+    "sleuth": "forge build --via-ir --root web/helpers -c Sleuth -o Sleuth/out"
   },
   "dependencies": {
     "@compound-finance/comet-extension": "^0.0.5",
+    "@compound-finance/sleuth": "^1.0.1-alpha6",
     "@ethersproject/abi": "^5.6.2",
     "@ethersproject/bignumber": "^5.4.2",
     "@ethersproject/contracts": "^5.6.1",

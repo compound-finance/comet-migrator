@@ -10,7 +10,7 @@ case "$1" in
     export redeploy=false
     playground_script=script/PlaygroundV2.s.sol
 
-    if [ $(($fork_block < $v2_mainnet_deploy_block)) ]
+    if [ $(($fork_block+0)) -lt $(($v2_mainnet_deploy_block+0)) ]
     then
       echo "Fork block too early, overwriting with block number $v2_mainnet_deploy_block"
       fork_block=$v2_mainnet_deploy_block
