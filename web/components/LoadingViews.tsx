@@ -59,7 +59,7 @@ export const LoadingPosition = () => {
           <p className="meta text-color--2">
             <span className="placeholder-content" style={{ width: '27%' }}></span>
           </p>
-          <p className="body body--link">
+          <p className="body body--emphasized">
             <span className="placeholder-content" style={{ width: '45%' }}></span>
           </p>
         </div>
@@ -67,7 +67,7 @@ export const LoadingPosition = () => {
           <p className="meta text-color--2">
             <span className="placeholder-content" style={{ width: '30%' }}></span>
           </p>
-          <p className="body body--link">
+          <p className="body body--emphasized">
             <span className="placeholder-content" style={{ width: '60%' }}></span>
           </p>
         </div>
@@ -77,7 +77,7 @@ export const LoadingPosition = () => {
           <p className="meta text-color--2">
             <span className="placeholder-content" style={{ width: '33%' }}></span>
           </p>
-          <p className="body body--link">
+          <p className="body body--emphasized">
             <span className="placeholder-content" style={{ width: '55%' }}></span>
           </p>
         </div>
@@ -85,7 +85,7 @@ export const LoadingPosition = () => {
           <p className="meta text-color--2">
             <span className="placeholder-content" style={{ width: '22%' }}></span>
           </p>
-          <p className="body body--link">
+          <p className="body body--emphasized">
             <span className="placeholder-content" style={{ width: '50%' }}></span>
           </p>
         </div>
@@ -95,7 +95,7 @@ export const LoadingPosition = () => {
           <p className="meta text-color--2">
             <span className="placeholder-content" style={{ width: '25%' }}></span>
           </p>
-          <p className="body body--link">
+          <p className="body body--emphasized">
             <span className="placeholder-content" style={{ width: '55%' }}></span>
           </p>
         </div>

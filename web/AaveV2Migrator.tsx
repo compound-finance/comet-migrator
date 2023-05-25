@@ -1306,23 +1306,23 @@ export default function AaveV2Migrator<N extends Network>({
                 <div className="migrator__summary__section__row">
                   <div>
                     <p className="meta text-color--2">Collateral Value</p>
-                    <p className="body body--link">{displayV2CollateralValue}</p>
+                    <p className="body body--emphasized">{displayV2CollateralValue}</p>
                   </div>
                   <div>
                     <p className="meta text-color--2">Borrow Capacity</p>
-                    <p className="body body--link">{displayV2BorrowCapacity}</p>
+                    <p className="body body--emphasized">{displayV2BorrowCapacity}</p>
                   </div>
                 </div>
                 <div className="migrator__summary__section__row">
                   <div>
                     <p className="meta text-color--2">Available to Borrow</p>
-                    <p className="body body--link">{displayV2AvailableToBorrow}</p>
+                    <p className="body body--emphasized">{displayV2AvailableToBorrow}</p>
                   </div>
                 </div>
                 <div className="migrator__summary__section__row">
                   <div>
                     <p className="meta text-color--2">Liquidation Risk</p>
-                    <p className="body body--link">{`${v2RiskPercentage.toFixed(0)}%`}</p>
+                    <p className="body body--emphasized">{`${v2RiskPercentage.toFixed(0)}%`}</p>
                   </div>
                 </div>
                 <div className="meter">
@@ -1351,27 +1351,27 @@ export default function AaveV2Migrator<N extends Network>({
                 <div className="migrator__summary__section__row">
                   <div>
                     <p className="meta text-color--2">Collateral Value</p>
-                    <p className="body body--link">{displayV3CollateralValue}</p>
+                    <p className="body body--emphasized">{displayV3CollateralValue}</p>
                   </div>
                   <div>
                     <p className="meta text-color--2">Borrow Capacity</p>
-                    <p className="body body--link">{displayV3BorrowCapacity}</p>
+                    <p className="body body--emphasized">{displayV3BorrowCapacity}</p>
                   </div>
                 </div>
                 <div className="migrator__summary__section__row">
                   <div>
                     <p className="meta text-color--2">Available to Borrow</p>
-                    <p className="body body--link">{displayV3AvailableToBorrow}</p>
+                    <p className="body body--emphasized">{displayV3AvailableToBorrow}</p>
                   </div>
                   <div>
                     <p className="meta text-color--2">Liquidation Point</p>
-                    <p className="body body--link">{displayV3LiquidationPoint}</p>
+                    <p className="body body--emphasized">{displayV3LiquidationPoint}</p>
                   </div>
                 </div>
                 <div className="migrator__summary__section__row">
                   <div>
                     <p className="meta text-color--2">Liquidation Risk</p>
-                    <p className="body body--link">{`${v3RiskPercentage.toFixed(0)}%`}</p>
+                    <p className="body body--emphasized">{`${v3RiskPercentage.toFixed(0)}%`}</p>
                   </div>
                 </div>
                 <div className="meter">
