@@ -2289,9 +2289,9 @@ commander@2.18.0:
   version "0.0.0"
   resolved "https://github.com/compound-finance/compound-config.git#0815f079ebe6c7421361b3334f7b8eaab50722b0"
 
-"compound-styles@https://github.com/compound-finance/compound-styles.git#fc29b8a832c698920f2fcf7a06d978c4580a48e1":
+"compound-styles@https://github.com/compound-finance/compound-styles.git#c2baaa9d027c0c2e1453b16d7bbc1f670f32f176":
   version "0.0.1"
-  resolved "https://github.com/compound-finance/compound-styles.git#fc29b8a832c698920f2fcf7a06d978c4580a48e1"
+  resolved "https://github.com/compound-finance/compound-styles.git#c2baaa9d027c0c2e1453b16d7bbc1f670f32f176"
 
 concat-map@0.0.1:
   version "0.0.1"
